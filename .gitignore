@@ -416,7 +416,9 @@ Migrations/*.cs
 
 # JetBrains Rider
 *.sln.iml
-=======
+
 ################################################################################
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
+
+/SAMS/SAMS.sln

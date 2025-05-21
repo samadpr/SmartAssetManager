@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SAMS")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3d76f9d47de96f2daff357fbf1ea63f4325a0169")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9fa00dc615f3323e2fa58fdaf7da730c54e95dd0")]
 [assembly: System.Reflection.AssemblyProductAttribute("SAMS")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SAMS")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
