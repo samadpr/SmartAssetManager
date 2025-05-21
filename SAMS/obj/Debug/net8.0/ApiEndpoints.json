@@ -1,0 +1,54 @@
+[
+  {
+    "ContainingType": "SAMS.API.Account.AccountController",
+    "Method": "Login",
+    "RelativePath": "sams/api/v1/account/login",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "loginRequest",
+        "Type": "SAMS.API.Account.RequestObject.LoginRequestObject",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SAMS.API.Account.AccountController",
+    "Method": "Logout",
+    "RelativePath": "sams/api/v1/account/logout",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SAMS.API.Account.UserProfileController",
+    "Method": "GetProfileDetails",
+    "RelativePath": "sams/api/v1/account/profile",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SAMS.API.Account.AccountController",
+    "Method": "Register",
+    "RelativePath": "sams/api/v1/account/register",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "registerRequest",
+        "Type": "SAMS.API.Account.RequestObject.RegisterRequestObject",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  }
+]
