@@ -1,5 +1,15 @@
 [
   {
+    "ContainingType": "SAMS.API.UserProfile.UserProfileController",
+    "Method": "GetProfileDetails",
+    "RelativePath": "sams/api/v1/account/get-profile-details",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "SAMS.API.Account.AccountController",
     "Method": "Login",
     "RelativePath": "sams/api/v1/account/login",
@@ -26,16 +36,6 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "SAMS.API.Account.UserProfileController",
-    "Method": "GetProfileDetails",
-    "RelativePath": "sams/api/v1/account/profile",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
     "ContainingType": "SAMS.API.Account.AccountController",
     "Method": "Register",
     "RelativePath": "sams/api/v1/account/register",
@@ -46,6 +46,90 @@
       {
         "Name": "registerRequest",
         "Type": "SAMS.API.Account.RequestObject.RegisterRequestObject",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SAMS.API.UserProfile.UserProfileController",
+    "Method": "UpdateProfile",
+    "RelativePath": "sams/api/v1/account/update-profile",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "SAMS.API.UserProfileAPIs.RequestObject.UpdateUPRequestObject",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SAMS.API.DesignationAPIs.DesignationController",
+    "Method": "CreateDesignation",
+    "RelativePath": "sams/api/v1/designation/create-designation",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "requestObject",
+        "Type": "SAMS.API.DesignationAPIs.RequestObject.DesignationRequestObject",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SAMS.API.DesignationAPIs.DesignationController",
+    "Method": "DeleteDesignation",
+    "RelativePath": "sams/api/v1/designation/delete-designation",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SAMS.API.DesignationAPIs.DesignationController",
+    "Method": "GetAllDesignation",
+    "RelativePath": "sams/api/v1/designation/get-all-designations",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SAMS.API.DesignationAPIs.DesignationController",
+    "Method": "GetMyDesignation",
+    "RelativePath": "sams/api/v1/designation/get-my-designations",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SAMS.API.DesignationAPIs.DesignationController",
+    "Method": "UpdateDesignation",
+    "RelativePath": "sams/api/v1/designation/update-designation",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "requestObject",
+        "Type": "SAMS.API.DesignationAPIs.RequestObject.DesignationRequestObject",
         "IsRequired": true
       }
     ],

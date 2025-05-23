@@ -64,11 +64,11 @@ namespace SAMS.Services.Functional
                         ModifiedDate = DateTime.Now,
                         CreatedBy = "Admin",
                         ModifiedBy = "Admin",
-                        IsAllowed = role.Id == 1 ||
-                                    (role.Id == 2 &&
-                                        (item.RoleName == "User Profile" ||
-                                         item.RoleName == "Leave MGS" ||
-                                         item.RoleName == "Dashboard"))
+                        IsAllowed = role.Id == 1 || role.Id == 2
+                        //(role.Id == 2 &&
+                        //    (item.RoleName == "User Profile" ||
+                        //     item.RoleName == "Leave MGS" ||
+                        //     item.RoleName == "Dashboard"))
                     };
 
                     await _functionalRepo.AddManageUserRoleDetailsAsync(details);
