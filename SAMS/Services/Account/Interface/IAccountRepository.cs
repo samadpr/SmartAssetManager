@@ -1,6 +1,5 @@
 ﻿using SAMS.API.Account.RequestObject;
 using SAMS.Models;
-using SAMS.Services.Account.DTOs;
 
 namespace SAMS.Services.Account.Interface
 {

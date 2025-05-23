@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SAMS.API.Account.RequestObject;
+using SAMS.Models;
 using SAMS.Services.Account.DTOs;
 
 namespace SAMS.Services.Account.Interface
@@ -11,5 +12,6 @@ namespace SAMS.Services.Account.Interface
         Task<LoginResponseDto> LoginAsync(LoginRequestDto loginRequestDto);
 
         Task<bool> LogoutAsync();
+
     }
 }

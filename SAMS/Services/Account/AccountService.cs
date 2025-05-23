@@ -18,7 +18,7 @@ namespace SAMS.Services.Account
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly ILogger<AccountRepository> _logger;
+        private readonly ILogger<AccountService> _logger;
         private readonly ICommonService _commonService;
         private readonly IConfiguration _configuration;
         private readonly IRolesService _roleService;
@@ -27,7 +27,7 @@ namespace SAMS.Services.Account
                                  UserManager<ApplicationUser> userManager,
                                  SignInManager<ApplicationUser> signInManager,
                                  RoleManager<IdentityRole> roleManager,
-                                 ILogger<AccountRepository> logger,
+                                 ILogger<AccountService> logger,
                                  ICommonService commonService,
                                  IConfiguration configuration,
                                  IRolesService roleService)
@@ -125,10 +125,10 @@ namespace SAMS.Services.Account
                 _logger.LogInformation("User created a new account with password.");
 
                 // Assign default roles
-                await _userManager.AddToRoleAsync(user, RoleModels.Dashboard);
-                await _userManager.AddToRoleAsync(user, RoleModels.UserProfile);
-                //await _roleService.AddToRolesAsync(user);
-                //_logger.LogInformation("User assigned default roles.");
+                //await _userManager.AddToRoleAsync(user, RoleModels.Dashboard);
+                //await _userManager.AddToRoleAsync(user, RoleModels.UserProfile);
+                await _roleService.AddToRolesAsync(user);
+                _logger.LogInformation("User assigned default roles.");
 
                 // Insert Login History
                 LoginHistory loginHistory = new LoginHistory
