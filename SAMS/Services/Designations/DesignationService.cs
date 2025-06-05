@@ -30,7 +30,8 @@ namespace SAMS.Services.DesignationServices
                 entity.CreatedBy = createdBy;
                 entity.ModifiedBy = createdBy;
 
-                var result = await _repository.AddAsync(entity);
+                var result = await _repository.AddAsync(entity, createdBy);
+                if (result == null) return null!;
                 return _mapper.Map<DesignationDto>(result);
             }
             catch (Exception ex)
@@ -42,12 +43,12 @@ namespace SAMS.Services.DesignationServices
         }
 
 
-        public async Task<IEnumerable<DesignationDto>> GetUserDesignationsAsync(string email)
+        public async Task<IEnumerable<Designation>> GetUserDesignationsAsync(string email)
         {
             try
             {
                 var designations = await _repository.GetDesignationsCreatedByAsync(email);
-                return _mapper.Map<IEnumerable<DesignationDto>>(designations);
+                return designations;
             }
             catch (Exception ex)
             {
@@ -84,6 +85,7 @@ namespace SAMS.Services.DesignationServices
             try
             {
                 var _Designation = await _repository.GetByIdAsync(id);
+                if (_Designation == null) return false;
                 _Designation.ModifiedDate = DateTime.Now;
                 _Designation.ModifiedBy = modifiedBy;
                 _Designation.Cancelled = true;
@@ -98,17 +100,35 @@ namespace SAMS.Services.DesignationServices
             }
         }
 
-        public async Task<IEnumerable<DesignationDto>> GetDesignationAsync()
+        public async Task<IEnumerable<Designation>> GetDesignationAsync()
         {
             try
             {
                 var designation = await _repository.GetAllAsync();
-                return _mapper.Map<IEnumerable<DesignationDto>>(designation);
+                return designation;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while retrieving the designation.");
                 throw new Exception("An error occurred while retrieving the designation.", ex);
+            }
+        }
+
+        public async Task<Designation?> GetDesignationByIdAsync(int id, string email)
+        {
+            try
+            {
+                var designation = await _repository.GetByIdAsync(id);
+                if (designation.CreatedBy == email)
+                {
+                    return designation;
+                }
+                return null;
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving the designation by id.");
+                throw new Exception("An error occurred while retrieving the designation by id.", ex);
             }
         }
     }

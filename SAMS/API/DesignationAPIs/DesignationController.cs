@@ -9,6 +9,7 @@ using SAMS.Models;
 using SAMS.Services.DesignationServices.DTOs;
 using SAMS.Services.DesignationServices.Interface;
 using SAMS.Services.Roles.PagesModel;
+using StackExchange.Redis;
 
 namespace SAMS.API.DesignationAPIs
 {
@@ -29,21 +30,23 @@ namespace SAMS.API.DesignationAPIs
             _signInManager = signInManager;
         }
 
-        [HttpPost("designation/create-designation")]
         [Authorize(Roles = RoleModels.Designation)]
-        public async Task<IActionResult> CreateDesignation([FromBody] DesignationRequestObject requestObject)
+        [HttpPost("designation/create-designation")]
+        public async Task<IActionResult> CreateDesignation([FromBody] DesignationRequest requestObject)
         {
             if (requestObject == null)
                 return BadRequest("Request Object is null");
             var user = await _userManager.GetUserAsync(_signInManager.Context.User!);
             var designationDto = _mapper.Map<DesignationDto>(requestObject);
             var result = await _designationService.AddDesignationAsync(designationDto, user.Email);
+            if (result == null)
+                return BadRequest($"Designation already exists with name: {designationDto.Name}");
             return Ok(result);
         }
 
-        [HttpPut("designation/update-designation")]
         [Authorize(Roles = RoleModels.Designation)]
-        public async Task<IActionResult> UpdateDesignation([FromBody] DesignationRequestObject requestObject)
+        [HttpPut("designation/update-designation")]
+        public async Task<IActionResult> UpdateDesignation([FromBody] DesignationRequest requestObject)
         {
             if(requestObject == null)
                 return BadRequest("Request Object is null");
@@ -56,8 +59,8 @@ namespace SAMS.API.DesignationAPIs
             return Ok(result);
         }
 
-        [HttpGet("designation/get-my-designations")]
         [Authorize(Roles = RoleModels.Designation)]
+        [HttpGet("designation/get-my-designations")]
         public async Task<IActionResult> GetMyDesignation()
         {
             var user = await _userManager.GetUserAsync(_signInManager.Context.User!);
@@ -67,18 +70,36 @@ namespace SAMS.API.DesignationAPIs
             return Ok(result);
         }
 
+        [Authorize(Roles = RoleModels.SuperAdmin)]
         [HttpGet("designation/get-all-designations")]
-        [Authorize(Roles = RoleModels.Designation)]
         public async Task<IActionResult> GetAllDesignation()
         {
-            var result = await _designationService.GetDesignationAsync();
+            if (User.IsInRole(RoleModels.Designation) && User.IsInRole(RoleModels.SuperAdmin))
+            {
+                var result = await _designationService.GetDesignationAsync();
+                if (result == null)
+                    return NotFound($"No designation found");
+                return Ok(result);
+            }
+            else
+                return Forbid("You have no authorized to access this API.");
+        }
+
+        [Authorize(Roles = RoleModels.Designation)]
+        [HttpGet("designation/get-designation-by-id")]
+        public async Task<IActionResult> GetDesignationById(int id)
+        {
+            if (id <= 0 || id == null)
+                return BadRequest("Invalid ID");
+            var user = await _userManager.GetUserAsync(_signInManager.Context.User!);
+            var result = await _designationService.GetDesignationByIdAsync(id, user.Email);
             if (result == null)
-                return NotFound($"No designation found");
+                return NotFound($"No designation found with ID: {id} or you have no authorized to access this API with this Email.");
             return Ok(result);
         }
 
-        [HttpDelete("designation/delete-designation")]
         [Authorize(Roles = RoleModels.Designation)]
+        [HttpDelete("designation/delete-designation")]
         public async Task<IActionResult> DeleteDesignation(int id)
         {
             if (id <= 0 || id == null)

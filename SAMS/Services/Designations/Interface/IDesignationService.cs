@@ -1,4 +1,5 @@
-﻿using SAMS.Services.DesignationServices.DTOs;
+﻿using SAMS.Models;
+using SAMS.Services.DesignationServices.DTOs;
 
 namespace SAMS.Services.DesignationServices.Interface
 {
@@ -8,10 +9,12 @@ namespace SAMS.Services.DesignationServices.Interface
 
         Task<DesignationDto?> UpdateDesignationAsync(DesignationDto dto, string modifiedBy);
 
-        Task<IEnumerable<DesignationDto>> GetDesignationAsync();
+        Task<IEnumerable<Designation>> GetDesignationAsync();
 
         Task<bool> DeleteDesignationAsync(int id, string modifiedBy);
 
-        Task<IEnumerable<DesignationDto>> GetUserDesignationsAsync(string email);
+        Task<IEnumerable<Designation>> GetUserDesignationsAsync(string email);
+
+        Task<Designation?> GetDesignationByIdAsync(int id, string email);
     }
 }

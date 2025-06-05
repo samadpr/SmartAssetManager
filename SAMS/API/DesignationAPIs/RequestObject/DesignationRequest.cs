@@ -1,6 +1,6 @@
 ﻿namespace SAMS.API.DesignationAPIs.RequestObject
 {
-    public class DesignationRequestObject
+    public class DesignationRequest
     {
         public long Id { get; set; }
 

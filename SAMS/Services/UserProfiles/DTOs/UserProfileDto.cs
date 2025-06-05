@@ -1,7 +1,16 @@
-﻿namespace SAMS.API.UserProfileAPIs.RequestObject
+﻿using SAMS.Helpers;
+using SAMS.Models;
+
+namespace SAMS.Services.UserProfiles.DTOs
 {
-    public class UpdateUPRequestObject
+    public class UserProfileDto : EntityBase
     {
+        public long UserProfileId { get; set; }
+
+        public string? EmployeeId { get; set; }
+
+        public string? ApplicationUserId { get; set; }
+
         public string? FirstName { get; set; }
 
         public string? LastName { get; set; }

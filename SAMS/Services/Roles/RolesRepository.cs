@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SAMS.Models;
+using SAMS.Services.ManageUserRoles.DTOs;
 using SAMS.Services.Roles.Interface;
 
 namespace SAMS.Services.Roles

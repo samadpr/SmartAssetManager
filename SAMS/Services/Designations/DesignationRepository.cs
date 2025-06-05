@@ -14,8 +14,11 @@ namespace SAMS.Services.DesignationServices
             _context = context;
         }
 
-        public async Task<Designation> AddAsync(Designation designation)
+        public async Task<Designation> AddAsync(Designation designation, string createdByEmail)
         {
+            var existingDesignation = await _context.Designation.FirstOrDefaultAsync(d => d.Name == designation.Name && d.CreatedBy == createdByEmail && !d.Cancelled);
+            if (existingDesignation != null)
+                return null!;
             _context.Designation.Add(designation);
             await _context.SaveChangesAsync();
             return designation;
@@ -29,15 +32,15 @@ namespace SAMS.Services.DesignationServices
         }
 
         public async Task<Designation?> GetByIdAsync(long id) =>
-        await _context.Designation.FindAsync(id);
+        await _context.Designation.Where(d => d.Id == id && !d.Cancelled).FirstOrDefaultAsync();
 
         public async Task<IEnumerable<Designation>> GetAllAsync() =>
-        await _context.Designation.ToListAsync();
+        await _context.Designation.Where(d => !d.Cancelled).ToListAsync();
 
         public async Task<IEnumerable<Designation>> GetDesignationsCreatedByAsync(string createdByEmail)
         {
             return await _context.Designation
-                .Where(d => d.CreatedBy == createdByEmail && d.Cancelled == false)
+                .Where(d => d.CreatedBy == createdByEmail && !d.Cancelled)
                 .ToListAsync();
         }
     }

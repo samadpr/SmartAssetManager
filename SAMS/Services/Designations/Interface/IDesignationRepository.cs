@@ -4,7 +4,7 @@ namespace SAMS.Services.DesignationServices.Interface
 {
     public interface IDesignationRepository
     {
-        Task<Designation> AddAsync(Designation designation);
+        Task<Designation> AddAsync(Designation designation, string createdByEmail);
 
         Task<Designation> UpdateAsync(Designation designation);
 
