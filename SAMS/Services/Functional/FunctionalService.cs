@@ -64,7 +64,7 @@ namespace SAMS.Services.Functional
                         ModifiedDate = DateTime.Now,
                         CreatedBy = "Admin",
                         ModifiedBy = "Admin",
-                        IsAllowed = role.Id == 1 || role.Id == 2
+                        IsAllowed = role.Id == 1 || role.Id == 2 && item.RoleName != "Super Admin"
                         //(role.Id == 2 &&
                         //    (item.RoleName == "User Profile" ||
                         //     item.RoleName == "Leave MGS" ||
@@ -104,7 +104,7 @@ namespace SAMS.Services.Functional
                         Location = null,
                         Site = null,
                         IsApprover = 1,
-                        EmployeeId = StaticData.RandomDigits(6),
+                        EmployeeId = "SA-" + StaticData.RandomDigits(6),
                         DateOfBirth = DateTime.Now.AddYears(-22),
                         JoiningDate = DateTime.Now.AddYears(-1),
                         LeavingDate = null,

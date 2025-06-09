@@ -1,4 +1,5 @@
 ﻿using SAMS.Models;
+using SAMS.Services.ManageUserRoles.DTOs;
 
 namespace SAMS.Services.Roles.Interface
 {
@@ -11,5 +12,6 @@ namespace SAMS.Services.Roles.Interface
         Task CreateRoleAsync(string roleName);
 
         Task<List<string>> GetAllRoleNamesAsync();
+
     }
 }

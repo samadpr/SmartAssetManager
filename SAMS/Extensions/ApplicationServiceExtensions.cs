@@ -11,6 +11,8 @@ using SAMS.Services.DesignationServices;
 using SAMS.Services.DesignationServices.Interface;
 using SAMS.Services.Functional;
 using SAMS.Services.Functional.Interface;
+using SAMS.Services.ManageUserRoles;
+using SAMS.Services.ManageUserRoles.Interface;
 using SAMS.Services.Profile;
 using SAMS.Services.Profile.Interface;
 using SAMS.Services.Roles;
@@ -58,6 +60,9 @@ namespace SAMS.Extensions
 
             services.AddScoped<IDesignationService, DesignationService>();
             services.AddScoped<IDesignationRepository, DesignationRepository>();
+
+            services.AddScoped<IManageUserRolesService, ManageUserRolesService>();
+            services.AddScoped<IManageUserRolesRepository, ManageUserRolesRepository>();
 
             return services;
         }

@@ -115,6 +115,7 @@ namespace SAMS.Services.Account
                     Country = requestDto.Country,
                     ProfilePicture = "",
                     RoleId = 2,
+                    EmployeeId = "GA-" + StaticData.RandomDigits(6),
                     CreatedDate = DateTime.Now,
                     ModifiedDate = DateTime.Now,
                     CreatedBy = "Admin",
