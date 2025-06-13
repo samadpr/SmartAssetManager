@@ -10,5 +10,7 @@ namespace SAMS.Services.Roles.Interface
         Task AddToRolesAsync(ApplicationUser user);
 
         Task<(bool isSuccess, string message)> UpdateUserRoles(ManageUserRolesDto updatedRoles);
+
+        Task<IEnumerable<UserProfile>> GetUsersUsedByRoleIdAsync(long roleId, List<string> users);
     }
 }

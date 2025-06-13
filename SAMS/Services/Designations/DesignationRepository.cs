@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SAMS.Data;
 using SAMS.Models;
+using SAMS.Services.DesignationServices.DTOs;
 using SAMS.Services.DesignationServices.Interface;
 
 namespace SAMS.Services.DesignationServices
@@ -42,6 +43,20 @@ namespace SAMS.Services.DesignationServices
             return await _context.Designation
                 .Where(d => d.CreatedBy == createdByEmail && !d.Cancelled)
                 .ToListAsync();
+        }
+
+        public async Task<List<Designation>> GetDesignationsForUserAsync(List<string> emails)
+        {
+            var designations = await _context.Designation
+                .Where(d => emails.Contains(d.CreatedBy) && !d.Cancelled)
+                .OrderByDescending(d => d.CreatedDate)
+                .ToListAsync();
+            if (designations == null || !designations.Any())
+            {
+                return new List<Designation>();
+            }
+            return designations;
+
         }
     }
 }

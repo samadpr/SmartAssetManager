@@ -18,14 +18,9 @@ public class UserProfileRepository : IUserProfileRepository
 
     public async Task<UserProfile> GetProfileDetails(string userEmail)
     {
-        var user = await _context.UserProfiles.FirstOrDefaultAsync(u => u.Email == userEmail);
+        var user = await _context.UserProfiles.FirstOrDefaultAsync(u => u.Email == userEmail && !u.Cancelled);
         if(user == null) return null!;
         return user!;
-    }
-
-    public async Task<IEnumerable<UserProfile>> GetUsersUsedByRoleIdAsync(long roleId)
-    {
-        return await _context.UserProfiles.Where(u => u.RoleId == roleId && !u.Cancelled).ToListAsync();
     }
 
     public async Task<bool> UpdateProfileAsync(UserProfile user)
@@ -34,9 +29,9 @@ public class UserProfileRepository : IUserProfileRepository
         return await _context.SaveChangesAsync() > 0;
     }
 
-    public Task<int> GetCreatedUsersCount(string createdBy)
+    public async Task<int> GetCreatedUsersCount(List<string> emails)
     {
-        return _context.UserProfiles.CountAsync(u => u.CreatedBy == createdBy && !u.Cancelled);
+        return await _context.UserProfiles.CountAsync(u => emails.Contains(u.CreatedBy) && !u.Cancelled);
     }
 
     public Task<(bool isSuccess, string message)> CreateUserProfileAsync(UserProfile userProfile)
@@ -53,14 +48,14 @@ public class UserProfileRepository : IUserProfileRepository
         }
     }
 
-    public async Task<IEnumerable<UserProfile>> GetCreatedUsersProfile(string createdBy)
+    public async Task<IEnumerable<UserProfile>> GetCreatedUsersProfile(List<string> emails)
     {
-        return await _context.UserProfiles.Where(u => u.CreatedBy == createdBy && !u.Cancelled).ToListAsync();
+        return await _context.UserProfiles.AsNoTracking().Where(u => emails.Contains(u.CreatedBy) && !u.Cancelled).OrderByDescending(d => d.CreatedDate).ToListAsync();
     }
 
-    public async Task<(UserProfile user, string message)> GetUserProfileByProfileId(long profileId, string createdBy)
+    public async Task<(UserProfile user, string message)> GetUserProfileByProfileId(long profileId, List<string> emails)
     {
-        var user = await _context.UserProfiles.FirstOrDefaultAsync(u => u.UserProfileId == profileId && u.CreatedBy == createdBy && !u.Cancelled);
+        var user = await _context.UserProfiles.FirstOrDefaultAsync(u => u.UserProfileId == profileId && emails.Contains(u.CreatedBy) && !u.Cancelled);
 
         return (user!, user != null ? "User profile found." : "User profile not found.");
     }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using SAMS.Data;
 using SAMS.Models;
 using SAMS.Services.ManageUserRoles.DTOs;
 using SAMS.Services.Roles.Interface;
@@ -9,10 +10,12 @@ namespace SAMS.Services.Roles
     public class RolesRepository : IRolesRepository
     {
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ApplicationDbContext _context;
 
-        public RolesRepository(RoleManager<IdentityRole> roleManager)
+        public RolesRepository(RoleManager<IdentityRole> roleManager, ApplicationDbContext context)
         {
             _roleManager = roleManager;
+            _context = context;
         }
 
         public async Task<bool> RoleExistsAsync(string roleName)
@@ -27,7 +30,10 @@ namespace SAMS.Services.Roles
 
         public async Task<List<string>> GetAllRoleNamesAsync()
         {
-            return await Task.FromResult(_roleManager.Roles.Select(r => r.Name).ToList());
+            var roles = await Task.FromResult(_roleManager.Roles.Select(r => r.Name).ToList());
+            if (roles is null)
+                return null!;
+            return roles!;
         }
 
         public async Task<List<ManageUserRolesDetail>> GetRoleListAsync()
@@ -39,6 +45,12 @@ namespace SAMS.Services.Roles
                 RoleName = role.Name,
                 IsAllowed = false
             }).OrderBy(x => x.RoleName).ToList();
+        }
+
+
+        public async Task<IEnumerable<UserProfile>> GetUsersUsedByRoleIdAsync(long roleId, List<string> emails)
+        {
+            return await _context.UserProfiles.Where(u => u.RoleId == roleId && emails.Contains(u.Email!) && !u.Cancelled).ToListAsync();
         }
     }
 }

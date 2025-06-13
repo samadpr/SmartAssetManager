@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
 using SAMS.Models;
+using SAMS.Services.Common.Interface;
 using SAMS.Services.DesignationServices.DTOs;
 using SAMS.Services.DesignationServices.Interface;
 
@@ -12,12 +13,14 @@ namespace SAMS.Services.DesignationServices
         private readonly IDesignationRepository _repository;
         private readonly IMapper _mapper;
         private readonly ILogger<DesignationService> _logger;
+        private readonly ICommonService _commonService;
 
-        public DesignationService(IDesignationRepository repository, IMapper mapper, ILogger<DesignationService> logger)
+        public DesignationService(IDesignationRepository repository, IMapper mapper, ILogger<DesignationService> logger, ICommonService commonService)
         {
             _repository = repository;
             _mapper = mapper;
             _logger = logger;
+            _commonService = commonService;
         }
 
         public async Task<DesignationDto> AddDesignationAsync(DesignationDto dto, string createdBy)
@@ -100,7 +103,7 @@ namespace SAMS.Services.DesignationServices
             }
         }
 
-        public async Task<IEnumerable<Designation>> GetDesignationAsync()
+        public async Task<IEnumerable<Designation>> GetAllDesignationAsync()
         {
             try
             {
@@ -118,8 +121,10 @@ namespace SAMS.Services.DesignationServices
         {
             try
             {
+                var emails = await _commonService.GetEmailsUnderAdminAsync(email);
+
                 var designation = await _repository.GetByIdAsync(id);
-                if (designation.CreatedBy == email)
+                if (emails.Contains(designation.CreatedBy))
                 {
                     return designation;
                 }
@@ -130,6 +135,15 @@ namespace SAMS.Services.DesignationServices
                 _logger.LogError(ex, "An error occurred while retrieving the designation by id.");
                 throw new Exception("An error occurred while retrieving the designation by id.", ex);
             }
+        }
+
+        public async Task<List<Designation>> GetDesignationAsync(string targetUserEmail)
+        {
+            var emails = await _commonService.GetEmailsUnderAdminAsync(targetUserEmail);
+
+            var designations = await _repository.GetDesignationsForUserAsync(emails.ToList());
+
+            return designations;
         }
     }
 }

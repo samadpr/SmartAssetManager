@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using SAMS.API.UserProfileAPIs.RequestObject;
 using SAMS.Helpers;
 using SAMS.Models;
 using SAMS.Services.Account;
+using SAMS.Services.Common.Interface;
 using SAMS.Services.ManageUserRoles.DTOs;
 using SAMS.Services.ManageUserRoles.Interface;
 using SAMS.Services.Profile.Interface;
@@ -21,6 +23,7 @@ public class UserProfileService : IUserProfileService
     private readonly IMapper _mapper;
     private readonly IManageUserRolesService _manageUserRolesService;
     private readonly IRolesService _rolesService;
+    private readonly ICommonService _commonService;
 
     public UserProfileService(IUserProfileRepository userProfileRepository, 
                                 ILogger<AccountRepository> logger,
@@ -28,7 +31,8 @@ public class UserProfileService : IUserProfileService
                                 SignInManager<ApplicationUser> signInManager,
                                 IMapper mapper,
                                 IManageUserRolesService manageUserRolesService,
-                                IRolesService rolesService)
+                                IRolesService rolesService,
+                                ICommonService commonService)
     {
         _userProfileRepository = userProfileRepository;
         _logger = logger;
@@ -37,6 +41,7 @@ public class UserProfileService : IUserProfileService
         _mapper = mapper;
         _manageUserRolesService = manageUserRolesService;
         _rolesService = rolesService;
+        _commonService = commonService;
     }
 
 
@@ -89,7 +94,9 @@ public class UserProfileService : IUserProfileService
     {
         try
         {
-            int createdUsersCount = Convert.ToInt32(await _userProfileRepository.GetCreatedUsersCount(createdby));
+            var emails = await _commonService.GetEmailsUnderAdminAsync(createdby);
+
+            int createdUsersCount = Convert.ToInt32(await _userProfileRepository.GetCreatedUsersCount(emails));
             if (createdUsersCount < 100)
             {
                 userProfileDto.CreatedBy = createdby;
@@ -118,7 +125,10 @@ public class UserProfileService : IUserProfileService
     {
         try
         {
-            var userProfiles = await _userProfileRepository.GetCreatedUsersProfile(createdBy);
+            var emails = await _commonService.GetEmailsUnderAdminAsync(createdBy);
+            var userProfiles = await _userProfileRepository.GetCreatedUsersProfile(emails);
+            if(userProfiles == null)
+                return Enumerable.Empty<UserProfile>();
             return userProfiles;
         }
         catch(Exception ex)
@@ -132,22 +142,41 @@ public class UserProfileService : IUserProfileService
     {
         try
         {
-            var getUserProfile = await _userProfileRepository.GetUserProfileByProfileId(userProfileDto.UserProfileId, modifiedBy);
+            var emails = await _commonService.GetEmailsUnderAdminAsync(modifiedBy);
+            var getUserProfile = await _userProfileRepository.GetUserProfileByProfileId(userProfileDto.UserProfileId, emails);
             if(getUserProfile.user == null)
                 return (false, getUserProfile.message);
 
-            if(getUserProfile.user.ApplicationUserId is not null && getUserProfile.user.Email != userProfileDto.Email)
+            if(getUserProfile.user.ApplicationUserId != null && getUserProfile.user.Email != userProfileDto.Email)
                 return(false, "You hvae not permission to update this user email.");
 
-            var mappedProfile = _mapper.Map<UserProfile>(userProfileDto);
-            mappedProfile.CreatedBy = getUserProfile.user.CreatedBy;
-            mappedProfile.CreatedDate = getUserProfile.user.CreatedDate;
-            mappedProfile.ModifiedBy = modifiedBy;
-            mappedProfile.ModifiedDate = DateTime.Now;
-            mappedProfile.EmployeeId = getUserProfile.user.EmployeeId;
-            mappedProfile.ApplicationUserId = getUserProfile.user.ApplicationUserId;
+            getUserProfile.user.FirstName = userProfileDto.FirstName;
+            getUserProfile.user.LastName = userProfileDto.LastName;
+            getUserProfile.user.DateOfBirth = userProfileDto.DateOfBirth;
+            getUserProfile.user.Designation = userProfileDto.Designation;
+            getUserProfile.user.Department = userProfileDto.Department;
+            getUserProfile.user.SubDepartment = userProfileDto.SubDepartment;
+            getUserProfile.user.Site = userProfileDto.Site;
+            getUserProfile.user.Location = userProfileDto.Location;
+            getUserProfile.user.JoiningDate = userProfileDto.JoiningDate;
+            getUserProfile.user.LeavingDate = userProfileDto.LeavingDate;
+            getUserProfile.user.PhoneNumber = userProfileDto.PhoneNumber;
+            getUserProfile.user.Email = userProfileDto.Email;
+            getUserProfile.user.Address = userProfileDto.Address;
+            getUserProfile.user.Country = userProfileDto.Country;
+            getUserProfile.user.ProfilePicture = userProfileDto.ProfilePicture;
+            getUserProfile.user.ModifiedBy = modifiedBy;
+            getUserProfile.user.ModifiedDate = DateTime.Now;
 
-            var userUpdated = await _userProfileRepository.UpdateUserProfileAsync(mappedProfile);
+            /*//var mappedProfile = _mapper.Map<UserProfile>(userProfileDto);
+            //mappedProfile.CreatedBy = getUserProfile.user.CreatedBy;
+            //mappedProfile.CreatedDate = getUserProfile.user.CreatedDate;
+            //mappedProfile.ModifiedBy = modifiedBy;
+            //mappedProfile.ModifiedDate = DateTime.Now;
+            //mappedProfile.EmployeeId = getUserProfile.user.EmployeeId;
+            //mappedProfile.ApplicationUserId = getUserProfile.user.ApplicationUserId;*/
+
+            var userUpdated = await _userProfileRepository.UpdateUserProfileAsync(getUserProfile.user);
             if(!userUpdated.success)
             {
                 _logger.LogWarning("Failed to update user profile: {UserProfileId}", userProfileDto.UserProfileId);
@@ -161,15 +190,75 @@ public class UserProfileService : IUserProfileService
         }
     }
 
-    public async Task<(bool Success, string Message)> AllowLoginAccessForCreatedUserAsync(LoginAccessRequestObject loginAccessRequestObject, string modifiedBy)
+    public async Task<(bool success, string message)> DeleteCreatedUserProfile(long id, string modifiedBy)
     {
         try
         {
-            var getUserProfile = await _userProfileRepository.GetUserProfileByProfileId(loginAccessRequestObject.UserProfileId, modifiedBy);
+            var emails = await _commonService.GetEmailsUnderAdminAsync(modifiedBy);
+            var getUserProfile = await _userProfileRepository.GetUserProfileByProfileId(id, emails);
+            if(getUserProfile.user == null)
+                return (false, getUserProfile.message);
+            if (getUserProfile.user.ApplicationUserId != null && getUserProfile.user.RoleId != null)
+            {
+                IdentityResult _identityResult = null!;
+                var user = await _userManager.FindByIdAsync(getUserProfile.user.ApplicationUserId);
+                if (user != null)
+                    _identityResult = await _userManager.DeleteAsync(user);
+
+                if (_identityResult.Succeeded)
+                {
+                    getUserProfile.user.ApplicationUserId = null;
+                    getUserProfile.user.RoleId = null;
+                    getUserProfile.user.ModifiedBy = modifiedBy;
+                    getUserProfile.user.ModifiedDate = DateTime.Now;
+                    getUserProfile.user.Cancelled = true;
+
+                    var userUpdated = await _userProfileRepository.UpdateUserProfileAsync(getUserProfile.user);
+                    if (!userUpdated.success)
+                    {
+                        _logger.LogWarning("Failed to update user profile: {UserProfileId}", id);
+                        return (userUpdated.success, userUpdated.message);
+                    }
+                    return (userUpdated.success, userUpdated.message);
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to delete user profile: {UserProfileId}", id);
+                    return (false, "Failed to delete user profile: " + _identityResult.Errors.FirstOrDefault()?.Description);
+                }
+            }
+            else
+            {
+                getUserProfile.user.Cancelled = true;
+                getUserProfile.user.ModifiedBy = modifiedBy;
+                getUserProfile.user.ModifiedDate = DateTime.Now;
+                var userDeleted = await _userProfileRepository.UpdateUserProfileAsync(getUserProfile.user);
+                if (!userDeleted.success)
+                {
+                    _logger.LogWarning("Failed to delete user profile: {UserProfileId}", id);
+                    return (userDeleted.success, userDeleted.message);
+                }
+                return (userDeleted.success, userDeleted.message);
+            }
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting created user profile.");
+            throw new Exception("An error occurred while deleting created user profile.", ex);
+        }
+    }
+
+    public async Task<(bool Success, string Message)> AllowLoginAccessForCreatedUserAsync(LoginAccessRequestObject loginAccessRequestObject, string createdBy)
+    {
+        try
+        {
+            var emails = await _commonService.GetEmailsUnderAdminAsync(createdBy);
+
+            var getUserProfile = await _userProfileRepository.GetUserProfileByProfileId(loginAccessRequestObject.UserProfileId, emails);
             if(getUserProfile.user == null)
                 return (false, getUserProfile.message);
 
-            if(getUserProfile.user.ApplicationUserId is null && getUserProfile.user.Email == loginAccessRequestObject.Email)
+            if(getUserProfile.user.ApplicationUserId is null && getUserProfile.user.Email == loginAccessRequestObject.Email && loginAccessRequestObject.UserProfileId > 0)
             {
                 IdentityResult _identityResult = null!;
                 ApplicationUser _applicationUser = new ApplicationUser()
@@ -181,46 +270,70 @@ public class UserProfileService : IUserProfileService
                 };
                 if (loginAccessRequestObject.Password.Equals(loginAccessRequestObject.ConfirmPassword))
                 {
-                    _identityResult = await _userManager.CreateAsync(_applicationUser, loginAccessRequestObject.Password);
+                    var exists = _userManager.Users.Any(u => u.Email == loginAccessRequestObject.Email);
+                    if (exists)
+                    {
+                        _logger.LogWarning("User already exists with email: {Email}", loginAccessRequestObject.Email);
+                    }
+                    else
+                    {
+                        _identityResult = await _userManager.CreateAsync(_applicationUser, loginAccessRequestObject.Password);
+                    }
                 }
 
-                long? roleId = getUserProfile.user.RoleId;
-                getUserProfile.user.ApplicationUserId = _applicationUser.Id;
-                getUserProfile.user.ModifiedBy = modifiedBy;
-                getUserProfile.user.ModifiedDate = DateTime.Now;
-                getUserProfile.user.RoleId = loginAccessRequestObject.RoleId;
-                getUserProfile.user.Email = _applicationUser.Email;
-
-                var userUpdated = await _userProfileRepository.UpdateUserProfileAsync(getUserProfile.user);
-                if (!userUpdated.success)
+                if (_identityResult.Succeeded)
                 {
-                    _logger.LogWarning("Failed to update user profile: {UserProfileId}", loginAccessRequestObject.UserProfileId);
-                    return (userUpdated.success, userUpdated.message);
-                }
+                    long? roleId = getUserProfile.user.RoleId;
+                    getUserProfile.user.ApplicationUserId = _applicationUser.Id;
+                    getUserProfile.user.ModifiedBy = createdBy;
+                    getUserProfile.user.ModifiedDate = DateTime.Now;
+                    getUserProfile.user.RoleId = loginAccessRequestObject.RoleId;
+                    getUserProfile.user.Email = _applicationUser.Email;
 
-                if(roleId != loginAccessRequestObject.RoleId)
-                {
-                    var manageUserRoleDetails = await _manageUserRolesService.GetUserRoleByIdWithRoleDetailsAsync(loginAccessRequestObject.RoleId);
-                    ManageUserRolesDto manageUserRolesDto = new ManageUserRolesDto()
+                    var userUpdated = await _userProfileRepository.UpdateUserProfileAsync(getUserProfile.user);
+                    if (!userUpdated.success)
                     {
-                        ApplicationUserId = _applicationUser.Id,
-                        RolePermissions = manageUserRoleDetails.RolePermissions
-                    };
-                    var roleUpdateResult = await _rolesService.UpdateUserRoles(manageUserRolesDto);
-                    if (!roleUpdateResult.isSuccess)
-                    {
-                        _logger.LogWarning("Failed to update user roles: {UserProfileId}", loginAccessRequestObject.UserProfileId);
-                        return (roleUpdateResult.isSuccess, roleUpdateResult.message);
+                        _logger.LogWarning("Failed to update user profile: {UserProfileId}", loginAccessRequestObject.UserProfileId);
+                        return (userUpdated.success, userUpdated.message);
                     }
 
-                    _logger.LogInformation("User login access allowed for user: {UserProfileId}", loginAccessRequestObject.UserProfileId);
-                    return (true, "User login access allowed successfully." + roleUpdateResult.message);
+                    if (roleId != loginAccessRequestObject.RoleId)
+                    {
+                        var manageUserRoleDetails = await _manageUserRolesService.GetUserRoleByIdWithRoleDetailsAsync(loginAccessRequestObject.RoleId);
+                        ManageUserRolesDto manageUserRolesDto = new ManageUserRolesDto()
+                        {
+                            ApplicationUserId = _applicationUser.Id,
+                            RolePermissions = manageUserRoleDetails.RolePermissions
+                        };
+                        var roleUpdateResult = await _rolesService.UpdateUserRoles(manageUserRolesDto);
+                        if (!roleUpdateResult.isSuccess)
+                        {
+                            _logger.LogWarning("Failed to update user roles: {UserProfileId}", loginAccessRequestObject.UserProfileId);
+                            return (roleUpdateResult.isSuccess, roleUpdateResult.message);
+                        }
+
+                        _logger.LogInformation("User login access allowed for user: {UserProfileId}", loginAccessRequestObject.UserProfileId);
+                        return (true, "User login access allowed successfully." + roleUpdateResult.message);
+                    }
+                }
+                else
+                {
+                    foreach(var error in _identityResult.Errors)
+                    {
+                        _logger.LogWarning("Failed to create user profile: {UserProfileId}", loginAccessRequestObject.UserProfileId);
+                        return (false, "Failed to create user profile: " + error.Description);
+                    }
                 }
             }
-            else if(getUserProfile.user.ApplicationUserId is not null && getUserProfile.user.Email != loginAccessRequestObject.Email)
+            else if(getUserProfile.user.ApplicationUserId is not null && getUserProfile.user.Email == loginAccessRequestObject.Email)
             {
                 _logger.LogWarning("You hvae not permission to update this user email.");
                 return (false, "You hvae not permission to update this user email.");
+            }
+            else
+            {
+                _logger.LogWarning("User already exists with email: {Email}", loginAccessRequestObject.Email);
+                return (false, "User already exists with email: " + loginAccessRequestObject.Email);
             }
             _logger.LogInformation("User login access allowed for user: {UserProfileId}", loginAccessRequestObject.UserProfileId);
             return (true, "User login access allowed successfully.");
@@ -229,6 +342,147 @@ public class UserProfileService : IUserProfileService
         {
             _logger.LogError(ex, "An error occurred while allowing login access for created user.");
             throw new Exception("An error occurred while allowing login access for created user.", ex);
+        }
+    }
+
+    public async Task<(bool Success, string Message)> UpdateLoginAccessForCreatedUserAsync(UpdateLoginAccessRequestObject accessRequestObject, string modifiedBy)
+    {
+        try
+        {
+            var emails = await _commonService.GetEmailsUnderAdminAsync(modifiedBy);
+
+            var getUserProfile = await _userProfileRepository.GetUserProfileByProfileId(accessRequestObject.UserProfileId, emails);
+            if (getUserProfile.user == null)
+                return (false, getUserProfile.message);
+
+            if (getUserProfile.user.ApplicationUserId is not null && getUserProfile.user.Email == accessRequestObject.Email)
+            {
+                IdentityResult _identityResult = null!;
+                if (accessRequestObject.OldPassword != null)
+                {
+                    if(accessRequestObject.Password!.Equals(accessRequestObject.ConfirmPassword))
+                    {
+                        var exists = _userManager.Users.Any(u => u.Email == accessRequestObject.Email);
+                        if (exists)
+                        {
+                            var user = await _userManager.FindByEmailAsync(getUserProfile.user.Email!);
+                            _identityResult = await _userManager.ChangePasswordAsync(user!, accessRequestObject.OldPassword, accessRequestObject.Password);
+                        }
+                    }
+                    
+                }
+
+                if(getUserProfile.user.RoleId != accessRequestObject.RoleId)
+                {
+                    long? roleId = getUserProfile.user.RoleId;
+                    getUserProfile.user.ModifiedBy = modifiedBy;
+                    getUserProfile.user.ModifiedDate = DateTime.Now;
+                    getUserProfile.user.RoleId = accessRequestObject.RoleId;
+
+                    var userUpdated = await _userProfileRepository.UpdateUserProfileAsync(getUserProfile.user);
+                    if (!userUpdated.success)
+                    {
+                        _logger.LogWarning("Failed to update user profile: {UserProfileId}", accessRequestObject.UserProfileId);
+                        return (userUpdated.success, userUpdated.message);
+                    }
+
+                    var manageUserRoleDetails = await _manageUserRolesService.GetUserRoleByIdWithRoleDetailsAsync(accessRequestObject.RoleId);
+                    ManageUserRolesDto manageUserRolesDto = new ManageUserRolesDto()
+                    {
+                        ApplicationUserId = getUserProfile.user.ApplicationUserId,
+                        RolePermissions = manageUserRoleDetails.RolePermissions
+                    };
+                    var roleUpdateResult = await _rolesService.UpdateUserRoles(manageUserRolesDto);
+                    if (!roleUpdateResult.isSuccess)
+                    {
+                        _logger.LogWarning("Failed to update user roles: {UserProfileId}", accessRequestObject.UserProfileId);
+                        return (roleUpdateResult.isSuccess, roleUpdateResult.message);
+                    }
+
+                    _logger.LogInformation("User login access updated for user: {UserProfileId}", accessRequestObject.UserProfileId);
+                    return (true, "User login access updated successfully." + roleUpdateResult.message);
+                }
+
+                _logger.LogInformation("You not Updated login access for user: {UserProfileId}", accessRequestObject.UserProfileId);
+                return (true, "You are not Updated any datas.");
+            }
+            else
+            {
+                _logger.LogWarning("You hvae not permission to update this user email.");
+                return (false, "You hvae not permission to update this user email.");
+            }
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating login access for created user.");
+            throw new Exception("An error occurred while updating login access for created user.", ex);
+        }
+    }
+
+    public async Task<(bool Success, string Message)> RevokeLoginAccessForCreatedUserProfile(long id, string modifiedBy)
+    {
+        try
+        {
+            var emails = await _commonService.GetEmailsUnderAdminAsync(modifiedBy);
+
+            var getUserProfile = await _userProfileRepository.GetUserProfileByProfileId(id, emails);
+            if (getUserProfile.user == null)
+                return (false, getUserProfile.message);
+
+            if(getUserProfile.user.RoleId != null && getUserProfile.user.ApplicationUserId != null)
+            {
+                IdentityResult _identityResult = null!;
+                var user = await _userManager.FindByIdAsync(getUserProfile.user.ApplicationUserId);
+                if (user != null)
+                     _identityResult = await _userManager.DeleteAsync(user);
+
+                if (_identityResult.Succeeded)
+                {
+                    getUserProfile.user.ApplicationUserId = null;
+                    getUserProfile.user.RoleId = null;
+                    getUserProfile.user.ModifiedBy = modifiedBy;
+                    getUserProfile.user.ModifiedDate = DateTime.Now;
+
+                    var userUpdated = await _userProfileRepository.UpdateUserProfileAsync(getUserProfile.user);
+                    if (!userUpdated.success)
+                    {
+                        _logger.LogWarning("Failed to update user profile: {UserProfileId}", id);
+                        return (userUpdated.success, userUpdated.message);
+                    }
+                }
+
+                _logger.LogInformation("User login access revoked for user: {UserProfileId}", id);
+                return (true, "User login access revoked successfully.");
+            }
+            else
+            {
+                _logger.LogWarning("You hvae not permission to revoke this user login access.");
+                return (false, "You hvae not permission to revoke this user login access.");
+            }
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while revoking login access for created user.");
+            throw new Exception("An error occurred while revoking login access for created user.", ex);
+        }
+    }
+
+    public async Task<(IEnumerable<UserProfile> UserProfiles, bool Success, string Message)> GetUserProfilesUsedInRoleId(long roleId, string user)
+    {
+        try
+        {
+            var emails = await _commonService.GetEmailsUnderAdminAsync(user);
+
+            var roleIdUsedUsers = await _rolesService.GetUsersUsedByRoleIdAsync(roleId, emails);
+            if(roleIdUsedUsers == null && roleIdUsedUsers.Count() == 0)
+                return (null!, false, "User profiles not found.");
+
+            return (roleIdUsedUsers, true, "User profiles used in role.");
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while getting user profiles used in role.");
+            throw new Exception("An error occurred while getting user profiles used in role.", ex);
         }
     }
 }

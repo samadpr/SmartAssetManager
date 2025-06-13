@@ -13,5 +13,7 @@ namespace SAMS.Services.DesignationServices.Interface
         Task<IEnumerable<Designation>> GetAllAsync();
 
         Task<IEnumerable<Designation>> GetDesignationsCreatedByAsync(string createdByEmail);
+
+        Task<List<Designation>> GetDesignationsForUserAsync(List<string> email);
     }
 }

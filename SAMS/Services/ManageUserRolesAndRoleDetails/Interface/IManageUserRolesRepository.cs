@@ -13,24 +13,25 @@ namespace SAMS.Services.ManageUserRoles.Interface
 
         Task<IEnumerable<ManageUserRole>> GetAllRolesAsync();
 
-        Task<IEnumerable<ManageUserRolesDto>> GetUserRolesWithRoleDetailsAsync(string userEmail);
+        Task<IEnumerable<ManageUserRolesDto>> GetUserRolesWithRoleDetailsAsync(List<string> emails);
 
-        Task<IEnumerable<ManageUserRole>> GetUserRolesAsync(string userEmail);
+        Task<IEnumerable<ManageUserRole>> GetUserRolesAsync(List<string> emails);
 
-        Task<ManageUserRole> GetUserRoleByIdAsync(long id);
+        Task<ManageUserRole> GetUserRoleByIdAsync(long id, List<string> emails);
 
-        Task<ManageUserRolesDetail> GetUserRoleDetailsByIdAsync(long id);
+        Task<ManageUserRolesDetail> GetUserRoleDetailsByIdAsync(long id, List<string> emails);
 
         Task<IEnumerable<ManageUserRolesDetail>> GetRoleDetailsByManagedRoleIdAsync(long managedRoleId);
 
         Task<IEnumerable<ManageUserRolesDto>> GetAllRolesWithRoleDetailsAsync();
 
-        Task<bool> UpdateUserRolesAsync(ManageUserRole manageUserRole, ManageUserRolesDto request);
+        Task<bool> UpdateUserRoleWithRoleDetailsAsync(ManageUserRole manageUserRole, ManageUserRolesDto request);
 
         Task<bool> UpdateUserRoleDetailsAsync(ManageUserRolesDetail manageUserRolesDetail);
 
         Task<ManageUserRolesDto> GetUserRoleByIdWithRoleDetailsAsync(long id);
 
+        Task<bool> UpdateUserRolesAsync(ManageUserRole manageUserRole);
 
     }
 }

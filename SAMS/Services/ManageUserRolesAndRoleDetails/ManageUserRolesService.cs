@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using SAMS.Models;
+using SAMS.Services.Common.Interface;
 using SAMS.Services.ManageUserRoles.DTOs;
 using SAMS.Services.ManageUserRoles.Interface;
 using SAMS.Services.Profile.Interface;
@@ -12,21 +13,24 @@ namespace SAMS.Services.ManageUserRoles
         private readonly IManageUserRolesRepository _manageUserRolesRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<ManageUserRolesService> _logger;
-        private readonly IUserProfileRepository _userProfileRepository;
+        //private readonly IUserProfileService _userProfileService;
         private readonly IRolesService _rolesService;
+        private readonly ICommonService _commonService;
 
         public ManageUserRolesService(
             IManageUserRolesRepository manageUserRolesRepository, 
             IMapper mapper, 
             ILogger<ManageUserRolesService> logger,
-            IUserProfileRepository userProfileRepository,
-            IRolesService roles)
+            //IUserProfileService userProfileService,
+            IRolesService roles, 
+            ICommonService commonService)
         {
             _manageUserRolesRepository = manageUserRolesRepository;
             _mapper = mapper;
             _logger = logger;
-            _userProfileRepository = userProfileRepository;
+            //_userProfileService = userProfileService;
             _rolesService = roles;
+            _commonService = commonService;
         }
 
         public async Task<ManageUserRolesDto> CreateRoleWithRoleDetailsAsync(ManageUserRolesDto request, string createdBy)
@@ -95,6 +99,9 @@ namespace SAMS.Services.ManageUserRoles
         {
             try
             {
+                var userRolesDetails = await _manageUserRolesRepository.GetRoleDetailsByManagedRoleIdAsync(request.First().ManageRoleId);
+                if (userRolesDetails != null)
+                    return null!;
                 var roleDetails = new List<ManageUserRolesDetail>();
                 foreach (var detail in request)
                 {
@@ -149,12 +156,14 @@ namespace SAMS.Services.ManageUserRoles
             }
         }
 
-        public Task<IEnumerable<ManageUserRolesDetail>> GetRoleDetailsByManagedRoleIdAsync(long managedRoleId)
+        public async Task<IEnumerable<ManageUserRolesDetail>> GetRoleDetailsByManagedRoleIdAsync(long managedRoleId, string user)
         {
             try
             {
-                var result = _manageUserRolesRepository.GetRoleDetailsByManagedRoleIdAsync(managedRoleId);
-                if (result == null)
+                var emails = await _commonService.GetEmailsUnderAdminAsync(user);
+
+                var result = await _manageUserRolesRepository.GetRoleDetailsByManagedRoleIdAsync(managedRoleId);
+                if (result == null || result.Any(rd => !emails.Contains(rd.CreatedBy)))
                     return null!;
                 return result;
             }
@@ -165,13 +174,16 @@ namespace SAMS.Services.ManageUserRoles
             }
         }
 
-        public Task<ManageUserRole> GetUserRoleByIdAsync(int id)
+        public async Task<ManageUserRole> GetUserRoleByIdAsync(int id, string user)
         {
             try
             {
-                var result = _manageUserRolesRepository.GetUserRoleByIdAsync(id);
+                var emails = await _commonService.GetEmailsUnderAdminAsync(user);
+
+                var result = await _manageUserRolesRepository.GetUserRoleByIdAsync(id, emails);
                 if (result == null)
                     return null!;
+                _logger.LogInformation("User role found.");
                 return result;
             }
             catch (Exception ex)
@@ -197,11 +209,13 @@ namespace SAMS.Services.ManageUserRoles
             }
         }
 
-        public Task<ManageUserRolesDetail> GetUserRoleDetailsByIdAsync(int id)
+        public async Task<ManageUserRolesDetail> GetUserRoleDetailsByIdAsync(int id, string user)
         {
             try
             {
-                var result = _manageUserRolesRepository.GetUserRoleDetailsByIdAsync(id);
+                var emails = await _commonService.GetEmailsUnderAdminAsync(user);
+
+                var result = await _manageUserRolesRepository.GetUserRoleDetailsByIdAsync(id, emails);
                 if (result == null)
                     return null!;
                 return result;
@@ -213,11 +227,14 @@ namespace SAMS.Services.ManageUserRoles
             }
         }
 
-        public Task<IEnumerable<ManageUserRole>> GetUserRolesAsync(string userEmail)
+        public async Task<IEnumerable<ManageUserRole>> GetUserRolesAsync(string userEmail)
         {
             try
             {
-                var result = _manageUserRolesRepository.GetUserRolesAsync(userEmail);
+                var emails = await _commonService.GetEmailsUnderAdminAsync(userEmail);
+                var result = await _manageUserRolesRepository.GetUserRolesAsync(emails);
+                if (result == null)
+                    return null!;
                 return result;
             }
             catch (Exception ex)
@@ -227,11 +244,15 @@ namespace SAMS.Services.ManageUserRoles
             }
         }
 
-        public Task<IEnumerable<ManageUserRolesDto>> GetUserRolesWithRoleDetailsAsync(string userEmail)
+        public async Task<IEnumerable<ManageUserRolesDto>> GetUserRolesWithRoleDetailsAsync(string userEmail)
         {
             try
             {
-                var result = _manageUserRolesRepository.GetUserRolesWithRoleDetailsAsync(userEmail);
+                var emails = await _commonService.GetEmailsUnderAdminAsync(userEmail);
+
+                var result = await _manageUserRolesRepository.GetUserRolesWithRoleDetailsAsync(emails);
+                if (result == null)
+                    return null!;
                 return result;
             }
             catch(Exception ex)
@@ -245,10 +266,11 @@ namespace SAMS.Services.ManageUserRoles
         {
             try
             {
+                var emails = await _commonService.GetEmailsUnderAdminAsync(modifiedBy);
                 ManageUserRole manageUserRole = new();
                 if(request.Id > 0)
                 {
-                    manageUserRole = await _manageUserRolesRepository.GetUserRoleByIdAsync(request.Id);
+                    manageUserRole = await _manageUserRolesRepository.GetUserRoleByIdAsync(request.Id, emails);
                     if(manageUserRole.CreatedBy != modifiedBy)
                     {
                         _logger.LogError("User does not have permission to update this role.");
@@ -259,29 +281,39 @@ namespace SAMS.Services.ManageUserRoles
                     request.CreatedBy = manageUserRole.CreatedBy;
                     request.CreatedDate = manageUserRole.CreatedDate;
 
-                    var result = await _manageUserRolesRepository.UpdateUserRolesAsync(manageUserRole, request);
+                    var result = await _manageUserRolesRepository.UpdateUserRoleWithRoleDetailsAsync(manageUserRole, request);
                     if (!result)
                     {
                         _logger.LogError("An error occurred while updating user roles.");
                         return (false, "An error occurred while updating user roles.");
                     }
+
+                    var userRoleDetails = await _manageUserRolesRepository.GetRoleDetailsByManagedRoleIdAsync(request.Id);
                         
-                    foreach(var item in request.RolePermissions!)
+                    foreach(var item in userRoleDetails)
                     {
-                        var manageUserRoleDetails = await _manageUserRolesRepository.GetUserRoleDetailsByIdAsync(item.Id);
-                        manageUserRoleDetails.IsAllowed = item.IsAllowed;
-                        manageUserRoleDetails.ModifiedBy = modifiedBy;
-                        manageUserRoleDetails.ModifiedDate = DateTime.UtcNow;
-                        var updateResult = await _manageUserRolesRepository.UpdateUserRoleDetailsAsync(manageUserRoleDetails);
-                        if (!updateResult)
+                        var manageUserRoleDetails = await _manageUserRolesRepository.GetUserRoleDetailsByIdAsync(item.Id, emails);
+
+                        var rolePermission = request.RolePermissions!
+                            .FirstOrDefault(x => x.RoleId == item.RoleId && x.ManageRoleId == item.ManageRoleId);
+
+                        if (rolePermission != null && rolePermission.RoleId == item.RoleId && rolePermission.ManageRoleId == item.ManageRoleId && rolePermission.RoleName == item.RoleName)
                         {
-                            _logger.LogError("An error occurred while updating user role details.");
-                            return (false, "An error occurred while updating user role details.");
+                            manageUserRoleDetails.IsAllowed = rolePermission.IsAllowed;
+                            manageUserRoleDetails.ModifiedBy = modifiedBy;
+                            manageUserRoleDetails.ModifiedDate = DateTime.UtcNow;
+
+                            var updateResult = await _manageUserRolesRepository.UpdateUserRoleDetailsAsync(manageUserRoleDetails);
+                            if (!updateResult)
+                            {
+                                _logger.LogError("An error occurred while updating user role details.");
+                                return (false, "An error occurred while updating user role details.");
+                            }
                         }
                     }
 
                     // Get users using this role
-                    var usersWithThisRole = await _userProfileRepository.GetUsersUsedByRoleIdAsync(manageUserRole.Id);
+                    var usersWithThisRole = await _rolesService.GetUsersUsedByRoleIdAsync(manageUserRole.Id, emails);
 
                     // Loop through users and update their roles
                     foreach(var userProfile in usersWithThisRole)
@@ -312,6 +344,68 @@ namespace SAMS.Services.ManageUserRoles
             {
                 _logger.LogError(ex, "An error occurred while updating user roles with role details.");
                 throw new Exception("An error occurred while updating user roles with role details.", ex);
+            }
+        }
+
+
+        public async Task<(bool isSuccess, string message)> DeleteUserRoleWithRoleDetailsAsync(long id, string modifiedBy)
+        {
+            try
+            {
+                var emails = await _commonService.GetEmailsUnderAdminAsync(modifiedBy);
+                
+                var manageUserRole = await _manageUserRolesRepository.GetUserRoleByIdAsync(id, emails);
+                if(manageUserRole != null)
+                {
+                    manageUserRole.Cancelled = true;
+                    manageUserRole.ModifiedBy = modifiedBy;
+                    manageUserRole.ModifiedDate = DateTime.UtcNow;
+
+                    var result = await _manageUserRolesRepository.UpdateUserRolesAsync(manageUserRole);
+                    if (result)
+                    {
+                        var userRoleDetails = await _manageUserRolesRepository.GetRoleDetailsByManagedRoleIdAsync(id);
+                        foreach(var item in userRoleDetails)
+                        {
+                            var manageUserRoleDetails = await _manageUserRolesRepository.GetUserRoleDetailsByIdAsync(item.Id, emails);
+                            manageUserRoleDetails.Cancelled = true;
+                            manageUserRoleDetails.ModifiedBy = modifiedBy;
+                            manageUserRoleDetails.ModifiedDate = DateTime.UtcNow;
+                            await _manageUserRolesRepository.UpdateUserRoleDetailsAsync(manageUserRoleDetails);
+                        }
+                        _logger.LogInformation("User roles deleted successfully with role details for user {UserId}.", manageUserRole.Id);
+                    }
+                    else
+                    {
+                        _logger.LogError("An error occurred while deleting user roles.");
+                        return (false, "An error occurred while deleting user roles.");
+                    }
+
+                    /*//var userProfiles = await _manageUserRolesRepository.GetUsersUsedByRoleIdAsync(manageUserRole.Id);
+
+                    //foreach(var userProfile in userProfiles)
+                    //{
+                    //    var userProfilesUpdated = await _userProfileService.RevokeLoginAccessForCreatedUserProfile(userProfile.UserProfileId, modifiedBy);
+                    //    if (!userProfilesUpdated.Success)
+                    //    {
+                    //        _logger.LogError("An error occurred while revoking login access for user {UserId}.", userProfile.UserProfileId);
+                    //        return (false, "An error occurred while revoking login access for user " + userProfile.UserProfileId);
+                    //    }
+                    //}*/
+                    
+                    return (true, "User roles deleted successfully.");
+
+                }
+                else
+                {
+                    _logger.LogError("An error occurred while deleting user roles. User role not found.");
+                    return (false, "An error occurred while deleting user roles. User role not found.");
+                }
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while deleting user roles with role details.");
+                throw new Exception("An error occurred while deleting user roles with role details.", ex);
             }
         }
     }

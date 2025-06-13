@@ -9,15 +9,13 @@ public interface IUserProfileRepository
 
     Task<bool> UpdateProfileAsync(UserProfile user);
 
-    Task<IEnumerable<UserProfile>> GetUsersUsedByRoleIdAsync(long roleId);
-
-    Task<int> GetCreatedUsersCount(string createdBy);
+    Task<int> GetCreatedUsersCount(List<string> emails);
 
     Task<(bool isSuccess, string message)> CreateUserProfileAsync(UserProfile userProfile);
 
-    Task<IEnumerable<UserProfile>> GetCreatedUsersProfile(string createdBy);
+    Task<IEnumerable<UserProfile>> GetCreatedUsersProfile(List<string> emails);
 
-    Task<(UserProfile user, string message)> GetUserProfileByProfileId(long profileId, string createdBy);
+    Task<(UserProfile user, string message)> GetUserProfileByProfileId(long profileId, List<string> emails);
 
     Task<(bool success, string message)> UpdateUserProfileAsync(UserProfile user);
 }
