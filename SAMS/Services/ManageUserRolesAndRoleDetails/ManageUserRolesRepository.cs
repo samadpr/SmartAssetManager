@@ -91,9 +91,9 @@ namespace SAMS.Services.ManageUserRoles
 
         }
 
-        public Task<ManageUserRole> GetUserRoleByIdAsync(long id)
+        public Task<ManageUserRole> GetUserRoleByIdAsync(long id, List<string> emails)
         {
-            var userRole = _context.ManageUserRoles.Where(ur => ur.Id == id && !ur.Cancelled).FirstOrDefaultAsync();
+            var userRole = _context.ManageUserRoles.Where(ur => ur.Id == id && emails.Contains(ur.CreatedBy) && !ur.Cancelled).FirstOrDefaultAsync();
             return userRole!;
         }
 
@@ -130,24 +130,26 @@ namespace SAMS.Services.ManageUserRoles
             return userRole;
         }
 
-        public Task<ManageUserRolesDetail> GetUserRoleDetailsByIdAsync(long id)
+
+        public Task<ManageUserRolesDetail> GetUserRoleDetailsByIdAsync(long id, List<string> emails)
         {
-            var userRoleDetails = _context.ManageUserRolesDetails.Where(ur => ur.Id == id && !ur.Cancelled).FirstOrDefaultAsync();
+            var userRoleDetails = _context.ManageUserRolesDetails.Where(ur => ur.Id == id && emails.Contains(ur.CreatedBy) && !ur.Cancelled).FirstOrDefaultAsync();
             return userRoleDetails!;
         }
 
-        public async Task<IEnumerable<ManageUserRole>> GetUserRolesAsync(string userEmail)
+        public async Task<IEnumerable<ManageUserRole>> GetUserRolesAsync(List<string> emails)
         {
             var userRoles = await _context.ManageUserRoles
-                            .Where(ur => ur.CreatedBy == userEmail && ur.Cancelled == false)
+                            .Where(ur => emails.Contains(ur.CreatedBy) && ur.Cancelled == false)
+                            .OrderByDescending(ur => ur.CreatedDate)
                             .ToListAsync();
             return userRoles;
         }
 
-        public async Task<IEnumerable<ManageUserRolesDto>> GetUserRolesWithRoleDetailsAsync(string userEmail)
+        public async Task<IEnumerable<ManageUserRolesDto>> GetUserRolesWithRoleDetailsAsync(List<string> emails)
         {
             var userRoles = await _context.ManageUserRoles
-                .Where(ur => ur.CreatedBy == userEmail && !ur.Cancelled)
+                .Where(ur => emails.Contains(ur.CreatedBy) && !ur.Cancelled)
                 .Include(ur => ur.ManageUserRolesDetails)
                 .Select(ur => new ManageUserRolesDto
                 {
@@ -170,7 +172,7 @@ namespace SAMS.Services.ManageUserRoles
                         ModifiedBy = rp.ModifiedBy,
                         ModifiedDate = rp.ModifiedDate
                     }).ToList()
-                })
+                }).OrderByDescending(ur => ur.CreatedDate)
                 .ToListAsync();
 
             if (userRoles == null)
@@ -186,11 +188,18 @@ namespace SAMS.Services.ManageUserRoles
             return Task.FromResult(true);
         }
 
-        public async Task<bool> UpdateUserRolesAsync(ManageUserRole manageUserRole, ManageUserRolesDto request)
+        public async Task<bool> UpdateUserRoleWithRoleDetailsAsync(ManageUserRole manageUserRole, ManageUserRolesDto request)
         {
             _context.Entry(manageUserRole).CurrentValues.SetValues(request);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public Task<bool> UpdateUserRolesAsync(ManageUserRole manageUserRole)
+        {
+            _context.Entry(manageUserRole).State = EntityState.Modified;
+            _context.SaveChanges();
+            return Task.FromResult(true);
         }
     }
 }

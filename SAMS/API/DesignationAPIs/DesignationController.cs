@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using SAMS.API.DesignationAPIs.RequestObject;
 using SAMS.Controllers;
 using SAMS.Models;
+using SAMS.Services.Common.Interface;
 using SAMS.Services.DesignationServices.DTOs;
 using SAMS.Services.DesignationServices.Interface;
 using SAMS.Services.Roles.PagesModel;
@@ -21,13 +22,15 @@ namespace SAMS.API.DesignationAPIs
         private readonly IMapper _mapper;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ICommonService _commonService;
 
-        public DesignationController(IDesignationService designationService, IMapper mapper, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        public DesignationController(IDesignationService designationService, IMapper mapper, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ICommonService commonService)
         {
             _designationService = designationService;
             _mapper = mapper;
             _userManager = userManager;
             _signInManager = signInManager;
+            _commonService = commonService;
         }
 
         [Authorize(Roles = RoleModels.Designation)]
@@ -60,6 +63,17 @@ namespace SAMS.API.DesignationAPIs
         }
 
         [Authorize(Roles = RoleModels.Designation)]
+        [HttpGet("designation/get-designations")]
+        public async Task<IActionResult> GetDesignation()
+        {
+            var user = await _userManager.GetUserAsync(_signInManager.Context.User!);
+            var result = await _designationService.GetDesignationAsync(user.Email);
+            if (result == null)
+                return NotFound($"No designation found");
+            return Ok(result);
+        }
+
+        [Authorize(Roles = RoleModels.Designation)]
         [HttpGet("designation/get-my-designations")]
         public async Task<IActionResult> GetMyDesignation()
         {
@@ -76,7 +90,7 @@ namespace SAMS.API.DesignationAPIs
         {
             if (User.IsInRole(RoleModels.Designation) && User.IsInRole(RoleModels.SuperAdmin))
             {
-                var result = await _designationService.GetDesignationAsync();
+                var result = await _designationService.GetAllDesignationAsync();
                 if (result == null)
                     return NotFound($"No designation found");
                 return Ok(result);

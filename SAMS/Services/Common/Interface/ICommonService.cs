@@ -1,4 +1,5 @@
 ﻿using SAMS.Models;
+using SAMS.Services.Common.DTOs;
 using UAParser;
 
 namespace SAMS.Services.Common.Interface
@@ -7,5 +8,8 @@ namespace SAMS.Services.Common.Interface
     {
         Task<bool> InsertToLoginHistory(LoginHistory history);
 
+        Task<CreatorDto> GetAdminOrCreatorInfoAsync(string currentUserEmail);
+
+        Task<List<string>> GetEmailsUnderAdminAsync(string targetUserEmail);
     }
 }

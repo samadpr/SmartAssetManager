@@ -7,6 +7,7 @@ using SAMS.Controllers;
 using SAMS.Services.ManageUserRoles.DTOs;
 using SAMS.Services.ManageUserRoles.Interface;
 using SAMS.Services.Roles.PagesModel;
+using StackExchange.Redis;
 
 namespace SAMS.API.ManageUserRolesAPIs;
 
@@ -68,6 +69,8 @@ public class ManageUserRolesController : BaseApiController<ManageUserRolesContro
             if (string.IsNullOrEmpty(user))
                 return Unauthorized("User not authenticated.");
             var result = await _userRolesService.GetAllRolesAsync();
+            if(result == null)
+                return BadRequest("Roles not found.");
             return Ok(result);
         }
         else
@@ -79,12 +82,14 @@ public class ManageUserRolesController : BaseApiController<ManageUserRolesContro
     public async Task<IActionResult> GetAllRolesWithRoleDetails()
     {
         var result = await _userRolesService.GetAllRolesWithRoleDetailsAsync();
+        if(result == null)
+            return BadRequest("Role not found.");
         return Ok(result);
     }
 
     [Authorize(Roles = RoleModels.ManageUserRoles)]
-    [HttpGet("manage-user-roles/get-my-roles-with-role-details")]
-    public async Task<IActionResult> GetMyRolesWithRoleDetails()
+    [HttpGet("manage-user-roles/get-user-roles-with-role-details")]
+    public async Task<IActionResult> GetUserRolesWithRoleDetails()
     {
         var user = HttpContext.User.Identity?.Name ?? "System";
         var result = await _userRolesService.GetUserRolesWithRoleDetailsAsync(user);
@@ -94,11 +99,13 @@ public class ManageUserRolesController : BaseApiController<ManageUserRolesContro
     }
 
     [Authorize(Roles = RoleModels.ManageUserRoles)]
-    [HttpGet("manage-user-roles/get-my-roles")]
-    public async Task<IActionResult> GetMyRoles()
+    [HttpGet("manage-user-roles/get-user-roles")]
+    public async Task<IActionResult> GetUserRoles()
     {
         var user = HttpContext.User.Identity?.Name ?? "System";
         var result = await _userRolesService.GetUserRolesAsync(user);
+        if (result == null)
+            return BadRequest("Role not found.");
         return Ok(result);
     }
 
@@ -107,11 +114,9 @@ public class ManageUserRolesController : BaseApiController<ManageUserRolesContro
     public async Task<IActionResult> GetUserRoleById([FromQuery] int id)
     {
         var user = HttpContext.User.Identity?.Name ?? "System";
-        var result = await _userRolesService.GetUserRoleByIdAsync(id);
+        var result = await _userRolesService.GetUserRoleByIdAsync(id, user);
         if (result == null)
             return BadRequest("Role not found.");
-        else if (result.CreatedBy != user)
-            return Forbid("You have no authorized to access this API. Maybe you are not the creator of this role.");
         return Ok(result);
     }
 
@@ -120,11 +125,9 @@ public class ManageUserRolesController : BaseApiController<ManageUserRolesContro
     public async Task<IActionResult> GetUserRoleDetailsById([FromQuery] int id)
     {
         var user = HttpContext.User.Identity?.Name ?? "System";
-        var result = await _userRolesService.GetUserRoleDetailsByIdAsync(id);
+        var result = await _userRolesService.GetUserRoleDetailsByIdAsync(id, user);
         if (result == null)
             return BadRequest("Role not found.");
-        else if (result.CreatedBy != user)
-            return Forbid("You have no authorized to access this API. Maybe you are not the creator of this role.");
         return Ok(result);
     }
 
@@ -133,13 +136,12 @@ public class ManageUserRolesController : BaseApiController<ManageUserRolesContro
     public async Task<IActionResult> GetRoleDetailsByManagedRoleId([FromQuery] int id)
     {
         var user = HttpContext.User.Identity?.Name ?? "System";
-        var result = await _userRolesService.GetRoleDetailsByManagedRoleIdAsync(id);
+        var result = await _userRolesService.GetRoleDetailsByManagedRoleIdAsync(id, user);
         if (result == null)
             return BadRequest("Role not found.");
-        else if (result.Any(x => x.CreatedBy != user))
-            return Forbid("You have no authorized to access this API. Maybe you are not the creator of this role.");
         return Ok(result);
     }
+
 
     [Authorize(Roles = RoleModels.ManageUserRoles)]
     [HttpPut("manage-user-roles/update-user-role-with-role-details")]
@@ -150,6 +152,17 @@ public class ManageUserRolesController : BaseApiController<ManageUserRolesContro
         var result = await _userRolesService.UpdateUserRolesWithRoleDetailsAsync(mappedRequest, user);
         if (!result.isSuccess)
             return BadRequest("Role creation failed." + result.message);
-        return Ok(result);
+        return Ok(result.message);
+    }
+
+    [Authorize(Roles = RoleModels.ManageUserRoles)]
+    [HttpDelete("manage-user-roles/delete-user-role-by-id")]
+    public async Task<IActionResult> DeleteUserRoles([FromQuery] long id)
+    {
+        var user = HttpContext.User.Identity?.Name ?? "System";
+        var result = await _userRolesService.DeleteUserRoleWithRoleDetailsAsync(id, user);
+        if (!result.isSuccess)
+            return BadRequest("Role deletion failed." + result.message);
+        return Ok(result.message);
     }
 }

@@ -10,11 +10,19 @@ public interface IUserProfileService
 
     Task<(bool Success, string Message)> UpdateProfileAsync(UserProfileRequestObject user);
 
-    Task<(bool Success, string Message)> CreateUserProfileAsync(UserProfileDto userProfile, string CreatedBy);
+    Task<(bool Success, string Message)> CreateUserProfileAsync(UserProfileDto userProfile, string createdBy);
 
     Task<IEnumerable<UserProfile>> GetCreatedUsersProfile(string createdBy);
 
-    Task<(bool success, string message)> UpdateCreatedUserProfileAsync( UserProfileDto userProfile, string CreatedBy);
+    Task<(bool success, string message)> UpdateCreatedUserProfileAsync( UserProfileDto userProfile, string createdBy);
+
+    Task<(bool success, string message)> DeleteCreatedUserProfile(long id, string modifiedBy);
 
     Task<(bool Success, string Message)> AllowLoginAccessForCreatedUserAsync(LoginAccessRequestObject loginAccessRequestObject, string modifiedBy);
+
+    Task<(bool Success, string Message)> UpdateLoginAccessForCreatedUserAsync(UpdateLoginAccessRequestObject updateLoginAccessRequestObject, string modifiedBy);
+
+    Task<(bool Success, string Message)> RevokeLoginAccessForCreatedUserProfile(long id, string modifiedBy);
+
+    Task<(IEnumerable<UserProfile> UserProfiles, bool Success, string Message)> GetUserProfilesUsedInRoleId(long roleId, string user);
 }

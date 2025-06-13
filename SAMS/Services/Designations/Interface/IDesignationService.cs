@@ -9,7 +9,9 @@ namespace SAMS.Services.DesignationServices.Interface
 
         Task<DesignationDto?> UpdateDesignationAsync(DesignationDto dto, string modifiedBy);
 
-        Task<IEnumerable<Designation>> GetDesignationAsync();
+        Task<List<Designation>> GetDesignationAsync(string targetUserEmail);
+
+        Task<IEnumerable<Designation>> GetAllDesignationAsync();
 
         Task<bool> DeleteDesignationAsync(int id, string modifiedBy);
 

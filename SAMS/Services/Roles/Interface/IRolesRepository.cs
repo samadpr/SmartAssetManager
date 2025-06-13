@@ -13,5 +13,7 @@ namespace SAMS.Services.Roles.Interface
 
         Task<List<string>> GetAllRoleNamesAsync();
 
+        Task<IEnumerable<UserProfile>> GetUsersUsedByRoleIdAsync(long roleId, List<string> emails);
+
     }
 }

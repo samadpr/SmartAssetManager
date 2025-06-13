@@ -56,7 +56,7 @@ namespace SAMS.Services.Roles
             {
                 var _applicationUser = await _userManager.FindByIdAsync(updatedRoles.ApplicationUserId);
                 if (_applicationUser == null)
-                    return (false, "User not found.");
+                    return (false, "User not found in Roles Update.");
 
                 var roles = await _userManager.GetRolesAsync(_applicationUser);
                 var result = IdentityResult.Success;
@@ -103,6 +103,21 @@ namespace SAMS.Services.Roles
             {
                 _logger.LogError(ex, "An error occurred while updating user roles.");
                 return (false, ex.Message);
+            }
+        }
+
+        public async Task<IEnumerable<UserProfile>> GetUsersUsedByRoleIdAsync(long roleId, List<string> emails)
+        {
+            try
+            {
+                var users = _rolesRepository.GetUsersUsedByRoleIdAsync(roleId, emails);
+
+                return await users;
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while getting users used by role id {RoleId}.", roleId);
+                return Enumerable.Empty<UserProfile>();
             }
         }
     }
