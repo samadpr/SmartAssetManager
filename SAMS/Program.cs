@@ -61,7 +61,7 @@ builder.Services.ConfigureApplicationCookie(options =>
         OnValidatePrincipal = SecurityStampValidator.ValidatePrincipalAsync
     };
 
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    options.ExpireTimeSpan = TimeSpan.FromHours(1);
     options.SlidingExpiration = true;
 });
 

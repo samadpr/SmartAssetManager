@@ -7,6 +7,7 @@ using SAMS.Services.Functional.DTOs;
 using SAMS.Services.Functional.Interface;
 using SAMS.Services.Roles;
 using SAMS.Services.Roles.Interface;
+using SAMS.Services.Roles.PagesModel;
 
 namespace SAMS.Services.Functional
 {
@@ -62,8 +63,8 @@ namespace SAMS.Services.Functional
                         RoleName = item.RoleName,
                         CreatedDate = DateTime.Now,
                         ModifiedDate = DateTime.Now,
-                        CreatedBy = "Admin",
-                        ModifiedBy = "Admin",
+                        CreatedBy = RoleModels.SuperAdmin,
+                        ModifiedBy = RoleModels.SuperAdmin,
                         IsAllowed = role.Id == 1 || role.Id == 2 && item.RoleName != "Super Admin"
                         //(role.Id == 2 &&
                         //    (item.RoleName == "User Profile" ||
@@ -113,8 +114,8 @@ namespace SAMS.Services.Functional
                         SubDepartment = null,
                         CreatedDate = DateTime.Now,
                         ModifiedDate = DateTime.Now,
-                        CreatedBy = "Admin",
-                        ModifiedBy = "Admin"
+                        CreatedBy = RoleModels.SuperAdmin,
+                        ModifiedBy = RoleModels.SuperAdmin
                     };
 
                     await _functionalRepo.SaveUserProfileAsync(profile);

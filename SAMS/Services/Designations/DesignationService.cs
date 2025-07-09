@@ -124,6 +124,10 @@ namespace SAMS.Services.DesignationServices
                 var emails = await _commonService.GetEmailsUnderAdminAsync(email);
 
                 var designation = await _repository.GetByIdAsync(id);
+
+                if(designation == null)
+                    return null;
+
                 if (emails.Contains(designation.CreatedBy))
                 {
                     return designation;

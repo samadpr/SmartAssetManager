@@ -2,6 +2,7 @@
 using SAMS.Data;
 using SAMS.Models;
 using SAMS.Services.Functional.Interface;
+using SAMS.Services.Roles.PagesModel;
 
 namespace SAMS.Services.Functional
 {
@@ -48,8 +49,8 @@ namespace SAMS.Services.Functional
                     SlidingExpiration = true,
                     CreatedDate = DateTime.Now,
                     ModifiedDate = DateTime.Now,
-                    CreatedBy = "Admin",
-                    ModifiedBy = "Admin",
+                    CreatedBy = RoleModels.SuperAdmin,
+                    ModifiedBy = RoleModels.SuperAdmin,
                 };
 
                 await _context.DefaultIdentityOption.AddAsync(defaultOptions);
@@ -67,8 +68,8 @@ namespace SAMS.Services.Functional
                 {
                     item.CreatedDate = DateTime.Now;
                     item.ModifiedDate = DateTime.Now;
-                    item.CreatedBy = "Admin";
-                    item.ModifiedBy = "Admin";
+                    item.CreatedBy = RoleModels.SuperAdmin;
+                    item.ModifiedBy = RoleModels.SuperAdmin;
                     _context.ManageUserRoles.Add(item);
                     await _context.SaveChangesAsync();
                 }
