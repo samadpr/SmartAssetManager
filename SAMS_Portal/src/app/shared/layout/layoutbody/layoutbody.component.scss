@@ -1,0 +1,58 @@
+@use '@angular/material' as mat;
+
+.content {
+    padding: 24px;
+}
+
+mat-sidenav-container {
+    height: calc(100vh - 64px); // Adjust for the height of the toolbar
+}
+
+
+mat-sidenav,
+mat-sidenav-content {
+    transition: all 500ms ease-in-out !important;
+}
+
+mat-sidenav {
+    @include mat.sidenav-overrides((
+        container-divider-color: rgba(0, 0, 0, 0.1), // Divider color
+        container-shape: 0px, // No border radius
+        container-background-color: var(--mat-sys-surface), // Background color
+    ));
+}
+
+.sidebar-scroll-container {
+  max-height: 100vh; // full height of viewport
+  overflow-y: auto;
+  height: 100%;
+
+  // Custom scrollbar for Chrome/Edge/Safari
+  &::-webkit-scrollbar {
+    width: 3px;
+    border-radius: 0px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--mat-sys-scroll-bar-custom-color) transparent(0.2);
+    border-radius: 0px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+
+  }
+
+  // Firefox scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: var(--mat-sys-scroll-bar-custom-color) transparent;
+  
+
+  // Optional: on hover highlight
+  &:hover::-webkit-scrollbar-thumb {
+    background-color: var(--mat-sys-on-primary);
+  }
+
+  // Smooth transitions
+  transition: all 0.3s ease;
+}

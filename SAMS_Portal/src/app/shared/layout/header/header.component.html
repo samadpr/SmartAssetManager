@@ -1,0 +1,28 @@
+<mat-toolbar class="mat-elevation-z3 header-toolbar">
+    <div class="navbar-header" [style.width]="layoutService.sidenavWidth()">
+    <!-- Logo icon (always shown) -->
+    <img class="logo-icon" src="assets/images/logos/infoasset_logo-1.png" alt="Logo Icon" />
+
+    <!-- Logo name (only shown when expanded) -->
+    <span class="logo-name" [class.hidden]="layoutService.collapsed()">INFOASSET</span>
+  </div>
+
+  <button mat-icon-button (click)="toggleSidebar()">
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <span class="spacer"></span>
+
+  <button mat-icon-button [mat-menu-trigger-for]="themeMenu" class="selected-theme-icon">
+    <mat-icon>{{themeService.selectedTheme()?.icon}}</mat-icon>
+  </button>
+  <mat-menu #themeMenu="matMenu">
+    @for (themes of themeService.getAppTheme(); track themes.name) {
+    <button mat-menu-item (click)="setThemeFromName(themes.name)">
+      <mat-icon>{{themes.icon}}</mat-icon>
+      <span>{{ themes.name | titlecase }}</span>
+    </button>
+    }
+  </mat-menu>
+
+</mat-toolbar>

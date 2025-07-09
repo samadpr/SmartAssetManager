@@ -1,0 +1,55 @@
+@use '@angular/material' as mat;
+
+.header-toolbar {
+    position: relative;
+    z-index: 5;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+
+    @include mat.toolbar-overrides((
+        container-background-color: var(--mat-sys-surface),
+        container-text-color: var(--mat-sys-on-primary-container),
+        ));
+}
+
+.navbar-header {
+    display: flex;
+    align-items: center;
+    transition: all 500ms ease-in-out;
+    gap: 25px;
+
+    .logo-icon {
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+    }
+
+    .logo-name {
+        font-size: 1.5rem;
+        // font-weight: bold;
+        letter-spacing: 0.8px;
+        overflow: hidden;
+        transition:
+            opacity 500ms ease-in-out,
+            width 500ms ease-in-out,
+            transform 500ms ease-in-out;
+            
+    
+    }
+}
+
+.hidden {
+    opacity: 0;
+    width: 0 !important;
+    transform: scaleX(0.9) translateX(-10px);
+    pointer-events: none;
+}
+
+.spacer {
+    flex: 1 1 auto;
+}
+
+.selected-theme-icon{
+    color: var(--mat-sys-primary);
+}

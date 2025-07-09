@@ -258,7 +258,11 @@ public class UserProfileService : IUserProfileService
             if(getUserProfile.user == null)
                 return (false, getUserProfile.message);
 
-            if(getUserProfile.user.ApplicationUserId is null && getUserProfile.user.Email == loginAccessRequestObject.Email && loginAccessRequestObject.UserProfileId > 0)
+            var roleExists = await _manageUserRolesService.GetUserRoleByIdAsync(Convert.ToInt32(loginAccessRequestObject.RoleId), createdBy);
+            if(roleExists == null || roleExists.Id != loginAccessRequestObject.RoleId)
+                return (false, "Role does not exist.");
+
+            if(getUserProfile.user.ApplicationUserId is null && getUserProfile.user.Email == loginAccessRequestObject.Email && loginAccessRequestObject.UserProfileId > 0 && roleExists.Id == loginAccessRequestObject.RoleId)
             {
                 IdentityResult _identityResult = null!;
                 ApplicationUser _applicationUser = new ApplicationUser()

@@ -91,7 +91,7 @@ namespace SAMS.Services.Account
                     UserName = requestDto.Email,
                     Email = requestDto.Email,
                     PhoneNumber = requestDto.PhoneNumber,
-                    EmailConfirmed = true
+                    EmailConfirmed = false
                 };
 
                 var result = await _userManager.CreateAsync(user, requestDto.Password);

@@ -1,0 +1,11 @@
+<app-header></app-header>
+<mat-sidenav-container>
+    <mat-sidenav opened mode="side" [style.width]="layoutService.sidenavWidth()">
+        <div class="sidebar-scroll-container">
+            <app-sidebar [collapsed]="layoutService.collapsed()"></app-sidebar>
+        </div>
+    </mat-sidenav>
+    <mat-sidenav-content class="content" [style.marginLeft]="layoutService.sidenavWidth()">
+        <router-outlet></router-outlet>
+    </mat-sidenav-content>
+</mat-sidenav-container>

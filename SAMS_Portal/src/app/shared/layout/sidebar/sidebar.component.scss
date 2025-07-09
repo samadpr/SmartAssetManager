@@ -1,0 +1,66 @@
+:host * {
+    transition: all 500ms ease-in-out;
+}
+.sidenav-header{
+    padding-top: 24px;
+    text-align: center;
+
+    >img{
+        border-radius: 100%;
+        object-fit: cover;
+        margin-bottom: 10px;
+    }
+
+    .header-text{
+
+        height: 3rem;
+
+        >h2{
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+        >p{
+            margin: 0;
+            font-size: 0.8rem;
+            line-height: 1.25rem;
+        }
+    }
+}
+
+.hide-header-text{
+    opacity: 0;
+    height: 0px !important;
+}
+
+.sidebar-scroll-container {
+  max-height: 100vh; // full height of viewport
+  overflow-y: auto;
+  padding-right: 4px; // space for scrollbar
+
+  // Custom scrollbar for Chrome/Edge/Safari
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--mat-sys-outline);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  // Firefox scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: var(--mat-sys-outline) transparent;
+
+  // Optional: on hover highlight
+  &:hover::-webkit-scrollbar-thumb {
+    background-color: var(--mat-sys-primary);
+  }
+
+  // Smooth transitions
+  transition: all 0.3s ease;
+}

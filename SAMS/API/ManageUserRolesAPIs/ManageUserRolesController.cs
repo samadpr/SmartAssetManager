@@ -72,7 +72,7 @@ public class ManageUserRolesController : BaseApiController<ManageUserRolesContro
             if(result == null)
                 return BadRequest("Roles not found.");
             return Ok(result);
-        }
+    }
         else
             return Forbid("You have no authorized to access this API.");
     }
