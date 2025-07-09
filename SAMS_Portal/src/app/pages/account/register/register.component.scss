@@ -1,0 +1,261 @@
+@use '@angular/material' as mat;
+
+// Main container styling
+.container-fluid {
+  background: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface);
+  height: 100dvh;
+
+  @media (max-width: 768px) {
+    height: 100%;
+  }
+}
+
+// Left side form section
+.registration-container {
+  max-width: 600px;
+  margin: 0 auto;
+  // background: var(--mat-sys-surface);
+
+  @media (max-width: 768px) {
+    // max-width: 100%;
+    // padding: 1rem !important;
+  }
+}
+
+.left-title {
+  color: var(--mat-sys-on-surface);
+  font-weight: 600;
+  font-size: 2rem;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+}
+
+.left-subtitle {
+  font-size: 1rem;
+  color: var(--mat-sys-on-surface-variant);
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    text-align: center;
+  }
+}
+
+.form-card {
+  border: none;
+  border-radius: 16px;
+  background: var(--mat-sys-surface-container);
+  box-shadow: var(--mat-sys-elevation-level2);
+
+  @media (max-width: 768px) {
+    box-shadow: var(--mat-sys-elevation-level1);
+    border-radius: 12px;
+    width: 100%;
+  }
+}
+
+// Form field styling
+.mat-mdc-form-field {
+  .mat-mdc-form-field-flex {
+    border-radius: 8px;
+  }
+
+  .mat-mdc-form-field-outline {
+    border-radius: 8px;
+  }
+
+  &.mat-form-field-appearance-outline {
+    .mat-form-field-outline-thick {
+      border-width: 2px;
+    }
+  }
+}
+
+mat-option img {
+  vertical-align: middle;
+  object-fit: contain;
+  border-radius: 2px;
+}
+
+// input[matInput] {
+//   width: 100%;
+//   padding: 6px 8px;
+//   font-size: 14px;
+//   border: none;
+//   outline: none;
+// }
+
+
+// Submit button styling
+.submit-btn {
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--mat-sys-elevation-level3);
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--mat-sys-surface-variant);
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+// // Responsive adjustments
+// @media (max-width: 768px) {
+//   .row {
+//     margin: 0;
+//   }
+
+//   .col-md-6 {
+//     padding: 0 0.5rem;
+//   }
+
+//   .registration-container {
+//     padding: 1rem;
+//   }
+
+//   .form-card {
+//     margin: 0;
+//   }
+
+//   .mat-mdc-card-content {
+//     padding: 1rem !important;
+//   }
+// }
+
+// @media (max-width: 576px) {
+//   .brand-logo .logo-icon {
+//     font-size: 3rem;
+//     width: 3rem;
+//     height: 3rem;
+//   }
+
+//   .brand-title {
+//     font-size: 1.5rem;
+//   }
+
+//   .mat-mdc-form-field {
+//     margin-bottom: 0.5rem;
+//   }
+
+//   .submit-btn {
+//     padding: 1rem;
+//     font-size: 0.9rem;
+//   }
+// }
+
+// Animation for form appearance
+.registration-form {
+  animation: slideInUp 0.6s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Custom focus states
+.mat-mdc-form-field.mat-focused {
+  .mat-mdc-form-field-outline-thick {
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+// Error state styling
+.mat-mdc-form-field.mat-form-field-invalid {
+  .mat-mdc-form-field-outline-thick {
+    border-color: var(--mat-sys-error);
+  }
+}
+
+// Right side illustration section
+.bg-color {
+  // background: var(--mat-sys-primary-container) !important;
+  // color: var(--mat-sys-on-primary-container);
+  position: relative;
+  overflow: hidden;
+  flex-direction: column-reverse;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    // background: linear-gradient(45deg, 
+    //   var(--mat-sys-primary) 0%, 
+    //   var(--mat-sys-secondary) 100%);
+    opacity: 0.1;
+  }
+}
+
+
+.illustration-container {
+  position: relative;
+  z-index: 1;
+  max-width: 500px;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+}
+
+// Brand logo on right side
+.brand-logo {
+  .brand-logo-icon {
+    font-size: 3rem;
+    width: 3rem;
+    height: 3rem;
+    color: var(--mat-sys-on-primary-container);
+  }
+
+  .brand-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--mat-sys-on-primary-container);
+    margin: 0;
+  }
+}
+
+// Illustration image styling
+.illustration-image-container {
+  .illustration-image {
+    width: 100%;
+    max-width: 455px;
+    height: auto;
+    border-radius: 16px;
+    box-shadow: var(--mat-sys-elevation-level3);
+    // transition: transform 0.3s ease;
+
+    // &:hover {
+    //   transform: translateY(-5px);
+    // }
+
+    @media (max-width: 992px) {
+      max-width: 300px;
+    }
+  }
+}

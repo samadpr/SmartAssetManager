@@ -1,0 +1,35 @@
+@use '@angular/material' as mat;
+
+:host * {
+    transition: all 500ms ease-in-out;
+}
+
+.menu-item{
+    border-left: 5px solid;
+    border-left-color: rgba(0, 0, 0, 0);
+    // border-radius: 0px !important;
+
+    @include mat.list-overrides((
+        active-indicator-shape: 0px,
+        active-indicator-color: rgba(0, 0, 0, 0.1),
+        // list-item-one-line-container-height: 56px
+    ));
+
+}
+
+.selected-menu-item{
+    border-left-color: var(--mat-sys-primary);
+    background: rgba(0, 0, 0, 0.05);
+
+    @include mat.list-overrides((
+        list-item-leading-icon-color: var(--mat-sys-primary),
+        list-item-hover-leading-icon-color: var(--mat-sys-primary),
+        list-item-label-text-color: var(--mat-sys-primary),
+        list-item-focus-label-text-color: var(--mat-sys-primary),
+        list-item-hover-label-text-color: var(--mat-sys-primary),
+    ))
+}
+
+.indented{
+    --mat-list-list-item-leading-icon-start-space: 48px;
+}

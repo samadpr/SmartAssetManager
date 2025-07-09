@@ -1,0 +1,27 @@
+// Custom Theming for Angular Material
+// For more information: https://material.angular.dev/guide/theming
+@use '@angular/material' as mat;
+@use '../src/app/shared/theme/purpletheme.css';
+
+// html {
+//   color-scheme: light;
+//   @include mat.theme((color: mat.$violet-palette,
+//       typography: Roboto,
+//       density: 0
+//     ));
+// }
+
+/* You can add global styles to this file, and also import other style files */
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}

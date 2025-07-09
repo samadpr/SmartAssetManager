@@ -1,0 +1,15 @@
+
+<div class="sidenav-header">
+    <img [width]="profilePicSize()" [height]="profilePicSize()" src="assets/images/ProfilePic.png"
+        alt="Profile Picture">
+    <div class="header-text" [class.hide-header-text]="sideNavCollapsed()">
+        <h2>John Doe</h2>
+        <p>Admin</p>
+    </div>
+</div>
+<mat-nav-list>
+    @for (item of menuItems(); track item.label) {
+        <app-menu-items [item]="item" [collapsed]="sideNavCollapsed()"></app-menu-items>
+    }
+
+</mat-nav-list>

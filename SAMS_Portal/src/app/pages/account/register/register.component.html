@@ -1,0 +1,171 @@
+<div class="container-fluid p-0">
+    <div class="row w-100 h-100 g-0 align-items-center justify-content-center ">
+        <div class="col-lg-7 col-md-12 col-sm-12 justify-content-center">
+            <div class="registration-container w-100 px-4">
+                <!-- Brand Logo Section -->
+                <div class="text-left mb-4">
+                    <h2 class="left-title mb-1">Sign Up</h2>
+                    <p class="left-subtitle">Enter details to create your account</p>
+                </div>
+                <!-- Registration Form -->
+                <mat-card class="form-card shadow-sm">
+                    <mat-card-content class="p-4">
+                        <form class="registration-form" [formGroup]="_regform" (ngSubmit)="proceedregister()">
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-3 col-sm-12 mb-md-0">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>First Name</mat-label>
+                                        <input matInput  formControlName="firstName" placeholder="Enter your first name">
+                                        <mat-icon matSuffix>person</mat-icon>
+                                        <mat-error *ngIf="_regform.get('firstName')?.invalid && _regform.get('firstName')?.touched"></mat-error>
+                                    </mat-form-field>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>Last Name</mat-label>
+                                        <input matInput  formControlName="lastName" placeholder="Enter your last name">
+                                        <mat-icon matSuffix>person</mat-icon>
+                                        <mat-error *ngIf="_regform.get('lastName')?.invalid && _regform.get('lastName')?.touched"></mat-error>
+                                    </mat-form-field>
+                                </div>
+                            </div>
+                            <div class="col-md-12 col-sm-12 mb-3">
+                                <mat-form-field appearance="outline" class="w-100">
+                                    <mat-label>Email Address</mat-label>
+                                    <input matInput  formControlName="email" type="email" placeholder="Enter your email">
+                                    <mat-icon matSuffix>email</mat-icon>
+                                    <mat-error *ngIf="_regform.get('email')?.invalid && _regform.get('email')?.touched"></mat-error>
+                                </mat-form-field>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6 col-sm-12 mb-3 mb-md-0">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>Password</mat-label>
+                                        <input matInput  formControlName="password" [type]="hidePassword ? 'password' : 'text'"
+                                            placeholder="Create password">
+                                        <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword"
+                                            type="button">
+                                            <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+                                        </button>
+                                        <mat-error *ngIf="_regform.get('password')?.invalid && _regform.get('password')?.touched"></mat-error>
+                                    </mat-form-field>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>Confirm Password</mat-label>
+                                        <input matInput  formControlName="confirmPassword" [type]="hideConfirmPassword ? 'password' : 'text'"
+                                            placeholder="Confirm password">
+                                        <button mat-icon-button matSuffix
+                                            (click)="hideConfirmPassword = !hideConfirmPassword" type="button">
+                                            <mat-icon>{{hideConfirmPassword ? 'visibility_off' :
+                                                'visibility'}}</mat-icon>
+                                        </button>
+                                        <mat-error *ngIf="_regform.get('confirmPassword')?.invalid && _regform.get('confirmPassword')?.touched"></mat-error>
+                                    </mat-form-field>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6 col-sm-12 mb-3 mb-md-0">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>Phone Number</mat-label>
+                                        <input matInput  formControlName="phoneNumber" type="tel" placeholder="Enter your phone number">
+                                        <mat-icon matSuffix>phone</mat-icon>
+                                        <mat-error *ngIf="_regform.get('phoneNumber')?.invalid && _regform.get('phoneNumber')?.touched"></mat-error>
+                                    </mat-form-field>
+                                </div>
+                                <div class="col-md-6 col-sm-12">
+                                    <mat-form-field appearance="outline" class="w-100">
+                                        <mat-label>Country (Optional)</mat-label>
+                                        <mat-select [(value)]="selectedCountry" [compareWith]="compareCountries">
+                                            <mat-select-trigger>
+                                                <ng-container *ngIf="getSelectedCountry() as country">
+                                                    <img [src]="getFlagUrl(country.code)" width="24" height="16"
+                                                        style="margin-right: 8px;" />
+                                                    {{ country.name }}
+                                                </ng-container>
+                                            </mat-select-trigger>
+                                            <mat-option disabled>
+                                                <input matInput  formControlName="country" type="text" placeholder="Search country..."
+                                                    [(ngModel)]="searchText"
+                                                    (ngModelChange)="filterCountries($event)" />
+                                            </mat-option>
+
+                                            <mat-option *ngFor="let country of filteredCountries"
+                                                [value]="country.code">
+                                                <img [src]="getFlagUrl(country.code)" width="24" height="16"
+                                                    style="margin-right: 8px;" />
+                                                {{ country.name }}
+                                            </mat-option>
+                                        </mat-select>
+                                        <mat-icon matSuffix>public</mat-icon>
+                                    </mat-form-field>
+                                </div>
+                            </div>
+                            <!-- <div class="mb-3">
+                                <mat-form-field appearance="outline" class="w-100">
+                                    <mat-label>Leave a comment</mat-label>
+                                    <textarea matInput  formControlName="" placeholder="Ex. It makes me feel..."></textarea>
+                                </mat-form-field>
+                            </div> -->
+
+                            <!-- Submit Button -->
+                            <div class="d-grid">
+                                <button mat-raised-button color="primary" type="submit" class="submit-btn py-3" [disabled]="_regform.invalid">
+                                    <mat-icon class="me-2">person_add</mat-icon>
+                                    Create Account
+                                </button>
+                            </div>
+
+                            <!-- Login Link -->
+                            <div class="text-center mt-4">
+                                <p class="mb-0" style="color: var(--mat-sys-on-surface-variant);">Already have an
+                                    account?
+                                    <a href="#" class="text-decoration-none fw-medium">Sign in here</a>
+                                </p>
+                            </div>
+                        </form>
+                    </mat-card-content>
+                </mat-card>
+            </div>
+        </div>
+        <div class="col-lg-5 col-md-5 d-none d-md-flex bg-color">
+            <div class="illustration-container text-center">
+                <!-- Brand Logo at Top -->
+                <div class="brand-logo mb-4">
+                    <img class="brand-logo-icon" src="assets/images/logos/infoasset_logo-1.png" alt="">
+                    <h4 class="brand-name mt-2">INFOASSET</h4>
+                </div>
+                <!-- Main Illustration Image -->
+                <div class="illustration-image-container mb-4">
+                    <img src="assets\images\infoasset-dashboard.webp" alt="Registration Illustration"
+                        class="illustration-image">
+                </div>
+                <!-- Content Section -->
+                <div class="illustration-content">
+                    <h3 class="illustration-title mb-3">Welcome to Our Platform</h3>
+                    <p class="illustration-text mb-4">
+                        Join thousands of users who trust our platform for their business needs.
+                        Create your account and start your journey with us today.
+                    </p>
+
+                    <!-- Feature Icons -->
+                    <div class="feature-icons d-flex justify-content-center gap-4">
+                        <div class="feature-item">
+                            <mat-icon class="feature-icon">security</mat-icon>
+                            <small class="d-block mt-2">Secure</small>
+                        </div>
+                        <div class="feature-item">
+                            <mat-icon class="feature-icon">speed</mat-icon>
+                            <small class="d-block mt-2">Fast</small>
+                        </div>
+                        <div class="feature-item">
+                            <mat-icon class="feature-icon">support_agent</mat-icon>
+                            <small class="d-block mt-2">Support</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
