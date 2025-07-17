@@ -1138,6 +1138,9 @@ namespace SAMS.Migrations
                     b.Property<int>("PasswordRequiredUniqueChars")
                         .HasColumnType("int");
 
+                    b.Property<bool>("SignInRequireConfirmedAccount")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("SignInRequireConfirmedEmail")
                         .HasColumnType("bit");
 
@@ -1400,7 +1403,7 @@ namespace SAMS.Migrations
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsSsl")
+                    b.Property<bool>("IsSSl")
                         .HasColumnType("bit");
 
                     b.Property<string>("ModifiedBy")

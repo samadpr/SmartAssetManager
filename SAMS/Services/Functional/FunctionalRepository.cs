@@ -39,7 +39,8 @@ namespace SAMS.Services.Functional
                     LockoutMaxFailedAccessAttempts = 5,
                     LockoutAllowedForNewUsers = false,
                     UserRequireUniqueEmail = true,
-                    SignInRequireConfirmedEmail = false,
+                    SignInRequireConfirmedEmail = true,
+                    SignInRequireConfirmedAccount = true,
                     CookieHttpOnly = true,
                     CookieExpiration = 150,
                     CookieExpireTimeSpan = 120,
@@ -90,5 +91,54 @@ namespace SAMS.Services.Functional
             await _context.SaveChangesAsync();
         }
 
+        public async Task CreateDefaultEmailSettingsAsync()
+        {
+            try
+            {
+                if(!_context.SMTPEmailSettings.Any())
+                {
+                    SMTPEmailSetting _SMTPEmailSetting = new SMTPEmailSetting
+                    {
+                        UserName = "codinguse341@gmail.com",
+                        Password = "wxdm fhyz qunq kvjh", 
+                        Host = "smtp.gmail.com",
+                        Port = 587,
+                        IsSSl = true,
+                        FromEmail = "codinguse341@gmail.com",
+                        FromFullName = "SAMS Notification",
+                        IsDefault = true,
+
+                        CreatedDate = DateTime.Now,
+                        ModifiedDate = DateTime.Now,
+                        CreatedBy = RoleModels.SuperAdmin,
+                        ModifiedBy = RoleModels.SuperAdmin
+                    };
+
+                    await _context.SMTPEmailSettings.AddAsync(_SMTPEmailSetting);
+                }
+
+                if(!_context.SendGridSettings.Any())
+                {
+                    SendGridSetting _SendGridSetting = new SendGridSetting
+                    {
+                        SendGridUser = "SAMS System",
+                        SendGridKey = "SG.your-real-sendgrid-api-key",
+                        FromEmail = "noreply@sams.com",
+                        FromFullName = "SAMS Notifications",
+                        IsDefault = false,
+
+                        CreatedDate = DateTime.Now,
+                        ModifiedDate = DateTime.Now,
+                        CreatedBy = RoleModels.SuperAdmin,
+                        ModifiedBy = RoleModels.SuperAdmin
+                    };
+                }
+                await _context.SaveChangesAsync();
+            }
+            catch(Exception ex)
+            {
+                throw new Exception("Error while creating default email settings: " + ex.Message);
+            }
+        }
     }
 }

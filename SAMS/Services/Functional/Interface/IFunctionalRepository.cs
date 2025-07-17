@@ -13,5 +13,7 @@ namespace SAMS.Services.Functional.Interface
         Task AddManageUserRoleDetailsAsync(ManageUserRolesDetail detail);
 
         Task SaveUserProfileAsync(UserProfile profile);
+
+        Task CreateDefaultEmailSettingsAsync();
     }
 }

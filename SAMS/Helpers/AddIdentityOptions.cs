@@ -27,6 +27,11 @@ namespace SAMS.Helpers
                     options.User.RequireUniqueEmail = _DefaultIdentityOptions.UserRequireUniqueEmail;
 
                     options.SignIn.RequireConfirmedEmail = _DefaultIdentityOptions.SignInRequireConfirmedEmail;
+                    options.SignIn.RequireConfirmedAccount = _DefaultIdentityOptions.SignInRequireConfirmedAccount;
+
+                    // Email confirmation
+                    options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
+
                 }).AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 

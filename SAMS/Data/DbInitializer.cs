@@ -23,7 +23,7 @@ namespace SAMS.Data
             {
                 await functional.GenerateUserUserRole();
                 await functional.CreateDefaultSuperAdminAsync();
-
+                await functional.CreateDefaultEmailSettings();
             }
         }
     }

@@ -35,6 +35,36 @@ namespace SAMS.API.Account
             return BadRequest(new { IsSuccess = false, Message = message });
         }
 
+        [HttpPost("account/email-confirmation")]
+        [AllowAnonymous]
+        public async Task<IActionResult> EmailVarification(string? email, string? otpText)
+        {
+            if (email == null || otpText == null)
+                return BadRequest(error: "Invalid payload");
+
+            var (isSuccess, message) = await _accountService.EmailVarificationAsync(email, otpText);
+            if (isSuccess)
+            {
+                return Ok(new { IsSuccess = true, Message = message });
+            }
+            return BadRequest(new { IsSuccess = false, Message = message });
+        }
+
+        [HttpPost("account/send-email-verification-code")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SendEmailVarificationCode(string? email)
+        {
+            if (email == null)
+                return BadRequest(error: "Invalid payload");
+
+            var (isSuccess, message) = await _accountService.SendEmailVarificationCodeAsync(email);
+            if (isSuccess)
+            {
+                return Ok(new { IsSuccess = true, Message = message });
+            }
+            return BadRequest(new { IsSuccess = false, Message = message });
+        }
+
         [HttpPost("account/login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequestObject loginRequest)

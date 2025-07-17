@@ -32,6 +32,8 @@ public class DefaultIdentityOptions : EntityBase
 
     public bool SignInRequireConfirmedEmail { get; set; }
 
+    public bool SignInRequireConfirmedAccount { get; set; }
+
     //cookie settings
     public bool CookieHttpOnly { get; set; }
 

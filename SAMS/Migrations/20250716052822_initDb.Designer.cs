@@ -12,8 +12,8 @@ using SAMS.Data;
 namespace SAMS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250708045404_firstMigration")]
-    partial class firstMigration
+    [Migration("20250716052822_initDb")]
+    partial class initDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1141,6 +1141,9 @@ namespace SAMS.Migrations
                     b.Property<int>("PasswordRequiredUniqueChars")
                         .HasColumnType("int");
 
+                    b.Property<bool>("SignInRequireConfirmedAccount")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("SignInRequireConfirmedEmail")
                         .HasColumnType("bit");
 
@@ -1403,7 +1406,7 @@ namespace SAMS.Migrations
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsSsl")
+                    b.Property<bool>("IsSSl")
                         .HasColumnType("bit");
 
                     b.Property<string>("ModifiedBy")
