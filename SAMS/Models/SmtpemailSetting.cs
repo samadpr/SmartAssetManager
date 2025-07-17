@@ -15,7 +15,7 @@ public class SMTPEmailSetting : EntityBase
 
     public int Port { get; set; }
 
-    public bool IsSsl { get; set; }
+    public bool IsSSl { get; set; }
 
     public string? FromEmail { get; set; }
 

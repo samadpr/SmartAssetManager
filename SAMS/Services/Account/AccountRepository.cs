@@ -1,4 +1,5 @@
-﻿using SAMS.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using SAMS.Data;
 using SAMS.Models;
 using SAMS.Services.Account.Interface;
 
@@ -28,5 +29,11 @@ public class AccountRepository : IAccountRepository
         }
         else
             return null!;
+    }
+
+    public async Task<UserProfile> GetUserProfileByApplicationUserId(string applicationUserId)
+    {
+        var userProfile = await _context.UserProfiles.Where(x => x.ApplicationUserId == applicationUserId).FirstOrDefaultAsync();
+        return userProfile!;
     }
 }

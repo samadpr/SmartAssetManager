@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SAMS.Migrations
 {
     /// <inheritdoc />
-    public partial class firstMigration : Migration
+    public partial class initDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -167,6 +167,7 @@ namespace SAMS.Migrations
                     LockoutAllowedForNewUsers = table.Column<bool>(type: "bit", nullable: false),
                     UserRequireUniqueEmail = table.Column<bool>(type: "bit", nullable: false),
                     SignInRequireConfirmedEmail = table.Column<bool>(type: "bit", nullable: false),
+                    SignInRequireConfirmedAccount = table.Column<bool>(type: "bit", nullable: false),
                     CookieHttpOnly = table.Column<bool>(type: "bit", nullable: false),
                     CookieExpiration = table.Column<double>(type: "float", nullable: false),
                     CookieExpireTimeSpan = table.Column<double>(type: "float", nullable: false),
@@ -314,7 +315,7 @@ namespace SAMS.Migrations
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Host = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Port = table.Column<int>(type: "int", nullable: false),
-                    IsSsl = table.Column<bool>(type: "bit", nullable: false),
+                    IsSSl = table.Column<bool>(type: "bit", nullable: false),
                     FromEmail = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     FromFullName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsDefault = table.Column<bool>(type: "bit", nullable: false),

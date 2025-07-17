@@ -6,7 +6,10 @@ namespace SAMS.Services.Account.Interface
     public interface IAccountRepository
     {
         Task AddUserProfile(UserProfile userProfile);
+
         LoginHistory GetLoginHistory(string username);
+
+        Task<UserProfile> GetUserProfileByApplicationUserId(string applicationUserId);
 
     }
 }

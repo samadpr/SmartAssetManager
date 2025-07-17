@@ -128,5 +128,17 @@ namespace SAMS.Services.Functional
                 throw new Exception("Failed to create default super admin", ex);
             }
         }
+
+        public async Task CreateDefaultEmailSettings()
+        {
+            try
+            {
+                await _functionalRepo.CreateDefaultEmailSettingsAsync();
+            }
+            catch(Exception ex)
+            {
+                throw new Exception("Failed to create default email settings", ex);
+            }
+        }
     }
 }

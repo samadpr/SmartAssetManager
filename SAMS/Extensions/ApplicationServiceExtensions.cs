@@ -3,12 +3,15 @@ using Microsoft.EntityFrameworkCore;
 using SAMS.Data;
 using SAMS.Helpers;
 using SAMS.Models.CommonModels;
+using SAMS.Models.EmailServiceModels;
 using SAMS.Services.Account;
 using SAMS.Services.Account.Interface;
 using SAMS.Services.Common;
 using SAMS.Services.Common.Interface;
 using SAMS.Services.DesignationServices;
 using SAMS.Services.DesignationServices.Interface;
+using SAMS.Services.EmailService;
+using SAMS.Services.EmailService.Interface;
 using SAMS.Services.Functional;
 using SAMS.Services.Functional.Interface;
 using SAMS.Services.ManageUserRoles;
@@ -25,6 +28,7 @@ namespace SAMS.Extensions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
         {
+            //services.Configure<EmailSettings>(config.GetSection("EmailSettings"));
             services.AddScoped<ApplicationDbContext>();
             var _ApplicationInfo = config.GetSection("ApplicationInfo").Get<ApplicationInfo>();
             string _GetConnStringName = ControllerExtensions.GetConnectionString(config);
@@ -42,6 +46,8 @@ namespace SAMS.Extensions
             }
 
             services.AddAutoMapper(typeof(AutoMapperProfiles).Assembly);
+
+            services.AddTransient<IEmailService, EmailService>();
 
             services.AddScoped<IFunctionalService, FunctionalService>();
             services.AddScoped<IFunctionalRepository, FunctionalRepository>();

@@ -33,37 +33,37 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Enter 'Bearer' [space] and then your valid token",
     });
 
-    //c.AddSecurityRequirement(new OpenApiSecurityRequirement{
-    //    {
-    //        new OpenApiSecurityScheme
-    //        {
-    //            Reference = new OpenApiReference {
-    //                Type = ReferenceType.SecurityScheme,
-    //                Id = "Bearer"
-    //            }
-    //        },
-    //        Array.Empty<string>()
-    //    }
-    //});
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement{
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 }
 );
 
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(60);
-});
+/*//builder.Services.AddDistributedMemoryCache();
+//builder.Services.AddSession(options =>
+//{
+//    options.IdleTimeout = TimeSpan.FromMinutes(60);
+//});
 
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Events = new CookieAuthenticationEvents
-    {
-        OnValidatePrincipal = SecurityStampValidator.ValidatePrincipalAsync
-    };
+//builder.Services.ConfigureApplicationCookie(options =>
+//{
+//    options.Events = new CookieAuthenticationEvents
+//    {
+//        OnValidatePrincipal = SecurityStampValidator.ValidatePrincipalAsync
+//    };
 
-    options.ExpireTimeSpan = TimeSpan.FromHours(1);
-    options.SlidingExpiration = true;
-});
+//    options.ExpireTimeSpan = TimeSpan.FromHours(1);
+//    options.SlidingExpiration = true;
+//});*/
 
 builder.Services.AddAuthentication(options =>
 {
@@ -87,6 +87,13 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
+});
 
 //Set Identity Options
 var _IServiceScopeFactory = builder.Services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
@@ -161,7 +168,9 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
-app.UseSession();
+//app.UseSession();
+
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 
