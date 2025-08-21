@@ -9,9 +9,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
 import { CommonModule } from '@angular/common';
 import { Country, CountryService } from '../../../core/services/account/country/country.service';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { DeviceDetectorService } from 'ngx-device-detector';
+import { AccountService } from '../../../core/services/account/account.service';
+import { DeviceInfoService } from '../../../core/services/account/device/device-info.service';
 
 
 @Component({
@@ -26,7 +28,8 @@ import { DeviceDetectorService } from 'ngx-device-detector';
     MatIconModule,
     MatButtonModule,
     MatListModule,
-    CommonModule
+    CommonModule,
+    RouterLink
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss'
@@ -40,12 +43,14 @@ export class RegisterComponent implements OnInit {
   hidePassword = true;
   hideConfirmPassword = true;
   _resPonse: any;
+  isSubmitting = false;
 
   constructor(
     private builder: FormBuilder,
+    private accountService: AccountService,
     private countryService: CountryService,
     private deviceService: DeviceDetectorService,
-    // private service: UserService,
+    private deviceInfoService: DeviceInfoService,
     private toaster: ToastrService,
     private router: Router
   ) { }
@@ -72,17 +77,18 @@ export class RegisterComponent implements OnInit {
     this.countries = this.countryService.getAllCountries();
     this.filteredCountries = [...this.countries];
 
-    this.setDeviceDetails();
-    this.setGeolocation();
-    this.setPublicIP();
 
-    this.countryService.getUserLocation().subscribe(loc => {
+    this.deviceInfoService.patchFormWithDeviceInfo(this._regform).subscribe();
+
+    this.accountService.getUserLocation().subscribe(loc => {
       const countryCode = loc.country_code;
-      if (this.countries.some(c => c.code === countryCode)) {
-        this.selectedCountry = countryCode;
-        this._regform.patchValue({ country: countryCode });
+      const matchedCountry = this.countries.find(c => c.code === countryCode);
+      if (matchedCountry) {
+        this.selectedCountry = matchedCountry.code;
+        this._regform.patchValue({ country: matchedCountry.name });
       }
     });
+
   }
 
   setDeviceDetails() {
@@ -133,45 +139,70 @@ export class RegisterComponent implements OnInit {
   }
 
   setPublicIP() {
-    this.countryService.getPublicIP().subscribe((res: any) => {
+    this.accountService.getPublicIP().subscribe((res: any) => {
       this._regform.patchValue({ publicIP: res.ip });
     });
   }
-  
-  getFlagUrl(code: string): string {
-    return this.countryService.getFlagUrl(code);
+
+  getFlagUrl(code: string | undefined | null): string {
+    return code ? this.countryService.getFlagUrl(code) : '';
   }
 
-    filterCountries(value: string) {
+
+
+  filterCountries(value: string) {
     const filterValue = value.toLowerCase();
     this.filteredCountries = this.countries.filter(c =>
       c.name.toLowerCase().includes(filterValue)
     );
   }
 
+  // Add this updated method to your RegisterComponent
+
   proceedregister() {
-    if (this._regform.valid) {
+    if (this._regform.valid && !this.isSubmitting) {
+      this.isSubmitting = true;
       const _obj = this._regform.value;
-      // this.service.userRegistration(_obj).subscribe(res => {
-      //   this._resPonse = res;
-      //   if (this._resPonse.isSuccess) {
-      //     this.toaster.success('Validate OTP & complete the registration: ' + this._resPonse.message, 'Registration Success');
-      //     this.router.navigateByUrl('/login');
-      //   } else {
-      //     this.toaster.error('Failed due to: ' + this._resPonse.message, 'Registration Failed');
-      //   }
-      // });
+      this.accountService.userRegistration(_obj).subscribe({
+        next: (res) => {
+          this._resPonse = res;
+          debugger
+          if (this._resPonse.isSuccess) {
+            // Store email for OTP verification
+            this.accountService._registerresp.set({
+              email: _obj.email,
+              otpText: ''
+            });
+            this.toaster.success('Validate OTP & complete the registration', 'Registration Success');
+            this.router.navigateByUrl('/confirmotp');
+          } else {
+            this.toaster.error('Failed due to: ' + this._resPonse.message, 'Registration Failed');
+            this.isSubmitting = false;
+          }
+        },
+        error: (error) => {
+          console.error('Registration error:', error);
+          this.toaster.error('Registration failed. Please try again.', 'Network Error');
+          this.isSubmitting = false;
+        }
+      });
+    } else {
+      // Mark all fields as touched to show validation errors
+      Object.keys(this._regform.controls).forEach(key => {
+        this._regform.get(key)?.markAsTouched();
+      });
+      this.toaster.warning('Please fill in all required fields correctly', 'Form Validation');
     }
   }
 
 
-  compareCountries(a: string, b: string): boolean {
-    return a === b;
-  }
-  getSelectedCountry(): Country | undefined {
-    return this.countries.find(c => c.code === this.selectedCountry);
+  compareCountries(a: Country, b: Country): boolean {
+    return a && b && a.code === b.code;
   }
 
-
+  getSelectedCountry(): Country | null {
+    const name = this._regform.get('country')?.value;
+    return this.countries.find(c => c.name === name) || null;
+  }
 
 }

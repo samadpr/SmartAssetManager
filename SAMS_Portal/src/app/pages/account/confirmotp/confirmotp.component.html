@@ -1,0 +1,94 @@
+<div class="otp-container" [@fadeIn]>
+  <!-- Background Overlay -->
+  <div class="overlay-backdrop" [@slideInUp]></div>
+  
+  <!-- Main OTP Card -->
+  <div class="otp-card-container">
+    <mat-card class="otp-card">
+      <mat-card-content class="p-0">
+        
+        <!-- Header Section -->
+        <div class="otp-header text-center mb-4">
+          <div class="icon-container mb-3">
+            <mat-icon class="verification-icon">mark_email_read</mat-icon>
+          </div>
+          <h2 class="otp-title">Verify Your Email</h2>
+          <p class="otp-subtitle">
+            We've sent a verification code to <br>
+            <strong>{{ regresponse.email || 'your email' }}</strong>
+          </p>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="loading-container text-center mb-4">
+          <mat-progress-spinner 
+            [diameter]="40" 
+            color="primary"
+            mode="indeterminate">
+          </mat-progress-spinner>
+          <p class="loading-text mt-2">Verifying your code...</p>
+        </div>
+
+        <!-- OTP Input Section -->
+        <div *ngIf="!isLoading" class="otp-input-section mb-4">
+          <div class="otp-input-container">
+            <input 
+              #otpInput
+              type="text" 
+              class="otp-input" 
+              [(ngModel)]="otptext"
+              placeholder="Enter 6-digit code"
+              maxlength="6"
+              (input)="onOtpInput($event)"
+              (keyup.enter)="confirmOTP()"
+              autocomplete="one-time-code"
+              inputmode="numeric"
+            />
+          </div>
+          
+          <!-- Error Message -->
+          <div *ngIf="errorMessage" class="error-message text-center mt-2">
+            <mat-icon class="error-icon">error</mat-icon>
+            {{ errorMessage }}
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div *ngIf="!isLoading" class="action-buttons">
+          <button 
+            mat-raised-button 
+            color="primary" 
+            class="verify-btn"
+            [disabled]="otptext.length !== 6 || isSubmitting"
+            (click)="confirmOTP()">
+            <mat-icon class="me-2">verified</mat-icon>
+            {{ isSubmitting ? 'Verifying...' : 'Verify Email' }}
+          </button>
+        </div>
+
+        <!-- Resend Section -->
+        <div *ngIf="!isLoading" class="resend-section text-center mt-4">
+          <p class="resend-text">Didn't receive the code?</p>
+          <button 
+            mat-button 
+            color="primary" 
+            class="resend-btn"
+            [disabled]="resendCooldown > 0 || isResending"
+            (click)="resendOTP()">
+            <mat-icon class="me-1">refresh</mat-icon>
+            {{ isResending ? 'Sending...' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code' }}
+          </button>
+        </div>
+
+        <!-- Back to Register -->
+        <div class="back-link text-center mt-4">
+          <button mat-button color="accent" (click)="goBack()">
+            <mat-icon class="me-1">arrow_back</mat-icon>
+            Back to Registration
+          </button>
+        </div>
+
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

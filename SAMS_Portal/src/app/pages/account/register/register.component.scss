@@ -115,6 +115,15 @@ mat-option img {
   }
 }
 
+.login-link {
+  color: var(--mat-sys-primary);
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: var(--mat-sys-primary-container);
+  }
+}
+
 // // Responsive adjustments
 // @media (max-width: 768px) {
 //   .row {

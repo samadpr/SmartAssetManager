@@ -6,7 +6,7 @@ namespace SAMS.Services.Profile.Interface;
 
 public interface IUserProfileService
 {
-    Task<UserProfile> GetProfileDetails();
+    Task<UserProfile> GetProfileDetails(string email);
 
     Task<(bool Success, string Message)> UpdateProfileAsync(UserProfileRequestObject user);
 

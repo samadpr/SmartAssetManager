@@ -45,12 +45,14 @@ public class UserProfileService : IUserProfileService
     }
 
 
-    public async Task<Models.UserProfile> GetProfileDetails()
+    public async Task<Models.UserProfile> GetProfileDetails(string email)
     {
         try
         {
             var userEmail =  await _userManager.GetUserAsync(_signInManager.Context.User!);
-            return await _userProfileRepository.GetProfileDetails(userEmail.Email);
+            if (userEmail != null)
+                return await _userProfileRepository.GetProfileDetails(userEmail.Email!);
+            return await _userProfileRepository.GetProfileDetails(email);
         }
         catch(Exception ex)
         {

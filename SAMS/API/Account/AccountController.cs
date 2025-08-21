@@ -32,22 +32,22 @@ namespace SAMS.API.Account
             {
                 return Ok(new { IsSuccess = true, Message = message });
             }
-            return BadRequest(new { IsSuccess = false, Message = message });
+            return Ok(new { IsSuccess = false, Message = message });
         }
 
         [HttpPost("account/email-confirmation")]
         [AllowAnonymous]
-        public async Task<IActionResult> EmailVarification(string? email, string? otpText)
+        public async Task<IActionResult> EmailVarification([FromBody] EmailVerificationRequestObject emailVerificationRequest)
         {
-            if (email == null || otpText == null)
+            if(emailVerificationRequest == null)
                 return BadRequest(error: "Invalid payload");
 
-            var (isSuccess, message) = await _accountService.EmailVarificationAsync(email, otpText);
+            var (isSuccess, message) = await _accountService.EmailVarificationAsync(emailVerificationRequest.Email, emailVerificationRequest.OtpText);
             if (isSuccess)
             {
                 return Ok(new { IsSuccess = true, Message = message });
             }
-            return BadRequest(new { IsSuccess = false, Message = message });
+            return Accepted(new { IsSuccess = false, Message = message });
         }
 
         [HttpPost("account/send-email-verification-code")]
@@ -62,7 +62,7 @@ namespace SAMS.API.Account
             {
                 return Ok(new { IsSuccess = true, Message = message });
             }
-            return BadRequest(new { IsSuccess = false, Message = message });
+            return Ok(new { IsSuccess = false, Message = message });
         }
 
         [HttpPost("account/login")]
@@ -72,9 +72,12 @@ namespace SAMS.API.Account
             var mappedRequest = _mapper.Map<LoginRequestDto>(loginRequest);
             var loginResult = await _accountService.LoginAsync(mappedRequest);
 
-            if (loginResult == null)
+            if (!loginResult.IsAuthenticated)
             {
-                return Unauthorized(new { Message = "Invalid login attempt." });
+                if(loginResult.Message == "User not found.")
+                    return NotFound(loginResult);
+                else
+                    return Unauthorized(loginResult);
             }
 
             return Ok(loginResult);
