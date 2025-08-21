@@ -6,7 +6,7 @@
     <span matListItemTitle>{{item().label}}</span>
     } @if (item().subItems) {
     <span matListItemMeta>
-        @if(nestedMenuOpen()){
+        @if(isSubMenuOpen()){
         <mat-icon>expand_less</mat-icon>
         } @else {
         <mat-icon>expand_more</mat-icon>
@@ -15,7 +15,7 @@
     }
 </a>
 
-@if (item().subItems && nestedMenuOpen()) {
+@if (item().subItems && isSubMenuOpen()) {
 <div @expandContractMenu>
     @for (subItem of item().subItems; track subItem.label) {
     <a 

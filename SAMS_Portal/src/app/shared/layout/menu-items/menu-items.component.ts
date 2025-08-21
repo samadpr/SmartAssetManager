@@ -1,4 +1,4 @@
-import { Component, input, signal } from '@angular/core';
+import { Component, EventEmitter, Input, input, Output, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { RouterModule } from '@angular/router';
@@ -7,6 +7,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
 
 @Component({
   selector: 'app-menu-items',
+  standalone: true,
   animations: [
     trigger('expandContractMenu', [
       transition(':enter', [
@@ -23,17 +24,28 @@ import { animate, style, transition, trigger } from '@angular/animations';
   styleUrl: './menu-items.component.scss'
 })
 export class MenuItemsComponent {
-item =input.required<MenuItem>();
+  @Input() openedItemLabel: string | null = null;
+
+  @Output() menuClicked = new EventEmitter<string | null>();
   
+  item = input.required<MenuItem>();
+
   collapsed = input(false);
 
-  nestedMenuOpen = signal(false);
+  // nestedMenuOpen = signal(false);
 
-  toggleNestedMenu(){
-    if(!this.item().subItems) {
+  toggleNestedMenu() {
+    if (!this.item().subItems) {
+      this.menuClicked.emit(null); // Close any open submenu
       return;
     }
 
-    this.nestedMenuOpen.set(!this.nestedMenuOpen());
+    const isOpen = this.isSubMenuOpen();
+    this.menuClicked.emit(isOpen ? null : this.item().label);
   }
+
+  isSubMenuOpen(): boolean {
+    return this.openedItemLabel === this.item().label;
+  }
+
 }

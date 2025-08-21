@@ -1,11 +1,19 @@
 <app-header></app-header>
-<mat-sidenav-container>
-    <mat-sidenav opened mode="side" [style.width]="layoutService.sidenavWidth()">
+<mat-sidenav-container class="shell">
+    <mat-sidenav
+    #drawer
+    [mode]="layoutService.mode()"
+    [opened]="layoutService.opened()"
+    [fixedTopGap]="64"
+    (backdropClick)="layoutService.onBackdrop()"
+    (closedStart)="layoutService.afterSidenavClosed()"
+    [style.width]="layoutService.sidenavWidth()"
+  >
         <div class="sidebar-scroll-container">
             <app-sidebar [collapsed]="layoutService.collapsed()"></app-sidebar>
         </div>
     </mat-sidenav>
-    <mat-sidenav-content class="content" [style.marginLeft]="layoutService.sidenavWidth()">
+    <mat-sidenav-content class="content" [style.marginLeft]="layoutService.contentMargin()">
         <router-outlet></router-outlet>
     </mat-sidenav-content>
 </mat-sidenav-container>

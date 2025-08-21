@@ -1,1 +1,146 @@
-<p>login works!</p>
+<div class="container-fluid p-0">
+    <div class="row w-100 h-100 g-0 align-items-center justify-content-center">
+        <!-- Left Side - Login Form -->
+        <div class="col-lg-7 col-md-12 col-sm-12 justify-content-center">
+            <div class="login-container w-100 px-4">
+                <!-- Header Section -->
+                <div class="text-left mb-4">
+                    <h2 class="left-title mb-1">Welcome Back</h2>
+                    <p class="left-subtitle">Sign in to your account to continue</p>
+                </div>
+
+                <!-- Login Form -->
+                <mat-card class="form-card shadow-sm">
+                    <mat-card-content class="p-4">
+                        <form class="login-form" [formGroup]="_loginform" (ngSubmit)="proceedlogin()">
+
+                            <!-- Email Field -->
+                            <div class="col-md-12 col-sm-12 mb-3">
+                                <mat-form-field appearance="outline" class="w-100">
+                                    <mat-label>Email Address</mat-label>
+                                    <input matInput formControlName="email" type="email" placeholder="Enter your email">
+                                    <mat-icon matSuffix>email</mat-icon>
+                                    <mat-error
+                                        *ngIf="_loginform.get('email')?.invalid && _loginform.get('email')?.touched">
+                                        <span *ngIf="_loginform.get('email')?.errors?.['required']">Email is
+                                            required</span>
+                                        <span *ngIf="_loginform.get('email')?.errors?.['email']">Please enter a valid
+                                            email</span>
+                                    </mat-error>
+                                </mat-form-field>
+                            </div>
+
+                            <!-- Password Field -->
+                            <div class="col-md-12 col-sm-12 mb-3">
+                                <mat-form-field appearance="outline" class="w-100">
+                                    <mat-label>Password</mat-label>
+                                    <input matInput formControlName="password"
+                                        [type]="hidePassword ? 'password' : 'text'" placeholder="Enter your password">
+                                    <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword"
+                                        type="button">
+                                        <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+                                    </button>
+                                    <mat-error
+                                        *ngIf="_loginform.get('password')?.invalid && _loginform.get('password')?.touched">
+                                        Password is required
+                                    </mat-error>
+                                </mat-form-field>
+                            </div>
+
+                            <!-- Remember Me & Forgot Password Row -->
+                            <div class="row mb-4 align-items-center">
+                                <div class="col-6">
+                                    <mat-checkbox formControlName="rememberMe" color="primary"
+                                        class="remember-checkbox">
+                                        Remember me
+                                    </mat-checkbox>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <a href="#" class="forgot-password-link">Forgot Password?</a>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="d-grid mb-4">
+                                <button mat-raised-button color="primary" type="submit" class="submit-btn py-3"
+                                    [disabled]="_loginform.invalid || isSubmitting">
+                                    <mat-icon class="me-2">login</mat-icon>
+                                    {{ isSubmitting ? 'Signing in...' : 'Sign In' }}
+                                </button>
+                            </div>
+
+                            <!-- Divider -->
+                            <div class="divider-section mb-4">
+                                <div class="divider-line"></div>
+                                <span class="divider-text">or continue with</span>
+                                <div class="divider-line"></div>
+                            </div>
+
+                            <!-- Social Login Button - Google Only -->
+                            <div class="social-login-section mb-4">
+                                <div class="d-grid">
+                                    <button mat-stroked-button type="button" class="social-btn w-100">
+                                        <img src="https://developers.google.com/identity/images/g-logo.png" width="18"
+                                            height="18" class="me-2">
+                                        Continue with Google
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Register Link -->
+                            <div class="text-center">
+                                <p class="mb-0" style="color: var(--mat-sys-on-surface-variant);">
+                                    Don't have an account?
+                                    <a routerLink="/register" class="text-decoration-none fw-medium register-link">Sign
+                                        up here</a>
+                                </p>
+                            </div>
+                        </form>
+                    </mat-card-content>
+                </mat-card>
+            </div>
+        </div>
+
+        <!-- Right Side - Illustration -->
+        <div class="col-lg-5 col-md-5 d-none d-md-flex bg-color">
+            <div class="illustration-container text-center">
+                <!-- Brand Logo at Top -->
+                <div class="brand-logo mb-4">
+                    <img class="brand-logo-icon" src="assets/images/logos/infoasset_logo-1.webp" alt="">
+                    <h4 class="brand-name mt-2">INFOASSET</h4>
+                </div>
+
+                <!-- Main Illustration Image -->
+                <div class="illustration-image-container mb-4">
+                    <img src="assets/images/infoasset-dashboard1.webp" alt="Login Illustration"
+                        class="illustration-image">
+                </div>
+
+                <!-- Content Section -->
+                <div class="illustration-content">
+                    <h3 class="illustration-title mb-3">Welcome Back!</h3>
+                    <p class="illustration-text mb-4">
+                        Access your dashboard and continue managing your business operations
+                        with our comprehensive platform.
+                    </p>
+
+                    <!-- Feature Icons -->
+                    <div class="feature-icons d-flex justify-content-center gap-4">
+                        <div class="feature-item">
+                            <mat-icon class="feature-icon">dashboard</mat-icon>
+                            <small class="d-block mt-2">Dashboard</small>
+                        </div>
+                        <div class="feature-item">
+                            <mat-icon class="feature-icon">analytics</mat-icon>
+                            <small class="d-block mt-2">Analytics</small>
+                        </div>
+                        <div class="feature-item">
+                            <mat-icon class="feature-icon">shield</mat-icon>
+                            <small class="d-block mt-2">Secure</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,6 +1,5 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
 
 export interface Country {
   code: string;
@@ -31,14 +30,6 @@ export class CountryService {
       { code: 'CN', name: 'China' },
       { code: 'JP', name: 'Japan' }
     ];
-  }
-
-  getUserLocation(): Observable<any> {
-    return this.http.get('https://ipapi.co/json/');
-  }
-
-  getPublicIP(): Observable<any> {
-    return this.http.get('https://api.ipify.org/?format=json');
   }
 
   getFlagUrl(code: string): string {

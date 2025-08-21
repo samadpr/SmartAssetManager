@@ -37,6 +37,7 @@ export class HeaderComponent {
 
   toggleSidebar() {
     this.layoutService.toggleCollapse();
+    // this.layoutService.headerMenuClick();
   }
 
   logoSize = computed(() => this.sideNavCollapsed() ? '32' : '200');
