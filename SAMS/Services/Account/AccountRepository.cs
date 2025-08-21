@@ -33,7 +33,7 @@ public class AccountRepository : IAccountRepository
 
     public async Task<UserProfile> GetUserProfileByApplicationUserId(string applicationUserId)
     {
-        var userProfile = await _context.UserProfiles.Where(x => x.ApplicationUserId == applicationUserId).FirstOrDefaultAsync();
+        var userProfile = await _context.UserProfiles.Where(x => x.ApplicationUserId == applicationUserId && !x.Cancelled).FirstOrDefaultAsync();
         return userProfile!;
     }
 }

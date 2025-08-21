@@ -52,18 +52,22 @@ builder.Services.AddSwaggerGen(c =>
 //builder.Services.AddSession(options =>
 //{
 //    options.IdleTimeout = TimeSpan.FromMinutes(60);
-//});
+//});*/
 
 //builder.Services.ConfigureApplicationCookie(options =>
 //{
-//    options.Events = new CookieAuthenticationEvents
+//    options.Events.OnRedirectToLogin = context =>
 //    {
-//        OnValidatePrincipal = SecurityStampValidator.ValidatePrincipalAsync
+//        context.Response.StatusCode = 401; // Unauthorized
+//        return Task.CompletedTask;
 //    };
+//    options.Events.OnRedirectToAccessDenied = context =>
+//    {
+//        context.Response.StatusCode = 403; // Forbidden
+//        return Task.CompletedTask;
+//    };
+//});
 
-//    options.ExpireTimeSpan = TimeSpan.FromHours(1);
-//    options.SlidingExpiration = true;
-//});*/
 
 builder.Services.AddAuthentication(options =>
 {
@@ -85,7 +89,22 @@ builder.Services.AddAuthentication(options =>
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
+
+        // THIS IS IMPORTANT FOR API CLIENTS (like Angular)
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                context.HandleResponse(); // Suppress default redirect
+                context.Response.StatusCode = 401;
+                context.Response.ContentType = "application/json";
+                return context.Response.WriteAsync("{\"error\":\"Unauthorized access\"}");
+            }
+        };
+
     });
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
 {

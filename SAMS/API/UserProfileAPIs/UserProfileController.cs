@@ -6,11 +6,12 @@ using SAMS.Services.Profile.Interface;
 using AutoMapper;
 using SAMS.API.UserProfileAPIs.RequestObject;
 using SAMS.Services.UserProfiles.DTOs;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace SAMS.API.UserProfile
 {
     [ApiController]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class UserProfileController : BaseApiController<UserProfileController>
     {
         private readonly IUserProfileService _userProfileService;
@@ -26,7 +27,9 @@ namespace SAMS.API.UserProfile
         [HttpGet("account/get-profile-details")]
         public async Task<IActionResult> GetProfileDetails()
         {
-            var userProfile = await _userProfileService.GetProfileDetails();
+            var user = HttpContext.User.Identity?.Name ?? "System";
+
+            var userProfile = await _userProfileService.GetProfileDetails(user);
             if (userProfile == null)
                 return NotFound();
 

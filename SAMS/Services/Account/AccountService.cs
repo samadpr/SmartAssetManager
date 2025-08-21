@@ -52,9 +52,12 @@ namespace SAMS.Services.Account
         {
             try
             {
-                var result = await _signInManager.PasswordSignInAsync(loginRequestDto.Email, loginRequestDto.Password, loginRequestDto.RememberMe, lockoutOnFailure: true);
+                var loginResponseDto = new LoginResponseDto();
 
-                LoginHistory loginHistory = new LoginHistory
+                var result = await _signInManager.PasswordSignInAsync(loginRequestDto.Email, loginRequestDto.Password, loginRequestDto.RememberMe, lockoutOnFailure: true );
+                var user = await _userManager.FindByEmailAsync(loginRequestDto.Email);
+
+                var loginHistory = new LoginHistory
                 {
                     UserName = loginRequestDto.Email,
                     Latitude = loginRequestDto.Latitude,
@@ -66,20 +69,56 @@ namespace SAMS.Services.Account
                     Action = "Login"
                 };
                 await InsertLoginHistory(true, result.Succeeded, loginHistory);
+
+                if (user == null)
+                {
+                    _logger.LogWarning("User {Email} not found.", loginRequestDto.Email);
+                    return new LoginResponseDto
+                    {
+                        IsAuthenticated = false,
+                        Message = "User not found."
+                    };
+                }
+
+                if (!user.EmailConfirmed)
+                {
+                    _logger.LogWarning("User {Email} is not confirmed.", loginRequestDto.Email);
+                    return new LoginResponseDto
+                    {
+                        IsAuthenticated = false,
+                        Message = "Email not verified."
+                    };
+                }
+
                 if (!result.Succeeded)
                 {
                     _logger.LogWarning("User {Email} failed to log in.", loginRequestDto.Email);
-                    return null!;
+                    return new LoginResponseDto
+                    {
+                        IsAuthenticated = false,
+                        Message = "Login failed due to invalid credentials."
+                    };
                 }
-                
-                var loginResponse = await GenerateJwtToken(loginRequestDto);
-                if (string.IsNullOrEmpty(loginResponse.Token))
+
+                var tokenResponse = await GenerateJwtToken(loginRequestDto);
+                if (string.IsNullOrEmpty(tokenResponse.Token))
                 {
                     _logger.LogWarning("Failed to generate token for user {Email}.", loginRequestDto.Email);
-                    return null!;
+                    return new LoginResponseDto
+                    {
+                        IsAuthenticated = false,
+                        Message = "Failed to generate token."
+                    };
                 }
+
+                var userDetails = await _accountRepository.GetUserProfileByApplicationUserId(user.Id);
+                tokenResponse.FullName = $"{userDetails?.FirstName} {userDetails?.LastName}";
+                tokenResponse.CreatedBy = userDetails?.CreatedBy;
+
                 _logger.LogInformation("User {Email} logged in successfully.", loginRequestDto.Email);
-                return loginResponse;
+                tokenResponse.IsAuthenticated = true;
+                tokenResponse.Message = "Login successful.";
+                return tokenResponse;
             }
             catch (Exception ex)
             {
@@ -102,35 +141,12 @@ namespace SAMS.Services.Account
                 var result = await _userManager.CreateAsync(user, requestDto.Password);
                 if (!result.Succeeded)
                 {
-                    string error = string.Join(" ", result.Errors.Select(e => e.Description));
+                    string error = result.Errors.Skip(1).FirstOrDefault()?.Description
+                                    ?? result.Errors.FirstOrDefault()?.Description
+                                    ?? "User registration failed.";
                     _logger.LogWarning("User registration failed: {Error}", error);
                     return (false, error);
                 }
-
-
-                var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                bool isSent = await SendOtpMail(requestDto.Email, code, requestDto.FirstName + " " + requestDto.LastName);
-                if (!isSent)
-                {
-                    _logger.LogWarning("Failed to send OTP to user {Email}.", user.Email);
-                    await _userManager.DeleteAsync(user);
-                    // Insert Login History
-                    LoginHistory logHistory = new LoginHistory
-                    {
-                        UserName = requestDto.Email,
-                        Latitude = requestDto.Latitude,
-                        Longitude = requestDto.Longitude,
-                        PublicIp = requestDto.PublicIP,
-                        Browser = requestDto.Browser,
-                        OperatingSystem = requestDto.OperatingSystem,
-                        Device = requestDto.Device,
-                        Action = "Register"
-                    };
-                    await InsertLoginHistory(true, false, logHistory);
-                    return (false, "Failed to send OTP to user.");
-
-                }
-                _logger.LogInformation("OTP sent to user.");
 
 
                 // Create UserProfile
@@ -161,6 +177,11 @@ namespace SAMS.Services.Account
                 await _roleService.AddToRolesAsync(user);
                 _logger.LogInformation("User assigned default roles.");
 
+                var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                bool isSent = await SendOtpMail(requestDto.Email, code, requestDto.FirstName+" "+requestDto.LastName);
+                if (!isSent) 
+                    return (false, "Failed to send OTP to user.");
+                _logger.LogInformation("OTP sent to user.");
 
                 //await _signInManager.SignInAsync(user, isPersistent: false);
                 //_logger.LogInformation("User signed in after registration.");
@@ -579,7 +600,6 @@ namespace SAMS.Services.Account
                 {
                     Token = new JwtSecurityTokenHandler().WriteToken(token),
                     Email = loginRequestDto.Email,
-                    Expiration = token.ValidTo
                 };
             }
             catch (Exception ex)
