@@ -8,6 +8,9 @@ mat-sidenav-container {
     height: calc(100vh - 64px); // Adjust for the height of the toolbar
 }
 
+mat-sidenav-content{
+  background: var(--mat-sys-background-custom-color);
+}
 
 mat-sidenav,
 mat-sidenav-content {

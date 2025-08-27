@@ -46,16 +46,14 @@ export const routes: Routes = [
             {
                 path: 'manage-users',
                 component: ManageUserComponent,
-                children: [
-                    {
-                        path: 'user-profile',
-                        component: UserProfilesComponent,
-                    },
-                    {
-                        path: 'designations',
-                        component: DesignationComponent,
-                    },
-                ]
+            },
+            {
+                path: 'manage-users/user-profile',
+                component: UserProfilesComponent,
+            },
+            {
+                path: 'manage-users/designations',
+                component: DesignationComponent,
             },
             {
                 path: 'profile',
