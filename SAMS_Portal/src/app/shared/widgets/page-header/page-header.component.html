@@ -1,0 +1,17 @@
+<mat-toolbar class="page-header-toolbar">
+  <div class="header-content">
+    <h2 class="page-title">{{ title }}</h2>
+
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <button mat-icon-button [routerLink]="'/'" aria-label="Home">
+        <mat-icon>home</mat-icon>
+      </button>
+      <span class="separator">›</span>
+      <ng-container *ngFor="let crumb of breadcrumbs; let last = last">
+        <a *ngIf="!last" mat-button [routerLink]="crumb.url">{{ crumb.label }}</a>
+        <span *ngIf="last" class="active">{{ crumb.label }}</span>
+        <span *ngIf="!last" class="separator">›</span>
+      </ng-container>
+    </nav>
+  </div>
+</mat-toolbar>

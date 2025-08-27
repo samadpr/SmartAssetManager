@@ -17,6 +17,9 @@ html {
   /* Scroll bar custom color variables */
   --mat-sys-scroll-bar-custom-color: light-dark(#f2daff, #160124);
 
+    /* Background custom color variables */
+  --mat-sys-background-custom-color: light-dark(#eedaf9, #2c2134);
+
   /* Secondary palette variables */
   --mat-sys-secondary: light-dark(#6c567c, #d8bce9);
   --mat-sys-on-secondary: light-dark(#ffffff, #3c284b);

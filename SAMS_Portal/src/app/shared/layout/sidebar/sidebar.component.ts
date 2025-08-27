@@ -42,7 +42,7 @@ export class SidebarComponent implements OnInit {
   }
 
   getUserProfile(){
-    this.accountService.getProfileDetails().subscribe({
+    this.accountService.getProfileData().subscribe({
       next: (profile) => {
         this.FullName = profile.firstName + ' ' + profile.lastName;
         this.CreatedBy = profile.createdBy;

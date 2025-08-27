@@ -27,14 +27,14 @@ namespace SAMS.Services.Common
         {
             try
             {
-                var user = await _userProfileRepository.GetProfileDetails(currentUserEmail);
+                var user = await _userProfileRepository.GetProfileData(currentUserEmail);
                 if (user == null)
                     return (null!);
 
                 if (user.RoleId == ((long)RolesEnum.Admin) && user.CreatedBy == RolesEnum.Admin.ToString()) // assume AdminRoleId = 2
                     return (new CreatorDto { CreatorId = user.UserProfileId, CreatorEmail = user.Email!, IsCreator = true });
 
-                var creator = await _userProfileRepository.GetProfileDetails(user.CreatedBy);
+                var creator = await _userProfileRepository.GetProfileData(user.CreatedBy);
                 if (creator == null)
                     return (null!);
 

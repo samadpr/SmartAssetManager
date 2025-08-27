@@ -38,8 +38,8 @@ export class AccountService {
     return this.http.post<loginresponse>(this.baseUrl + '/account/login', _data);
   }
 
-  getProfileDetails(): Observable<UserProfile> {
-    return this.http.get<UserProfile>(`${this.baseUrl}/account/get-profile-details`);
+  getProfileData(): Observable<UserProfile> {
+    return this.http.get<UserProfile>(`${this.baseUrl}/account/get-profile-Data`);
   }
 
   getUserLocation(): Observable<any> {
