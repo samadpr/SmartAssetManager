@@ -1,11 +1,14 @@
-﻿using SAMS.Models;
+﻿using SAMS.API.UserProfileAPIs.ResponseObject;
+using SAMS.Models;
 using SAMS.Services.UserProfiles.DTOs;
 
 namespace SAMS.Services.Profile.Interface;
 
 public interface IUserProfileRepository
 {
-    Task<UserProfile> GetProfileDetails(string userEmail);
+    Task<UserProfile> GetProfileData(string userEmail);
+
+    Task<(GetProfileDetailsResponseObject responseObject, bool isSuccess, string message)> GetProfileDetails(string userEmail);
 
     Task<bool> UpdateProfileAsync(UserProfile user);
 

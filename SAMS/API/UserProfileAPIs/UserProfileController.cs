@@ -24,16 +24,29 @@ namespace SAMS.API.UserProfile
         }
 
         [Authorize(Roles = RoleModels.UserProfile)]
+        [HttpGet("account/get-profile-data")]
+        public async Task<IActionResult> GetProfileData()
+        {
+            var user = HttpContext.User.Identity?.Name ?? "System";
+
+            var userProfile = await _userProfileService.GetProfileData(user);
+            if (userProfile == null)
+                return NotFound();
+
+            return Ok(userProfile);
+        }
+
+        [Authorize(Roles = RoleModels.UserProfile)]
         [HttpGet("account/get-profile-details")]
         public async Task<IActionResult> GetProfileDetails()
         {
             var user = HttpContext.User.Identity?.Name ?? "System";
 
             var userProfile = await _userProfileService.GetProfileDetails(user);
-            if (userProfile == null)
-                return NotFound();
+            if (!userProfile.isSuccess)
+                return NotFound(userProfile.message);
 
-            return Ok(userProfile);
+            return Ok(userProfile.responseObject);
         }
 
         [Authorize(Roles = RoleModels.UserProfile)]
@@ -42,7 +55,11 @@ namespace SAMS.API.UserProfile
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var result = await _userProfileService.UpdateProfileAsync(request);
+
+            var user = HttpContext.User.Identity?.Name ?? "System";
+            if(user == null || user == "")
+                return BadRequest("User not found.");
+            var result = await _userProfileService.UpdateProfileAsync(request, user);
             if (!result.Success)
                 return BadRequest("Profile update failed. " + result.Message);
 

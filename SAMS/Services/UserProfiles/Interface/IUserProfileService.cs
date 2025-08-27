@@ -1,4 +1,5 @@
 ﻿using SAMS.API.UserProfileAPIs.RequestObject;
+using SAMS.API.UserProfileAPIs.ResponseObject;
 using SAMS.Models;
 using SAMS.Services.UserProfiles.DTOs;
 
@@ -6,9 +7,11 @@ namespace SAMS.Services.Profile.Interface;
 
 public interface IUserProfileService
 {
-    Task<UserProfile> GetProfileDetails(string email);
+    Task<(GetProfileDetailsResponseObject responseObject, bool isSuccess, string message)> GetProfileDetails(string email);
 
-    Task<(bool Success, string Message)> UpdateProfileAsync(UserProfileRequestObject user);
+    Task<UserProfile> GetProfileData(string email);
+
+    Task<(bool Success, string Message)> UpdateProfileAsync(UserProfileRequestObject user, string email);
 
     Task<(bool Success, string Message)> CreateUserProfileAsync(UserProfileDto userProfile, string createdBy);
 

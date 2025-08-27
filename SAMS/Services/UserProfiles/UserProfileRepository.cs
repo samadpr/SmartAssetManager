@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SAMS.API.UserProfileAPIs.ResponseObject;
 using SAMS.Data;
 using SAMS.Models;
 using SAMS.Services.Profile.Interface;
@@ -16,7 +17,7 @@ public class UserProfileRepository : IUserProfileRepository
     }
 
 
-    public async Task<UserProfile> GetProfileDetails(string userEmail)
+    public async Task<UserProfile> GetProfileData(string userEmail)
     {
         var user = await _context.UserProfiles.FirstOrDefaultAsync(u => u.Email == userEmail && !u.Cancelled);
         if(user == null) return null!;
@@ -74,5 +75,52 @@ public class UserProfileRepository : IUserProfileRepository
             return (false, "Failed to update user profile: " + ex.Message);
         }
 
+    }
+
+    public async Task<(GetProfileDetailsResponseObject responseObject, bool isSuccess, string message)> GetProfileDetails(string userEmail)
+    {
+        try
+        {
+            var result = await (from vm in _context.UserProfiles
+                                join _Department in _context.Department on vm.Department equals _Department.Id into _Department
+                                from objDepartment in _Department.DefaultIfEmpty()
+                                join _SubDepartment in _context.SubDepartment on vm.SubDepartment equals _SubDepartment.Id into _SubDepartment
+                                from objSubDepartment in _SubDepartment.DefaultIfEmpty()
+                                join _Designation in _context.Designation on vm.Designation equals _Designation.Id into _Designation
+                                from objDesignation in _Designation.DefaultIfEmpty()
+                                join _ManageRole in _context.ManageUserRoles on vm.RoleId equals _ManageRole.Id into _ManageRole
+                                from objManageRole in _ManageRole.DefaultIfEmpty()
+                                where vm.Cancelled == false && vm.Email == userEmail
+                                select new GetProfileDetailsResponseObject
+                                {
+                                    UserProfileId = vm.UserProfileId,
+                                    ApplicationUserId = vm.ApplicationUserId,
+                                    EmployeeId = vm.EmployeeId,
+                                    FirstName = vm.FirstName,
+                                    LastName = vm.LastName,
+                                    DateOfBirth = vm.DateOfBirth,
+                                    DesignationDisplay = objDesignation.Name,
+                                    DepartmentDisplay = objDepartment.Name,
+                                    SubDepartmentDisplay = objSubDepartment.Name,
+                                    JoiningDate = vm.JoiningDate,
+                                    LeavingDate = vm.LeavingDate,
+                                    PhoneNumber = vm.PhoneNumber,
+                                    Email = vm.Email,
+                                    Address = vm.Address,
+                                    Country = vm.Country,
+                                    ProfilePicture = vm.ProfilePicture,
+                                    RoleIdDisplay = objManageRole.Name,
+                                })
+                            .FirstOrDefaultAsync();
+
+            if (result == null)
+                return (null!, false, "Profile not found.");
+            
+            return (result, true, "Profile found.");
+        }
+        catch(Exception ex)
+        {
+            return (null!, false, "Error retrieving profile details: " + ex.Message);
+        }
     }
 }

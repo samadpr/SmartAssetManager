@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using SAMS.API.UserProfileAPIs.RequestObject;
+using SAMS.API.UserProfileAPIs.ResponseObject;
 using SAMS.Helpers;
 using SAMS.Models;
 using SAMS.Services.Account;
@@ -45,14 +46,14 @@ public class UserProfileService : IUserProfileService
     }
 
 
-    public async Task<Models.UserProfile> GetProfileDetails(string email)
+    public async Task<Models.UserProfile> GetProfileData(string email)
     {
         try
         {
             var userEmail =  await _userManager.GetUserAsync(_signInManager.Context.User!);
             if (userEmail != null)
-                return await _userProfileRepository.GetProfileDetails(userEmail.Email!);
-            return await _userProfileRepository.GetProfileDetails(email);
+                return await _userProfileRepository.GetProfileData(userEmail.Email!);
+            return await _userProfileRepository.GetProfileData(email);
         }
         catch(Exception ex)
         {
@@ -61,35 +62,66 @@ public class UserProfileService : IUserProfileService
         }
     }
 
-    public async Task<(bool Success, string Message)> UpdateProfileAsync(UserProfileRequestObject request)
+    public async Task<(GetProfileDetailsResponseObject responseObject, bool isSuccess, string message)> GetProfileDetails(string email)
     {
-        var userEmail = await _userManager.GetUserAsync(_signInManager.Context.User!);
-        var user = await _userProfileRepository.GetProfileDetails(userEmail.Email);
-        if (user == null) 
-            throw new Exception("Profile not found."); 
+        try
+        {
+            var user = await _userProfileRepository.GetProfileData(email);
+            if (user == null)
+            {
+                _logger.LogWarning("Profile not found for email: {Email}", email);
+                return (null, false, "Profile not found.")!;
+            }
 
-        if (user.Email != request.Email)
-            return (false, "Email cannot be changed. you can only update your profile.");
+            return await _userProfileRepository.GetProfileDetails(email);
 
-        // Update properties
-        user.FirstName = request.FirstName;
-        user.LastName = request.LastName;
-        user.PhoneNumber = request.PhoneNumber;
-        user.DateOfBirth = request.DateOfBirth;
-        user.Address = request.Address;
-        user.Country = request.Country;
-        user.JoiningDate = request.JoiningDate;
-        user.LeavingDate = request.LeavingDate;
-        user.Designation = request.Designation;
-        user.Department = request.Department;
-        user.SubDepartment = request.SubDepartment;
-        user.Location = request.Location;
-        user.Site = request.Site;
-        user.ProfilePicture = request.ProfilePicture;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving profile details.");
+            throw new Exception("An error occurred while retrieving profile details.", ex);
+        }
+    }
 
-        var success = await _userProfileRepository.UpdateProfileAsync(user);
+    public async Task<(bool Success, string Message)> UpdateProfileAsync(UserProfileRequestObject request, string email)
+    {
+        try
+        {
+            var user = await _userProfileRepository.GetProfileData(email);
+            if (user == null)
+                throw new Exception("Profile not found.");
 
-        return (success, "Profile updated successfully.");
+            if (user.Email != request.Email)
+                return (false, "Email cannot be changed. you can only update your profile.");
+
+            // Update properties
+            user.FirstName = request.FirstName;
+            user.LastName = request.LastName;
+            user.PhoneNumber = request.PhoneNumber;
+            user.DateOfBirth = request.DateOfBirth;
+            user.Address = request.Address;
+            user.Country = request.Country;
+            user.JoiningDate = request.JoiningDate;
+            user.LeavingDate = request.LeavingDate;
+            user.Designation = request.Designation;
+            user.Department = request.Department;
+            user.SubDepartment = request.SubDepartment;
+            user.Location = request.Location;
+            user.Site = request.Site;
+            user.ProfilePicture = request.ProfilePicture;
+            user.ModifiedDate = DateTime.Now;
+            user.ModifiedBy = email;
+
+            var success = await _userProfileRepository.UpdateProfileAsync(user);
+
+            return (success, "Profile updated successfully.");
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while updating profile.");
+            throw new Exception("An error occurred while updating profile.", ex);
+        }
+        
     }
 
     public async Task<(bool Success, string Message)> CreateUserProfileAsync(UserProfileDto userProfileDto, string createdby)
