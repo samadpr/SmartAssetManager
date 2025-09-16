@@ -411,8 +411,6 @@ bin/
 # User-specific settings
 *.v2
 Migrations/*.cs
-# CareerX/CareerX/appsettings.json
-# CareerX/CareerX/appsettings.Development.json
 
 # JetBrains Rider
 *.sln.iml
