@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using SAMS.Data;
 using SAMS.Models;
 using SAMS.Services.ManageUserRoles.DTOs;
@@ -9,10 +10,12 @@ namespace SAMS.Services.ManageUserRoles
     public class ManageUserRolesRepository : IManageUserRolesRepository
     {
         private readonly ApplicationDbContext _context;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-        public ManageUserRolesRepository(ApplicationDbContext context)
+        public ManageUserRolesRepository(ApplicationDbContext context, RoleManager<IdentityRole> roleManager)
         {
             _context = context;
+            _roleManager = roleManager;
         }
 
         public async Task<ManageUserRole> CreateRoleWithRoleDetailsAsync(ManageUserRole role, List<ManageUserRolesDetail> permissions)
@@ -200,6 +203,12 @@ namespace SAMS.Services.ManageUserRoles
             _context.Entry(manageUserRole).State = EntityState.Modified;
             _context.SaveChanges();
             return Task.FromResult(true);
+        }
+
+        public async Task<IEnumerable<IdentityRole>> GetAllAspNetRolesAsync()
+        {
+            // RoleManager exposes IQueryable<IdentityRole>
+            return await Task.FromResult(_roleManager.Roles.ToList());
         }
     }
 }

@@ -33,6 +33,13 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Enter 'Bearer' [space] and then your valid token",
     });
 
+    // 👇 This line is key for file upload support
+    c.MapType<IFormFile>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+    {
+        Type = "string",
+        Format = "binary"
+    });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement{
         {
             new OpenApiSecurityScheme
@@ -189,7 +196,11 @@ app.UseStaticFiles();
 
 //app.UseSession();
 
-app.UseCors("AllowAll");
+app.UseCors(builder => builder
+    .WithOrigins("http://localhost:4200")
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .AllowCredentials());
 
 app.UseAuthentication();
 

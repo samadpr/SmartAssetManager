@@ -16,11 +16,13 @@ namespace SAMS.API.UserProfile
     {
         private readonly IUserProfileService _userProfileService;
         private readonly IMapper Mapper;
+        private readonly IWebHostEnvironment _env;
 
-        public UserProfileController(IUserProfileService userProfileService, IMapper mapper)
+        public UserProfileController(IUserProfileService userProfileService, IMapper mapper, IWebHostEnvironment env)
         {
             _userProfileService = userProfileService;
             Mapper = mapper;
+            _env = env;
         }
 
         [Authorize(Roles = RoleModels.UserProfile)]
@@ -57,20 +59,56 @@ namespace SAMS.API.UserProfile
                 return BadRequest(ModelState);
 
             var user = HttpContext.User.Identity?.Name ?? "System";
-            if(user == null || user == "")
+            if (user == null || user == "")
                 return BadRequest("User not found.");
             var result = await _userProfileService.UpdateProfileAsync(request, user);
             if (!result.Success)
                 return BadRequest("Profile update failed. " + result.Message);
 
-            return Ok("Profile updated successfully.");
+            return Ok((result.Success, "Profile updated successfully."));
         }
+
+        [Authorize(Roles = RoleModels.UserProfile)]
+        [HttpPost("account/upload-profile-picture")]
+        [Consumes("multipart/form-data")] // 👈 tells Swagger it's a file upload
+        public async Task<IActionResult> UploadProfilePicture([FromForm] FileUploadDto dto)
+        {
+            var file = dto.File;
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif" };
+            if (!allowedTypes.Contains(file.ContentType))
+                return BadRequest("Only JPG, PNG, and GIF are allowed.");
+
+            var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            if (!Directory.Exists(rootPath))
+                Directory.CreateDirectory(rootPath);
+
+            var uploadPath = Path.Combine(rootPath, "uploads", "profile");
+            if (!Directory.Exists(uploadPath))
+                Directory.CreateDirectory(uploadPath);
+
+            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+            var filePath = Path.Combine(uploadPath, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Generate public URL (your Angular app should know how to access it)
+            var fileUrl = $"{Request.Scheme}://{Request.Host}/uploads/profile/{fileName}";
+
+            return Ok(new { url = fileUrl });
+        }
+
 
         [Authorize(Roles = RoleModels.UserManagement)]
         [HttpPost("user-profile/create-user-profile")]
         public async Task<IActionResult> CreateUserProfile([FromBody] UserProfileRequestObject request)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             var user = HttpContext.User.Identity?.Name ?? "System";

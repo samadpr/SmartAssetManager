@@ -1,5 +1,6 @@
 ﻿using SAMS.Models;
 using SAMS.Services.ManageUserRoles.DTOs;
+using SAMS.Services.ManageUserRolesAndRoleDetails.DTOs;
 
 namespace SAMS.Services.ManageUserRoles.Interface
 {
@@ -30,5 +31,7 @@ namespace SAMS.Services.ManageUserRoles.Interface
         Task<ManageUserRolesDto> GetUserRoleByIdWithRoleDetailsAsync(long id);
 
         Task<(bool isSuccess, string message)> DeleteUserRoleWithRoleDetailsAsync(long id, string modifiedBy);
+
+        Task<IEnumerable<RoleDto>> GetAllAspNetRolesAsync();
     }
 }
