@@ -1,0 +1,172 @@
+<!-- popup-widget.component.html -->
+<div class="popup-widget-container" [@fadeInOut]>
+  
+  <!-- FORM POPUP -->
+  <ng-container *ngIf="isFormType">
+    <ng-container *ngIf="formConfig as config">
+      <div *ngIf="form" class="form-popup">
+
+        <!-- Header -->
+        <div class="popup-header" [@slideInOut]>
+          <div class="header-content">
+            <h2 class="popup-title">{{ config.title }}</h2>
+            <button *ngIf="config.showCloseButton !== false"
+                    mat-icon-button class="close-button"
+                    (click)="onClose()"
+                    [disabled]="loading"
+                    matTooltip="Close">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <div class="popup-content" [@slideInOut]>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" class="popup-form">
+            <div class="form-fields">
+              <div *ngFor="let field of config.fields; trackBy: trackByField" class="field-container" [@fadeInOut]>
+
+                <!-- TEXT / EMAIL / PASSWORD -->
+                <mat-form-field *ngIf="field.type === 'text' || field.type === 'email' || field.type === 'password'"
+                                appearance="outline" class="form-field">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <input matInput
+                         [formControlName]="field.key"
+                         [type]="field.type === 'password' ? 'password' : (field.type === 'email' ? 'email' : 'text')"
+                         [placeholder]="field.placeholder || ''"
+                         [attr.maxLength]="field.maxLength ?? null">
+                  <mat-icon *ngIf="field.type === 'email'" matSuffix>email</mat-icon>
+                  <mat-icon *ngIf="field.type === 'password'" matSuffix>lock</mat-icon>
+                  <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                </mat-form-field>
+
+                <!-- NUMBER -->
+                <mat-form-field *ngIf="field.type === 'number'" appearance="outline" class="form-field">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <input matInput
+                         type="number"
+                         [formControlName]="field.key"
+                         [placeholder]="field.placeholder || ''"
+                         [min]="field.min ?? null"
+                         [max]="field.max ?? null"
+                         >
+                  <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                </mat-form-field>
+
+                <!-- TEXTAREA -->
+                <mat-form-field *ngIf="field.type === 'textarea'" appearance="outline" class="form-field textarea-field">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <textarea matInput
+                            [formControlName]="field.key"
+                            [placeholder]="field.placeholder || ''"
+                            [rows]="field.rows || 3"
+                            [attr.maxLength]="field.maxLength ?? null"></textarea>
+                  <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                </mat-form-field>
+
+                <!-- SELECT -->
+                <mat-form-field *ngIf="field.type === 'select'" appearance="outline" class="form-field">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <mat-select [formControlName]="field.key">
+                    <mat-option *ngFor="let opt of field.options" [value]="opt.value" [disabled]="opt.disabled">{{ opt.label }}</mat-option>
+                  </mat-select>
+                  <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                </mat-form-field>
+
+                <!-- DATE -->
+                <mat-form-field *ngIf="field.type === 'date'" appearance="outline" class="form-field">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <input matInput [matDatepicker]="picker" [formControlName]="field.key" [min]="field.min ?? null" [max]="field.max ?? null">
+                  <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                  <mat-datepicker #picker></mat-datepicker>
+                  <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                </mat-form-field>
+
+                <!-- CHECKBOX -->
+                <div *ngIf="field.type === 'checkbox'" class="checkbox-field">
+                  <mat-checkbox [formControlName]="field.key">
+                    {{ field.label }}
+                  </mat-checkbox>
+                  <div *ngIf="isFieldInvalid(field.key)" class="field-error">{{ getFieldError(field.key) }}</div>
+                </div>
+
+              </div> <!-- end fields loop -->
+            </div>
+
+            <!-- Actions -->
+            <div class="popup-actions form-actions" [@slideInOut]>
+              <button mat-button type="button" (click)="onCancel()" [disabled]="loading">{{ config.cancelButtonText || 'Cancel' }}</button>
+
+              <button mat-raised-button color="primary" type="submit"
+                      [disabled]="loading || (form && form.invalid && submitted)">
+                <mat-spinner *ngIf="loading" diameter="20" class="button-spinner"></mat-spinner>
+                <span *ngIf="!loading">{{ config.submitButtonText || 'Submit' }}</span>
+              </button>
+            </div>
+
+          </form>
+        </div>
+
+      </div>
+    </ng-container>
+  </ng-container>
+
+  <!-- ============= CONFIRMATION TYPE POPUP ============= -->
+  <ng-container *ngIf="isConfirmType && confirmConfig as config" class="confirm-popup">
+    
+    <!-- Header -->
+    <div class="popup-header" [@slideInOut]>
+      <div class="header-content">
+        <div class="header-icon-title">
+          <mat-icon 
+            *ngIf="config.icon" 
+            class="header-icon"
+            [class]="'icon-' + (config.iconColor || 'primary')">
+            {{ config.icon }}
+          </mat-icon>
+          <h2 class="popup-title">{{ config.title }}</h2>
+        </div>
+        <button 
+          mat-icon-button 
+          class="close-button"
+          (click)="onClose()"
+          [disabled]="loading"
+          matTooltip="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Confirmation Content -->
+    <div class="popup-content confirm-content" [@slideInOut]>
+      <div class="confirm-message">
+        <p class="primary-message">{{ config.message }}</p>
+        <p *ngIf="config.details" class="details-message">{{ config.details }}</p>
+      </div>
+    </div>
+
+    <!-- Confirmation Actions -->
+    <div class="popup-actions confirm-actions" [@slideInOut]>
+      <button 
+        mat-button 
+        type="button" 
+        (click)="onCancel()"
+        [disabled]="loading"
+        class="cancel-button">
+        {{ config.cancelButtonText || 'Cancel' }}
+      </button>
+      
+      <button 
+        mat-raised-button 
+        [color]="config.confirmButtonColor || 'primary'"
+        (click)="onConfirm()"
+        [disabled]="loading"
+        class="confirm-button">
+        <mat-spinner *ngIf="loading" diameter="20" class="button-spinner"></mat-spinner>
+        <span *ngIf="!loading">{{ config.confirmButtonText || 'Confirm' }}</span>
+      </button>
+    </div>
+
+  </ng-container>
+
+</div>

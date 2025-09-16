@@ -1,0 +1,45 @@
+<div class="upload-dialog">
+  <h2 mat-dialog-title>Update Profile Picture</h2>
+
+  <mat-dialog-content class="dialog-content">
+    <!-- Current/Preview Picture -->
+    <div class="picture-preview">
+      <img [src]="previewUrl() || data.currentPicture" alt="Profile Preview" class="preview-image">
+      <div class="overlay" *ngIf="isUploading()">
+        <mat-progress-spinner diameter="40" mode="indeterminate"></mat-progress-spinner>
+      </div>
+    </div>
+
+    <!-- Upload Instructions -->
+    <div class="upload-instructions">
+      <p>Choose a new profile picture. It should be square and at least 200x200 pixels.</p>
+      <p class="file-types">Supported formats: JPG, PNG, GIF (Max size: 5MB)</p>
+    </div>
+
+    <!-- File Input -->
+    <input #fileInput type="file" accept="image/*" (change)="onFileSelected($event)" class="hidden-input">
+
+    <!-- Upload Button -->
+    <button mat-raised-button color="primary" class="upload-btn" (click)="fileInput.click()" [disabled]="isUploading()">
+      <mat-icon>upload</mat-icon>
+      Choose New Picture
+    </button>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage()" class="error-message">
+      <mat-icon>error</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dialog-actions">
+    <button mat-button (click)="onCancel()" [disabled]="isUploading()">
+      Cancel
+    </button>
+    <button mat-raised-button color="primary" (click)="onSave()" [disabled]="!previewUrl() || isUploading()">
+      <mat-progress-spinner *ngIf="isUploading()" diameter="20" mode="indeterminate">
+      </mat-progress-spinner>
+      {{ isUploading() ? 'Uploading...' : 'Save Picture' }}
+    </button>
+  </mat-dialog-actions>
+</div>

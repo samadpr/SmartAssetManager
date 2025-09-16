@@ -1,38 +1,52 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { DeviceDetectorService } from 'ngx-device-detector';
 import { AccountService } from '../account.service';
-import { catchError, forkJoin, map, Observable, of } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DeviceInfoService {
-constructor(
+  constructor(
     private deviceService: DeviceDetectorService,
-    private accountService: AccountService
+    private accountService: AccountService,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
-  /**
-   * Get all device and location information
-   */
   getDeviceAndLocationInfo(): Observable<any> {
     return forkJoin({
-      location: this.getGeolocation(),
-      publicIP: this.accountService.getPublicIP().pipe(
-        catchError(() => of({ ip: 'Not Available' }))
+      location: this.getGeolocation(),                                      // always returns an object (fallbacks handled)
+      publicIP: this.accountService.getPublicIP().pipe(                     // may be string or object
+        catchError(() => of(null))
       ),
-      deviceInfo: of(this.getDeviceInfo())
+      deviceInfo: of(this.getDeviceInfo())                                  // synchronous safe value
     }).pipe(
-      map(result => ({
-        latitude: result.location.latitude || 'Not Available',
-        longitude: result.location.longitude || 'Not Available',
-        publicIP: result.publicIP.ip || 'Not Available',
-        browser: result.deviceInfo.browser,
-        operatingSystem: result.deviceInfo.os,
-        device: result.deviceInfo.deviceType
-      })),
-      catchError(error => {
-        console.warn('Error getting device/location info:', error);
+      map(result => {
+        // Normalize publicIP: support either { ip: 'x' } or 'x' or null
+        let publicIPValue = 'Not Available';
+        if (result.publicIP) {
+          if (typeof result.publicIP === 'string') {
+            publicIPValue = result.publicIP || 'Not Available';
+          } else if ('ip' in result.publicIP) {
+            publicIPValue = result.publicIP.ip || 'Not Available';
+          } else {
+            // any other shape
+            publicIPValue = JSON.stringify(result.publicIP) || 'Not Available';
+          }
+        }
+
+        return {
+          latitude: result.location?.latitude ?? 'Not Available',
+          longitude: result.location?.longitude ?? 'Not Available',
+          publicIP: publicIPValue,
+          browser: result.deviceInfo?.browser ?? 'Unknown',
+          operatingSystem: result.deviceInfo?.os ?? 'Unknown',
+          device: result.deviceInfo?.deviceType ?? 'Unknown'
+        };
+      }),
+      catchError(err => {
+        console.warn('DeviceInfoService.getDeviceAndLocationInfo error:', err);
         return of({
           latitude: 'Not Available',
           longitude: 'Not Available',
@@ -45,72 +59,67 @@ constructor(
     );
   }
 
-  /**
-   * Get device information
-   */
   private getDeviceInfo(): any {
-    const deviceInfo = this.deviceService.getDeviceInfo();
-    const userAgent = navigator.userAgent;
+    // Only call ngx-device-detector and navigator when in browser
+    if (isPlatformBrowser(this.platformId)) {
+      // deviceService.getDeviceInfo() may use navigator internally — safe now
+      const deviceInfo = this.deviceService.getDeviceInfo() || {};
+      const userAgent = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '';
 
-    let deviceType = 'Unknown';
-    if (/mobile/i.test(userAgent)) {
-      deviceType = 'Mobile';
-    } else if (/tablet/i.test(userAgent)) {
-      deviceType = 'Tablet';
-    } else if (/iPad|Android|Touch/.test(userAgent)) {
-      deviceType = 'Tablet';
-    } else if (/Windows|Mac|Linux/.test(userAgent)) {
-      deviceType = 'Desktop';
+      let deviceType = 'Unknown';
+      if (/mobile/i.test(userAgent)) deviceType = 'Mobile';
+      else if (/tablet/i.test(userAgent) || /iPad|Android|Touch/.test(userAgent)) deviceType = 'Tablet';
+      else if (/Windows|Mac|Linux/.test(userAgent)) deviceType = 'Desktop';
+
+      return {
+        browser: deviceInfo.browser || 'Unknown',
+        os: deviceInfo.os || 'Unknown',
+        deviceType
+      };
     }
 
+    // server fallback
     return {
-      browser: deviceInfo.browser || 'Unknown',
-      os: deviceInfo.os || 'Unknown',
-      deviceType: deviceType
+      browser: 'Unknown',
+      os: 'Unknown',
+      deviceType: 'Server'
     };
   }
 
-  /**
-   * Get geolocation
-   */
   private getGeolocation(): Observable<any> {
     return new Observable(observer => {
-      if (navigator.geolocation) {
+      if (isPlatformBrowser(this.platformId) && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
-          position => {
+          pos => {
             observer.next({
-              latitude: position.coords.latitude.toString(),
-              longitude: position.coords.longitude.toString()
+              latitude: pos.coords.latitude.toString(),
+              longitude: pos.coords.longitude.toString()
             });
             observer.complete();
           },
           error => {
-            console.warn('Geolocation error:', error.message);
-            observer.next({
-              latitude: 'Not Available',
-              longitude: 'Not Available'
-            });
+            console.warn('Geolocation error:', error?.message || error);
+            observer.next({ latitude: 'Not Available', longitude: 'Not Available' });
             observer.complete();
-          }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 30000,   // 30 seconds
+            maximumAge: 0
+          } // optional: avoid waiting forever
         );
       } else {
-        observer.next({
-          latitude: 'Not Supported',
-          longitude: 'Not Supported'
-        });
+        observer.next({ latitude: 'Not Supported', longitude: 'Not Supported' });
         observer.complete();
       }
     });
   }
 
-  /**
-   * Patch form with device and location data
-   */
+  // return observable so caller can wait for completion / subscribe
   patchFormWithDeviceInfo(form: any): Observable<void> {
     return this.getDeviceAndLocationInfo().pipe(
-      map(info => {
-        form.patchValue(info);
-      })
+      tap(info => form.patchValue(info)),
+      map(() => void 0) // convert to Observable<void>
     );
   }
 }

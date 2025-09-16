@@ -1,0 +1,16 @@
+<app-page-header [title]="'Manage Role'" [breadcrumbs]="[
+    { label: 'Manage Role' }
+  ]">
+</app-page-header>
+
+<div class="manage-roles-page">
+  <app-list-widget 
+    [config]="listConfig" 
+    [data]="roles()" 
+    [loading]="loading()"
+    (actionClick)="onActionClick($event)" 
+    (addClick)="onAddRole()" 
+    (refreshClick)="onRefresh()"
+    (selectionChange)="onSelectionChange($event)">
+  </app-list-widget>
+</div>
