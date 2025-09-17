@@ -3,7 +3,6 @@ import { Injectable, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment.development';
 import { loginresponse, registerconfirm, userLogin, userRegister } from '../../models/account/user.model';
-import { UserProfile } from '../../models/account/userProfile';
 
 @Injectable({
   providedIn: 'root'
@@ -38,9 +37,9 @@ export class AccountService {
     return this.http.post<loginresponse>(this.baseUrl + '/account/login', _data);
   }
 
-  getProfileData(): Observable<UserProfile> {
-    return this.http.get<UserProfile>(`${this.baseUrl}/account/get-profile-Data`);
-  }
+  // getProfileData(): Observable<UserProfile> {
+  //   return this.http.get<UserProfile>(`${this.baseUrl}/account/get-profile-Data`);
+  // }
 
   getUserLocation(): Observable<any> {
     return this.http.get('https://ipapi.co/json/');

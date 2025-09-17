@@ -25,3 +25,17 @@ body {
   background: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
 }
+
+.role-dialog-panel {
+  .mat-mdc-dialog-container {
+    border-radius: 16px !important;
+    padding: 0 !important;
+    overflow: hidden;
+    
+    .mat-mdc-dialog-content {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-height: none !important;
+    }
+  }
+}

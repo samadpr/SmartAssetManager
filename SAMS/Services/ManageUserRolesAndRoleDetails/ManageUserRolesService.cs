@@ -3,6 +3,7 @@ using SAMS.Models;
 using SAMS.Services.Common.Interface;
 using SAMS.Services.ManageUserRoles.DTOs;
 using SAMS.Services.ManageUserRoles.Interface;
+using SAMS.Services.ManageUserRolesAndRoleDetails.DTOs;
 using SAMS.Services.Profile.Interface;
 using SAMS.Services.Roles.Interface;
 
@@ -18,11 +19,11 @@ namespace SAMS.Services.ManageUserRoles
         private readonly ICommonService _commonService;
 
         public ManageUserRolesService(
-            IManageUserRolesRepository manageUserRolesRepository, 
-            IMapper mapper, 
+            IManageUserRolesRepository manageUserRolesRepository,
+            IMapper mapper,
             ILogger<ManageUserRolesService> logger,
             //IUserProfileService userProfileService,
-            IRolesService roles, 
+            IRolesService roles,
             ICommonService commonService)
         {
             _manageUserRolesRepository = manageUserRolesRepository;
@@ -88,7 +89,7 @@ namespace SAMS.Services.ManageUserRoles
                 var result = await _manageUserRolesRepository.CreateUserRolesAsync(roleEntity);
                 return _mapper.Map<ManageUserRolesDto>(result);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while creating the user role.");
                 throw new Exception("An error occurred while creating the user role.", ex);
@@ -255,7 +256,7 @@ namespace SAMS.Services.ManageUserRoles
                     return null!;
                 return result;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while getting user roles with role details.");
                 throw new Exception("An error occurred while getting user roles with role details.", ex);
@@ -268,10 +269,10 @@ namespace SAMS.Services.ManageUserRoles
             {
                 var emails = await _commonService.GetEmailsUnderAdminAsync(modifiedBy);
                 ManageUserRole manageUserRole = new();
-                if(request.Id > 0)
+                if (request.Id > 0)
                 {
                     manageUserRole = await _manageUserRolesRepository.GetUserRoleByIdAsync(request.Id, emails);
-                    if(manageUserRole.CreatedBy != modifiedBy)
+                    if (manageUserRole.CreatedBy != modifiedBy)
                     {
                         _logger.LogError("User does not have permission to update this role.");
                         return (false, "User does not have permission to update this role.");
@@ -289,8 +290,8 @@ namespace SAMS.Services.ManageUserRoles
                     }
 
                     var userRoleDetails = await _manageUserRolesRepository.GetRoleDetailsByManagedRoleIdAsync(request.Id);
-                        
-                    foreach(var item in userRoleDetails)
+
+                    foreach (var item in userRoleDetails)
                     {
                         var manageUserRoleDetails = await _manageUserRolesRepository.GetUserRoleDetailsByIdAsync(item.Id, emails);
 
@@ -310,13 +311,21 @@ namespace SAMS.Services.ManageUserRoles
                                 return (false, "An error occurred while updating user role details.");
                             }
                         }
+                        else
+                        {
+                            if (rolePermission == null)
+                            {
+                                _logger.LogError("An error occurred while updating user role details. the role permission is null.");
+                                return (false, "An error occurred while updating user role details. the role permission is null.");
+                            }
+                        }
                     }
 
                     // Get users using this role
                     var usersWithThisRole = await _rolesService.GetUsersUsedByRoleIdAsync(manageUserRole.Id, emails);
 
                     // Loop through users and update their roles
-                    foreach(var userProfile in usersWithThisRole)
+                    foreach (var userProfile in usersWithThisRole)
                     {
                         var updatedRolesInUser = new ManageUserRolesDto
                         {
@@ -340,7 +349,7 @@ namespace SAMS.Services.ManageUserRoles
                     return (false, "An error occurred while updating user roles.");
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while updating user roles with role details.");
                 throw new Exception("An error occurred while updating user roles with role details.", ex);
@@ -353,9 +362,9 @@ namespace SAMS.Services.ManageUserRoles
             try
             {
                 var emails = await _commonService.GetEmailsUnderAdminAsync(modifiedBy);
-                
+
                 var manageUserRole = await _manageUserRolesRepository.GetUserRoleByIdAsync(id, emails);
-                if(manageUserRole != null)
+                if (manageUserRole != null)
                 {
                     manageUserRole.Cancelled = true;
                     manageUserRole.ModifiedBy = modifiedBy;
@@ -365,7 +374,7 @@ namespace SAMS.Services.ManageUserRoles
                     if (result)
                     {
                         var userRoleDetails = await _manageUserRolesRepository.GetRoleDetailsByManagedRoleIdAsync(id);
-                        foreach(var item in userRoleDetails)
+                        foreach (var item in userRoleDetails)
                         {
                             var manageUserRoleDetails = await _manageUserRolesRepository.GetUserRoleDetailsByIdAsync(item.Id, emails);
                             manageUserRoleDetails.Cancelled = true;
@@ -392,7 +401,7 @@ namespace SAMS.Services.ManageUserRoles
                     //        return (false, "An error occurred while revoking login access for user " + userProfile.UserProfileId);
                     //    }
                     //}*/
-                    
+
                     return (true, "User roles deleted successfully.");
 
                 }
@@ -402,11 +411,32 @@ namespace SAMS.Services.ManageUserRoles
                     return (false, "An error occurred while deleting user roles. User role not found.");
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while deleting user roles with role details.");
                 throw new Exception("An error occurred while deleting user roles with role details.", ex);
             }
+        }
+
+        public async Task<IEnumerable<RoleDto>> GetAllAspNetRolesAsync()
+        {
+            try
+            {
+                var roles = await _manageUserRolesRepository.GetAllAspNetRolesAsync();
+
+                return roles.Select(r => new RoleDto
+                {
+                    Id = r.Id,
+                    Name = r.Name
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error ocurred while get AspNetRoles");
+                throw new Exception("An error ocurred while get AspNetRoles");
+            }
+
+
         }
     }
 }

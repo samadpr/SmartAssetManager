@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { ReactiveFormsModule, FormsModule, FormControl, FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card'
 import { MatFormFieldModule } from '@angular/material/form-field'
@@ -7,7 +7,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Country, CountryService } from '../../../core/services/account/country/country.service';
 import { Router, RouterLink } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
@@ -44,6 +44,7 @@ export class RegisterComponent implements OnInit {
   hideConfirmPassword = true;
   _resPonse: any;
   isSubmitting = false;
+  deviceInfoLoaded = false;
 
   constructor(
     private builder: FormBuilder,
@@ -51,6 +52,7 @@ export class RegisterComponent implements OnInit {
     private countryService: CountryService,
     private deviceService: DeviceDetectorService,
     private deviceInfoService: DeviceInfoService,
+    @Inject(PLATFORM_ID) private platformId: Object,
     private toaster: ToastrService,
     private router: Router
   ) { }
@@ -63,7 +65,7 @@ export class RegisterComponent implements OnInit {
       confirmPassword: ['', Validators.required],
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
-      phoneNumber: ['', Validators.required],
+      phoneNumber: ['', [Validators.pattern(/^[\+]?[1-9][\d]{0,15}$/)]],
       address: [''],
       country: [''],
       browser: [''],
@@ -78,7 +80,18 @@ export class RegisterComponent implements OnInit {
     this.filteredCountries = [...this.countries];
 
 
-    this.deviceInfoService.patchFormWithDeviceInfo(this._regform).subscribe();
+        // subscribe and wait for device info
+    this.deviceInfoService.patchFormWithDeviceInfo(this._regform)
+      .subscribe({
+        next: () => {
+          this.deviceInfoLoaded = true;
+          console.log('Device info patched:', this._regform.value);
+        },
+        error: (err) => {
+          this.deviceInfoLoaded = true;
+          console.warn('Failed to patch device info:', err);
+        }
+      });
 
     this.accountService.getUserLocation().subscribe(loc => {
       const countryCode = loc.country_code;
@@ -92,8 +105,9 @@ export class RegisterComponent implements OnInit {
   }
 
   setDeviceDetails() {
+    if (!isPlatformBrowser(this.platformId)) return;
     const deviceInfo = this.deviceService.getDeviceInfo();
-    const userAgent = navigator.userAgent;
+    const userAgent = navigator?.userAgent ?? '';
 
     let deviceType = 'Unknown';
     if (/mobile/i.test(userAgent)) {
@@ -114,30 +128,19 @@ export class RegisterComponent implements OnInit {
   }
 
   setGeolocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        position => {
-          this._regform.patchValue({
-            latitude: position.coords.latitude.toString(),
-            longitude: position.coords.longitude.toString()
-          });
-        },
-        error => {
-          console.warn('Geolocation error:', error.message);
-          this._regform.patchValue({
-            latitude: 'Not Available',
-            longitude: 'Not Available'
-          });
-        }
-      );
-    } else {
-      this._regform.patchValue({
-        latitude: 'Not Supported',
-        longitude: 'Not Supported'
-      });
+    if (!isPlatformBrowser(this.platformId) || typeof navigator === 'undefined' || !('geolocation' in navigator)) {
+      this._regform.patchValue({ latitude: 'Not Supported', longitude: 'Not Supported' });
+      return;
     }
+    navigator.geolocation.getCurrentPosition(
+      pos => this._regform.patchValue({
+        latitude: pos.coords.latitude.toString(),
+        longitude: pos.coords.longitude.toString()
+      }),
+      err => this._regform.patchValue({ latitude: 'Not Available', longitude: 'Not Available' })
+    );
   }
-
+  
   setPublicIP() {
     this.accountService.getPublicIP().subscribe((res: any) => {
       this._regform.patchValue({ publicIP: res.ip });

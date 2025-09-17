@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -10,12 +11,11 @@ using SAMS.Services.Common.Interface;
 using SAMS.Services.DesignationServices.DTOs;
 using SAMS.Services.DesignationServices.Interface;
 using SAMS.Services.Roles.PagesModel;
-using StackExchange.Redis;
 
 namespace SAMS.API.DesignationAPIs
 {
     [ApiController]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DesignationController : BaseApiController<DesignationController>
     {
         private readonly IDesignationService _designationService;
@@ -39,9 +39,9 @@ namespace SAMS.API.DesignationAPIs
         {
             if (requestObject == null)
                 return BadRequest("Request Object is null");
-            var user = await _userManager.GetUserAsync(_signInManager.Context.User!);
+            var user = HttpContext.User.Identity?.Name ?? "System";
             var designationDto = _mapper.Map<DesignationDto>(requestObject);
-            var result = await _designationService.AddDesignationAsync(designationDto, user.Email);
+            var result = await _designationService.AddDesignationAsync(designationDto, user);
             if (result == null)
                 return BadRequest($"Designation already exists with name: {designationDto.Name}");
             return Ok(result);
@@ -51,11 +51,11 @@ namespace SAMS.API.DesignationAPIs
         [HttpPut("designation/update-designation")]
         public async Task<IActionResult> UpdateDesignation([FromBody] DesignationRequest requestObject)
         {
-            if(requestObject == null)
+            if (requestObject == null)
                 return BadRequest("Request Object is null");
-            var user = await _userManager.GetUserAsync(_signInManager.Context.User!);
+            var user = HttpContext.User.Identity?.Name ?? "System";
             var designationDto = _mapper.Map<DesignationDto>(requestObject);
-            var result = await _designationService.UpdateDesignationAsync(designationDto, user.Email);
+            var result = await _designationService.UpdateDesignationAsync(designationDto, user);
             if (result == null)
                 return NotFound($"No designation found with ID: {designationDto.Id}");
 
@@ -66,8 +66,8 @@ namespace SAMS.API.DesignationAPIs
         [HttpGet("designation/get-designations")]
         public async Task<IActionResult> GetDesignation()
         {
-            var user = await _userManager.GetUserAsync(_signInManager.Context.User!);
-            var result = await _designationService.GetDesignationAsync(user.Email);
+            var user =  HttpContext.User.Identity?.Name ?? "System";
+            var result = await _designationService.GetDesignationAsync(user);
             if (result == null)
                 return NotFound($"No designation found");
             return Ok(result);
@@ -118,11 +118,11 @@ namespace SAMS.API.DesignationAPIs
         {
             if (id <= 0 || id == null)
                 return BadRequest("Invalid ID");
-            var user = await _userManager.GetUserAsync(_signInManager.Context.User!);
-            var result = await _designationService.DeleteDesignationAsync(id, user.Email);
+            var user = HttpContext.User.Identity?.Name ?? "System";
+            var result = await _designationService.DeleteDesignationAsync(id, user);
             if (!result)
-                return NotFound($"No designation found with ID: {id}");
-            return Ok(result ? "Designation deleted successfully" : "Designation not deleted");
+                return NotFound(new { message = $"No designation found with ID: {id}" });
+            return Ok(new { message = "Designation deleted successfully" });
         }
     }
 }

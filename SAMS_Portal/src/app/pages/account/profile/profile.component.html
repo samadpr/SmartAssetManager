@@ -1,5 +1,313 @@
-<app-page-header [title]="'User Profiles'" [breadcrumbs]="[
-    { label: 'Manage User', url: '/manage-users' },
-    { label: 'User Profiles' }
+<app-page-header [title]="'Profiles'" [breadcrumbs]="[
+    { label: 'Profiles' }
   ]">
 </app-page-header>
+
+<div class="profile-container">
+  <div class="loading-overlay" *ngIf="isLoading()">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  </div>
+
+  <mat-card class="profile-header-card" [@slideInFromTop]>
+    <div class="profile-header">
+      <div class="profile-picture-section">
+        <div class="profile-picture-container">
+          <img [src]="profilePictureUrl()" [alt]="fullName() + ' Profile Picture'" class="profile-picture"
+            [@profilePictureAnimation] />
+          <div class="picture-overlay" *ngIf="isEditing()" (click)="openProfilePictureDialog()">
+            <mat-icon>camera_alt</mat-icon>
+            <span>Change Photo</span>
+          </div>
+        </div>
+        <!-- <input type="file" id="file-input" accept="image/*" style="display: none;" /> -->
+      </div>
+      <div class="profile-info">
+        <h1 class="profile-name" [@fadeInAnimation]> {{ fullName() }} </h1>
+        <div class="profile-details" *ngIf="profileDetails() as profile" [@fadeInAnimation]>
+          <div class="detail-item" *ngIf="profile.employeeId">
+            <mat-icon>badge</mat-icon>
+            <span> {{profile.employeeId}} </span>
+          </div>
+          <div class="detail-item" *ngIf="profile.designationDisplay">
+            <mat-icon>work</mat-icon>
+            <span> {{profile.designationDisplay}} </span>
+          </div>
+          <div class="detail-item" *ngIf="profile.departmentDisplay">
+            <mat-icon>business</mat-icon>
+            <span> {{profile.departmentDisplay}} </span>
+          </div>
+          <div class="detail-item" *ngIf="profile.email">
+            <mat-icon>email</mat-icon>
+            <span> {{profile.email}} </span>
+          </div>
+        </div>
+      </div>
+      <div class="profile-actions">
+        <button mat-raised-button color="primary" (click)="toggleEdit()" [disabled]="isSaving()" [@buttonAnimation]>
+          <mat-icon>{{ isEditing() ? 'close' : 'edit' }}</mat-icon>
+          {{ isEditing() ? 'Cancel' : 'Edit Profile' }}
+        </button>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Profile Content -->
+  <div class="profile-content" [@slideInFromBottom]>
+    <mat-card *ngIf="isEditing()" class="edit-form-card" [@expandAnimation]>
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>edit</mat-icon>
+          Edit Profile Information
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="profileForm" class="profile-form" novalidate>
+          <!-- Personal Information -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <mat-icon>person</mat-icon>
+              Personal Information
+            </h3>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>First Name</mat-label>
+                <input matInput formControlName="firstName" placeholder="Enter your first name" type="text">
+                <mat-icon matSuffix>person</mat-icon>
+                <mat-error *ngIf="profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched">
+                  {{ getErrorMessage('firstName') }}
+                </mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Last Name</mat-label>
+                <input matInput formControlName="lastName" placeholder="Enter your last name" type="text">
+                <mat-icon matSuffix>person</mat-icon>
+                <mat-error *ngIf="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched">
+                  {{ getErrorMessage('lastName') }}
+                </mat-error>
+              </mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Email</mat-label>
+                <input matInput formControlName="email" placeholder="Enter email address" type="email" readonly>
+                <mat-icon matSuffix>email</mat-icon>
+                <mat-error *ngIf="profileForm.get('email')?.invalid && profileForm.get('email')?.touched">
+                  {{ getErrorMessage('email') }}
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Phone Number</mat-label>
+                <input matInput formControlName="phoneNumber" placeholder="Enter phone number" type="tel">
+                <mat-icon matSuffix>phone</mat-icon>
+                <mat-error *ngIf="profileForm.get('phoneNumber')?.invalid && profileForm.get('phoneNumber')?.touched">
+                  {{ getErrorMessage('phoneNumber') }}
+                </mat-error>
+              </mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field full-width">
+                <mat-label>Address</mat-label>
+                <textarea matInput formControlName="address" placeholder="Enter address" rows="2"></textarea>
+                <mat-icon matSuffix>location_on</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Country</mat-label>
+
+                <mat-select formControlName="country">
+                  <!-- Trigger shows flag + name for the selected NAME -->
+                  <mat-select-trigger>
+                    <ng-container *ngIf="getSelectedCountry() as country">
+                      <img [src]="getFlagUrl(country.code)" width="24" height="16" style="margin-right:8px" />
+                      {{ country.name }}
+                    </ng-container>
+                  </mat-select-trigger>
+
+                  <!-- Options store NAME (string) so it matches the FormControl exactly -->
+                  <mat-option *ngFor="let country of filteredCountries" [value]="country.name">
+                    <img [src]="getFlagUrl(country.code)" width="24" height="16" style="margin-right:8px" />
+                    {{ country.name }}
+                  </mat-option>
+                </mat-select>
+
+                <mat-icon matSuffix>public</mat-icon>
+              </mat-form-field>
+            </div>
+          </div>
+          <mat-divider class="mb-3"></mat-divider>
+
+          <!-- Date Information -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <mat-icon>event</mat-icon>
+              Date Information
+            </h3>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date of Birth</mat-label>
+                <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth">
+                <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
+                <mat-datepicker #dobPicker></mat-datepicker>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Joining Date</mat-label>
+                <input matInput [matDatepicker]="joiningPicker" formControlName="joiningDate">
+                <mat-datepicker-toggle matSuffix [for]="joiningPicker"></mat-datepicker-toggle>
+                <mat-datepicker #joiningPicker></mat-datepicker>
+              </mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Leaving Date</mat-label>
+                <input matInput [matDatepicker]="leavingPicker" formControlName="leavingDate">
+                <mat-datepicker-toggle matSuffix [for]="leavingPicker"></mat-datepicker-toggle>
+                <mat-datepicker #leavingPicker></mat-datepicker>
+              </mat-form-field>
+            </div>
+          </div>
+          <mat-divider class="mb-3"></mat-divider>
+          <!-- Work Information -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <mat-icon>work</mat-icon>
+              Work Information
+            </h3>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Designation</mat-label>
+                <mat-select formControlName="designation" placeholder="Select your designation">
+                  <mat-option *ngFor="let des of designations" [value]="des.id">
+                    {{ des.name }}
+                  </mat-option>
+                </mat-select>
+                <mat-icon matSuffix>work</mat-icon>
+              </mat-form-field>
+
+            </div>
+          </div>
+        </form>
+      </mat-card-content>
+      <mat-card-actions align="end" class="form-actions">
+        <button mat-button (click)="cancelEdit()" [disabled]="isSaving()">
+          <mat-icon>cancel</mat-icon>
+          Cancel
+        </button>
+        <button mat-raised-button color="primary" (click)="saveProfile()" [disabled]="profileForm.invalid || isSaving()"
+          [@saveButtonAnimation]>
+          <mat-icon *ngIf="!isSaving()">save</mat-icon>
+          <mat-progress-bar *ngIf="isSaving()" mode="indeterminate" class="inline-progress"></mat-progress-bar>
+          {{ isSaving() ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <!-- View Mode -->
+  <div *ngIf="!isEditing() && profileDetails() as profile" class="view-mode">
+    <mat-card class="info-card" [@cardAnimation]>
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>person</mat-icon>
+          Personal Information
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="info-grid">
+          <div class="info-item" *ngIf="profile.firstName">
+            <label>First Name</label>
+            <span>{{ profile.firstName }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.lastName">
+            <label>Last Name</label>
+            <span>{{ profile.lastName }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.email">
+            <label>Email</label>
+            <span>{{ profile.email }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.phoneNumber">
+            <label>Phone</label>
+            <span>{{ profile.phoneNumber }}</span>
+          </div>
+          <div class="info-item full-width" *ngIf="profile.address">
+            <label>Address</label>
+            <span>{{ profile.address }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.country">
+            <label>Country</label>
+            <span>{{ profile.country }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Work Information Card -->
+    <mat-card class="info-card" [@cardAnimation]>
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>work</mat-icon>
+          Work Information
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="info-grid">
+          <div class="info-item" *ngIf="profile.employeeId">
+            <label>Employee ID</label>
+            <span>{{ profile.employeeId }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.designationDisplay">
+            <label>Designation</label>
+            <span>{{ profile.designationDisplay }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.departmentDisplay">
+            <label>Department</label>
+            <span>{{ profile.departmentDisplay }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.subDepartmentDisplay">
+            <label>Sub Department</label>
+            <span>{{ profile.subDepartmentDisplay }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.siteDisplay">
+            <label>Site</label>
+            <span>{{ profile.siteDisplay }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.locationDisplay">
+            <label>Location</label>
+            <span>{{ profile.locationDisplay }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.roleIdDisplay">
+            <label>Role</label>
+            <span>{{ profile.roleIdDisplay === 'General' ? 'Admin' : profile.roleIdDisplay }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Date Information Card -->
+    <mat-card class="info-card" [@cardAnimation]>
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>event</mat-icon>
+          Important Dates
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="info-grid">
+          <div class="info-item" *ngIf="profile.dateOfBirth">
+            <label>Date of Birth</label>
+            <span>{{ profile.dateOfBirth | date:'mediumDate' }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.joiningDate">
+            <label>Joining Date</label>
+            <span>{{ profile.joiningDate | date:'mediumDate' }}</span>
+          </div>
+          <div class="info-item" *ngIf="profile.leavingDate">
+            <label>Leaving Date</label>
+            <span>{{ profile.leavingDate | date:'mediumDate' }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

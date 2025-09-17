@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { loginresponse, userLogin } from '../../../core/models/account/user.model';
 import { ToastrService } from 'ngx-toastr';
@@ -13,9 +13,9 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { AuthService } from '../../../core/services/auth/auth.service';
-import { localStorageUserProfile, UserProfile } from '../../../core/models/account/userProfile';
 import { UserProfileStorageService } from '../../../core/services/localStorage/userProfile/user-profile-storage.service';
 import { response } from 'express';
+import { localStorageUserProfile, UserProfileData } from '../../../core/models/account/userProfile';
 
 @Component({
   selector: 'app-login',
@@ -39,14 +39,16 @@ export class LoginComponent implements OnInit {
   _response!: loginresponse;
   hidePassword = true;
   isSubmitting = false;
-  profileData: UserProfile | null = null;
+  profileData: UserProfileData | null = null;
   localStorageUserProfile: localStorageUserProfile | null = null;
+  deviceInfoLoaded = false;
 
 
   constructor(
     private builder: FormBuilder,
     private accountService: AccountService,
     private deviceInfoService: DeviceInfoService,
+    @Inject(PLATFORM_ID) private platformId: Object,
     private toastr: ToastrService,
     private router: Router,
     private authService: AuthService,
@@ -70,12 +72,21 @@ export class LoginComponent implements OnInit {
       device: ['']
     });
 
-    // Set device and location information
-    this.deviceInfoService.patchFormWithDeviceInfo(this._loginform).subscribe();
+        // Set device and location information
+    this.deviceInfoService.patchFormWithDeviceInfo(this._loginform)
+      .subscribe({
+        next: () => {
+          this.deviceInfoLoaded = true;
+          console.log('Device info patched:', this._loginform.value);
+        },
+        error: (err) => {
+          this.deviceInfoLoaded = true;
+          console.warn('Failed to patch device info:', err);
+        }
+      });
   }
 
   proceedlogin() {
-    debugger
     if (this._loginform.valid && !this.isSubmitting) {
       this.isSubmitting = true;
       const _obj: userLogin = this._loginform.value;

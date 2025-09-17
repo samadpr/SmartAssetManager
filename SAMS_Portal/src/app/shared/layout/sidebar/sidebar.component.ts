@@ -8,6 +8,8 @@ import { Router } from '@angular/router';
 import { UserProfileStorageService } from '../../../core/services/localStorage/userProfile/user-profile-storage.service';
 import { AccountService } from '../../../core/services/account/account.service';
 import { ToastrService } from 'ngx-toastr';
+import { ProfileService } from '../../../core/services/account/profile/profile.service';
+import { UserProfileData } from '../../../core/models/account/userProfile';
 
 export type MenuItem = {
   icon: string;
@@ -28,8 +30,14 @@ export class SidebarComponent implements OnInit {
   CreatedBy: string | null = null;
   Email: string | null = null;
   profilePic: string = '';
+  userProfileData = signal<UserProfileData | null>(null);
 
-  constructor(private auth: AuthService, private router: Router, private userProfileStorage: UserProfileStorageService, private accountService: AccountService, private toster: ToastrService) { }
+  constructor(
+    private auth: AuthService,
+    private router: Router,
+    private toster: ToastrService,
+    private profileService: ProfileService
+  ) { }
   ngOnInit(): void {
     // const userProfile = this.userProfileStorage.get();
     // if (userProfile) {
@@ -39,15 +47,22 @@ export class SidebarComponent implements OnInit {
     // }
 
     this.getUserProfile();
+    this.profilePictureUrl();
   }
 
-  getUserProfile(){
-    this.accountService.getProfileData().subscribe({
+  profilePictureUrl = computed(() => {
+    const profile = this.userProfileData();
+    return profile?.profilePicture || '/assets/images/ProfilePic.png';
+  })
+
+  getUserProfile() {
+    this.profileService.getProfileData().subscribe({
       next: (profile) => {
+        this.userProfileData.set(profile);
         this.FullName = profile.firstName + ' ' + profile.lastName;
         this.CreatedBy = profile.createdBy;
         this.Email = profile.email;
-        this.profilePic = profile.profilePicture || 'assets/images/ProfilePic.png'; 
+        // this.profilePic = profile.profilePicture;
       },
       error: (err) => {
         console.error('Error fetching user profile:', err);
@@ -80,13 +95,13 @@ export class SidebarComponent implements OnInit {
     },
     {
       icon: 'group',
-      label: 'Manage Users',
-      route: '/manage-users',
+      label: 'Employees',
+      route: '/employees',
       subItems: [
         {
-          icon: 'assignment_ind',
-          label: 'User Profiles',
-          route: 'user-profile'
+          icon: 'person_add',
+          label: 'Add Employee',
+          route: ''
         },
         {
           icon: 'work',
@@ -94,6 +109,28 @@ export class SidebarComponent implements OnInit {
           route: 'designations'
         },
       ]
+    },
+    // {
+    //   icon: 'group',
+    //   label: 'Manage Users',
+    //   route: '/manage-users',
+    //   subItems: [
+    //     {
+    //       icon: 'assignment_ind',
+    //       label: 'User Profiles',
+    //       route: 'user-profile'
+    //     },
+    //     {
+    //       icon: 'work',
+    //       label: 'Designations',
+    //       route: 'designations'
+    //     },
+    //   ]
+    // },
+    {
+      icon: 'admin_panel_settings',
+      label: 'Manage Roles',
+      route: '/manage-roles'
     },
     {
       icon: 'account_circle',

@@ -1,0 +1,121 @@
+<div class="list-widget-container" [@fadeInOut]>
+    <!-- Header -->
+    <div class="widget-header">
+        <div class="header-title">
+            <h2>{{ config.title }}</h2>
+            <span class="item-count" *ngIf="dataSource.data.length">
+                {{ dataSource.filteredData.length || 0 }} of {{ dataSource.data.length }} items
+            </span>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="widget-toolbar">
+            <!-- Search -->
+            <mat-form-field appearance="outline" class="search-field" *ngIf="config?.showSearch">
+                <mat-label>Search...</mat-label>
+                <input matInput [formControl]="searchControl" placeholder="Search all columns">
+                <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+
+            <!-- Column Toggle -->
+            <button mat-icon-button [matMenuTriggerFor]="columnMenu" matTooltip="Show/Hide Columns">
+                <mat-icon>view_column</mat-icon>
+            </button>
+            <mat-menu #columnMenu="matMenu">
+                <button mat-menu-item *ngFor="let column of config?.columns" (click)="toggleColumn(column)">
+                    <mat-checkbox [checked]="column.visible !== false" (change)="toggleColumn(column)"
+                        (click)="$event.stopPropagation()">
+                        {{ column.label }}
+                    </mat-checkbox>
+                </button>
+            </mat-menu>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button mat-icon-button *ngIf="config?.showRefresh" (click)="onRefreshClick()" matTooltip="Refresh">
+                    <mat-icon>refresh</mat-icon>
+                </button>
+
+                <button mat-icon-button *ngIf="config?.showDownload && dataSource.data.length" (click)="exportToExcel()"
+                    matTooltip="Export to Excel">
+                    <mat-icon>download</mat-icon>
+                </button>
+
+                <button mat-raised-button color="primary" *ngIf="config?.showAdd" (click)="onAddClick()"
+                    class="add-button">
+                    <mat-icon>add</mat-icon>
+                    {{ config.addButtonLabel || 'Add New' }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-container" *ngIf="loading">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Loading data...</p>
+    </div>
+
+    <!-- ✅ Data Table -->
+    <div class="table-container" *ngIf="!loading">
+        <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z1">
+
+            <!-- Selection Column -->
+            <ng-container matColumnDef="select" *ngIf="config?.selectable">
+                <th mat-header-cell *matHeaderCellDef class="select-cell">
+                    <mat-checkbox [checked]="selection.hasValue() && isAllSelected()"
+                        [indeterminate]="selection.hasValue() && !isAllSelected()" (change)="toggleAllRows()">
+                    </mat-checkbox>
+                </th>
+                <td mat-cell *matCellDef="let row" class="select-cell">
+                    <mat-checkbox [checked]="selection.isSelected(row)" (change)="toggleRow(row)">
+                    </mat-checkbox>
+                </td>
+            </ng-container>
+
+            <!-- Dynamic Data Columns -->
+            <ng-container *ngFor="let column of visibleColumns()" [matColumnDef]="column.key">
+                <th mat-header-cell *matHeaderCellDef [mat-sort-header]="column.sortable !== false ? column.key : ''"
+                    [style.width]="column.width" [style.text-align]="column.align || 'left'">
+                    {{ column.label }}
+                </th>
+                <td mat-cell *matCellDef="let element" [style.text-align]="column.align || 'left'" class="data-cell">
+                    <span [ngClass]="'cell-' + column.type">
+                        {{ formatCellValue(element[column.key], column) }}
+                    </span>
+                </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions" *ngIf="config?.actions?.length">
+                <th mat-header-cell *matHeaderCellDef class="actions-cell">Actions</th>
+                <td mat-cell *matCellDef="let element" class="actions-cell">
+                    <div class="action-buttons-cell">
+                        <button *ngFor="let action of config?.actions" mat-icon-button
+                            [color]="action.color || 'primary'" [matTooltip]="action.tooltip || action.label"
+                            (click)="onActionClick(action.key, element)" class="action-btn">
+                            <mat-icon>{{ action.icon }}</mat-icon>
+                        </button>
+                    </div>
+                </td>
+            </ng-container>
+
+            <!-- ✅ Header & Data Row Definitions -->
+            <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns()" trackBy="trackByFn"
+                class="data-row" [@rowAnimation] [class.selected]="selection.isSelected(row)">
+            </tr>
+        </table>
+
+        <!-- No Data Message -->
+        <div class="no-data" *ngIf="dataSource.data.length === 0">
+            <mat-icon>inbox</mat-icon>
+            <p>{{ config.emptyMessage || 'No data available' }}</p>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <mat-paginator *ngIf="showPagination() && !loading" [pageSize]="config.pageSize || 5"
+        [pageSizeOptions]="config.pageSizeOptions || [5, 10, 25, 50]" showFirstLastButtons class="widget-paginator">
+    </mat-paginator>
+</div>

@@ -14,15 +14,23 @@
 
         public DateTime? DateOfBirth { get; set; }
 
+        public long? Designation { get; set; }
+
         public string? DesignationDisplay { get; set; }
+
+        public long? Department { get; set; }
 
         public string? DepartmentDisplay { get; set; }
 
+        public long? SubDepartment { get; set; }
+
         public string? SubDepartmentDisplay { get; set; }
+
+        public long? Site { get; set; }
 
         public string? SiteDisplay { get; set; }
 
-        public string? LocationDisplay { get; set; }
+        public long? Location { get; set; }
 
         public string? RoleIdDisplay { get; set; }
 

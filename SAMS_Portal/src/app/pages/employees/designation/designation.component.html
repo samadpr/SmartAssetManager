@@ -1,0 +1,17 @@
+<app-page-header [title]="'Designation'" [breadcrumbs]="[
+    { label: 'Employees', url: '/employees' },
+    { label: 'Designation' }
+  ]">
+</app-page-header>
+
+<div class="designation-page">
+  <app-list-widget 
+  [config]="listConfig" 
+  [data]="designations()" 
+  [loading]="loading()"
+  (actionClick)="onActionClick($event)" 
+  (addClick)="onAddDesignation()" 
+  (refreshClick)="onRefresh()"
+  (selectionChange)="onSelectionChange($event)">
+  </app-list-widget>
+</div>

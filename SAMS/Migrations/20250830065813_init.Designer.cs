@@ -12,8 +12,8 @@ using SAMS.Data;
 namespace SAMS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250716052822_initDb")]
-    partial class initDb
+    [Migration("20250830065813_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -1,0 +1,503 @@
+@use '@angular/material' as mat;
+
+// Variables
+$profile-picture-size: 120px;
+$profile-picture-size-mobile: 80px;
+$border-radius-large: 16px;
+$border-radius-medium: 12px;
+$border-radius-small: 8px;
+$transition-duration: 0.3s;
+$shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.1);
+$shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.15);
+$shadow-strong: 0 8px 24px rgba(0, 0, 0, 0.2);
+
+// Breakpoints
+$mobail-max: 767.98px;
+$tablet-min: 768px;
+$tablet-max: 1024.98px;
+$desktop-min: 1025px;
+
+// Mixins
+@mixin respond-to($breakpoint) {
+  @if $breakpoint ==mobile {
+    @media (max-width: $mobail-max) {
+      @content;
+    }
+  }
+
+  @else if $breakpoint ==tablet {
+    @media (min-width: $tablet-min) and (max-width: $tablet-max) {
+      @content;
+    }
+  }
+
+  @if $breakpoint ==desktop {
+    @media (min-width: $desktop-min) {
+      @content;
+    }
+  }
+}
+
+@mixin card-hover-effect {
+  & {
+    transition: transform $transition-duration ease, box-shadow $transition-duration ease;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--mat-sys-elevation-level3);
+  }
+}
+
+
+@mixin smooth-transition($property: all) {
+  transition: $property $transition-duration cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.profile-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  position: relative;
+  // background: red;
+
+  @media(max-width: 768px) {
+    padding: 16px;
+  }
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: blue;
+
+  mat-progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+  }
+}
+
+.profile-header-card {
+  // move normal declarations first
+  margin-bottom: 24px;
+  background: linear-gradient(135deg,
+      var(--mat-sys-primary-container) 0%,
+      var(--mat-sys-surface) 100%);
+
+  // update to new Angular Material tokens
+  @include mat.card-overrides((elevated-container-shape: $border-radius-large,
+      elevated-container-elevation: 2,
+    ));
+
+  @include respond-to(mobile) {
+    margin-bottom: 16px;
+  }
+}
+
+
+.profile-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 32px;
+
+  @include respond-to(mobile) {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 16px;
+    gap: 16px;
+    align-items: center;
+  }
+
+  @include respond-to(tablet) {
+    padding: 28px;
+    gap: 20px;
+  }
+}
+
+.profile-picture-section {
+  flex-shrink: 0;
+}
+
+.profile-picture-container {
+  position: relative;
+  width: $profile-picture-size;
+  height: $profile-picture-size;
+
+  @include respond-to(mobile) {
+    width: $profile-picture-size-mobile;
+    height: $profile-picture-size-mobile;
+    margin: 0 auto;
+  }
+}
+
+.profile-picture {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--mat-sys-outline-variant);
+  box-shadow: $shadow-medium;
+  @include smooth-transition();
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: $shadow-strong;
+  }
+}
+
+.picture-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  cursor: pointer;
+  @include smooth-transition();
+  color: white;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  mat-icon {
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+
+  span {
+    font-size: 12px;
+    text-align: center;
+  }
+}
+
+// Profile info section
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  font-size: 2rem;
+  font-weight: 500;
+  margin: 0 0 16px 0;
+  color: var(--mat-sys-on-surface);
+  @include smooth-transition();
+
+  @include respond-to(mobile) {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+  }
+}
+
+.profile-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  @include respond-to(mobile) {
+    justify-content: center;
+  }
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--mat-sys-surface-container);
+  padding: 8px 12px;
+  border-radius: $border-radius-small;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+  @include smooth-transition();
+
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+    transform: translateY(-1px);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// Profile actions
+.profile-actions {
+  flex-shrink: 0;
+
+  @include respond-to(mobile) {
+    width: 100%;
+  }
+
+  button {
+    @include smooth-transition();
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: $shadow-medium;
+    }
+
+    @include respond-to(mobile) {
+      width: 100%;
+    }
+  }
+}
+
+// Profile content section
+.profile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  @include respond-to(mobile) {
+    gap: 16px;
+  }
+}
+
+.edit-form-card {
+  @include mat.card-overrides((elevated-container-shape: $border-radius-medium,
+      elevated-container-elevation: 1,
+    ));
+
+  @include card-hover-effect;
+
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--mat-sys-primary);
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+
+      mat-icon {
+        font-size: 24px;
+      }
+    }
+  }
+
+  mat-card-content {
+    padding-top: 0;
+  }
+}
+
+//Form section
+.form-section {
+  margin-bottom: 32px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--mat-sys-on-surface);
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin: 0 0 24px 0;
+
+  mat-icon {
+    color: var(--mat-sys-primary);
+    font-size: 20px;
+  }
+}
+
+//form layout
+.profile-form {
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+
+    @include respond-to(mobile) {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  }
+
+  .form-field {
+    &.full-width {
+      grid-column: 1 / -1;
+    }
+
+    mat-form-field {
+      width: 100%;
+    }
+
+    // Custom form field styling
+    ::ng-deep {
+      .mat-mdc-form-field {
+        @include smooth-transition();
+
+        &:hover {
+          transition: translateY(-1px);
+        }
+
+        .mat-mdc-form-field-focus-overlay {
+          background-color: var(--mat-sys-primary-container);
+        }
+
+        .mat-mdc-form-field-outline {
+          color: var(--mat-sys-outline);
+        }
+
+        &.mat-focused {
+          .mat-mdc-form-field-outline-thick {
+            color: var(--mat-sys-primary);
+          }
+        }
+      }
+
+      .mat-mdc-input-element {
+        color: var(--mat-sys-on-surface);
+      }
+
+      .mat-mdc-form-field-label {
+        color: var(--mat-sys-on-surface-variant);
+      }
+    }
+  }
+}
+
+// Form actions
+.form-actions {
+  padding: 16px 24px;
+  background: var(--mat-sys-surface-container-lowest);
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  gap: 12px;
+
+  button {
+    @include smooth-transition();
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: $shadow-medium;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+    }
+  }
+
+  .inline-progress {
+    width: 20px;
+    height: 2px;
+    margin-right: 8px;
+  }
+}
+
+//View Mode 
+.view-mode {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+
+  @include respond-to(mobile) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.info-card {
+  height: fit-content;
+
+  // Use elevated tokens instead of deprecated container-*
+  @include mat.card-overrides((elevated-container-shape: $border-radius-medium,
+      elevated-container-elevation: 1,
+    ));
+
+  @include card-hover-effect;
+
+  mat-card-header {
+    padding-bottom: 16px;
+
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--mat-sys-primary);
+      font-size: 1.25rem;
+
+      mat-icon {
+        font-size: 20px;
+      }
+    }
+  }
+}
+
+// Info grid
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+
+  @include respond-to(mobile) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: var(--mat-sys-surface-container-lowest);
+  border-radius: $border-radius-small;
+  border-left: 3px solid var(--mat-sys-primary);
+  @include smooth-transition();
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+    transform: translateX(2px);
+  }
+
+  &.full-width {
+    grid-column: 1 / -1;
+  }
+
+  label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface-variant);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  span {
+    font-size: 0.875rem;
+    color: var(--mat-sys-on-surface);
+    word-break: break-word;
+  }
+}
+
+// Snackbar styles
+::ng-deep {
+  .snackbar-success {
+    background-color: var(--mat-sys-tertiary-container) !important;
+    color: var(--mat-sys-on-tertiary-container) !important;
+  }
+
+  .snackbar-error {
+    background-color: var(--mat-sys-error-container) !important;
+    color: var(--mat-sys-on-error-container) !important;
+  }
+}

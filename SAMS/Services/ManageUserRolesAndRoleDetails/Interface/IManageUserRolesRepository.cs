@@ -1,4 +1,5 @@
-﻿using SAMS.Models;
+﻿using Microsoft.AspNetCore.Identity;
+using SAMS.Models;
 using SAMS.Services.ManageUserRoles.DTOs;
 
 namespace SAMS.Services.ManageUserRoles.Interface
@@ -32,6 +33,8 @@ namespace SAMS.Services.ManageUserRoles.Interface
         Task<ManageUserRolesDto> GetUserRoleByIdWithRoleDetailsAsync(long id);
 
         Task<bool> UpdateUserRolesAsync(ManageUserRole manageUserRole);
+
+        Task<IEnumerable<IdentityRole>> GetAllAspNetRolesAsync();
 
     }
 }

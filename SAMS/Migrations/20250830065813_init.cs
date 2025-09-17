@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SAMS.Migrations
 {
     /// <inheritdoc />
-    public partial class initDb : Migration
+    public partial class init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
