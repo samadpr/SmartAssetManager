@@ -115,9 +115,9 @@ namespace SAMS.API.UserProfile
             var mappedProfile = Mapper.Map<UserProfileDto>(request);
             var result = await _userProfileService.CreateUserProfileAsync(mappedProfile, user);
             if (!result.Success)
-                return BadRequest("Profile creation failed. " + result.Message);
+                return BadRequest(new { success = false, message = "User profile creation failed. " + result.Message });
 
-            return Ok("User Profile created successfully.");
+            return Ok(new { success = true, message = "User profile created successfully" });
         }
 
         [Authorize(Roles = RoleModels.UserManagement)]
@@ -127,8 +127,19 @@ namespace SAMS.API.UserProfile
             var user = HttpContext.User.Identity?.Name ?? "System";
             var result = await _userProfileService.GetCreatedUsersProfile(user);
             if (result == Empty)
-                return NotFound("No user profile found.");
-            return Ok(result);
+                return NotFound(new { success = false, message = "No user profile found." });
+            return Ok(new { success = true, message = "User profile fetched successfully", data = result });
+        }
+
+        [Authorize(Roles = RoleModels.UserManagement)]
+        [HttpGet("user-profile/get-created-user-profiles-details")]
+        public async Task<IActionResult> GetCreatedUserProfilesDetails()
+        {
+            var user = HttpContext.User.Identity?.Name ?? "System";
+            var result = await _userProfileService.GetCreatedUserProfilesDetails(user);
+            if (!result.isSuccess)
+                return NotFound(new { success = false, message = "No user profile found." });
+            return Ok(new { success = true, message = "User profile fetched successfully", data = result.responseObject });
         }
 
         [Authorize(Roles = RoleModels.UserManagement)]
@@ -142,8 +153,8 @@ namespace SAMS.API.UserProfile
             var mappedProfile = Mapper.Map<UserProfileDto>(request);
             var result = await _userProfileService.UpdateCreatedUserProfileAsync(mappedProfile, user);
             if (!result.success)
-                return BadRequest("Profile update failed. " + result.message);
-            return Ok("User Profile updated successfully.");
+                return BadRequest(new { success = false, message = "User profile update failed. " + result.message });
+            return Ok(new { success = true, message = "User profile updated successfully" });
         }
 
         [Authorize(Roles = RoleModels.UserManagement)]
@@ -198,7 +209,7 @@ namespace SAMS.API.UserProfile
 
 
         [Authorize(Roles = RoleModels.ManageUserRoles)]
-        [HttpGet("manage-user-roles/get-user-profiles-used-in-role-id")]
+        [HttpGet("user-profile/get-user-profiles-used-in-role-id")]
         public async Task<IActionResult> GetUserProfilesUsedInRoleId([FromQuery] long roleId)
         {
             var user = HttpContext.User.Identity?.Name ?? "System";

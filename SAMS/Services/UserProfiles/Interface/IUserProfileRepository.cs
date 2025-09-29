@@ -18,6 +18,8 @@ public interface IUserProfileRepository
 
     Task<IEnumerable<UserProfile>> GetCreatedUsersProfile(List<string> emails);
 
+    Task<(IEnumerable<GetProfileDetailsResponseObject> responseObject, bool isSuccess, string message)> GetCreatedUserProfilesDetails(List<string> emails);
+
     Task<(UserProfile user, string message)> GetUserProfileByProfileId(long profileId, List<string> emails);
 
     Task<(bool success, string message)> UpdateUserProfileAsync(UserProfile user);

@@ -32,6 +32,8 @@
 
         public long? Location { get; set; }
 
+        public long? RoleId { get; set; }
+
         public string? RoleIdDisplay { get; set; }
 
         public DateTime? JoiningDate { get; set; }

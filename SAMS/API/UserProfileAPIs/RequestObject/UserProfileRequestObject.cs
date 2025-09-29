@@ -20,6 +20,8 @@
 
         public long? Location { get; set; }
 
+        public long? RoleId { get; set; }
+
         public DateTime? JoiningDate { get; set; }
 
         public DateTime? LeavingDate { get; set; }

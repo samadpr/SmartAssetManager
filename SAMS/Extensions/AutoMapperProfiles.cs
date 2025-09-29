@@ -1,12 +1,16 @@
 ﻿using AutoMapper;
 using SAMS.API.Account.RequestObject;
+using SAMS.API.DepartmentAPIs.RequstObject;
 using SAMS.API.DesignationAPIs.RequestObject;
 using SAMS.API.ManageUserRolesAPIs.RequestObject;
+using SAMS.API.SubDepartmentAPIs.RequestObject;
 using SAMS.API.UserProfileAPIs.RequestObject;
 using SAMS.Models;
 using SAMS.Services.Account.DTOs;
+using SAMS.Services.Departments.DTOs;
 using SAMS.Services.DesignationServices.DTOs;
 using SAMS.Services.ManageUserRoles.DTOs;
+using SAMS.Services.SubDepartments.DTOs;
 using SAMS.Services.UserProfiles.DTOs;
 
 namespace SAMS.Extensions
@@ -36,6 +40,14 @@ namespace SAMS.Extensions
             CreateMap<UserProfileRequestObject, UserProfileDto>().ReverseMap();
 
             CreateMap<UserProfileDto, UserProfile>().ReverseMap();
+
+            CreateMap<DepartmentRequest, DepartmentDto>().ReverseMap();
+
+            CreateMap<DepartmentDto, Department>().ReverseMap();
+
+            CreateMap<SubDepartment, SubDepartmentDto>().ReverseMap();
+            
+            CreateMap<SubDepartmentRequest, SubDepartmentDto>().ReverseMap();
 
         }
     }

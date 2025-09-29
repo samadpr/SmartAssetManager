@@ -2,6 +2,7 @@
 using SAMS.API.UserProfileAPIs.ResponseObject;
 using SAMS.Data;
 using SAMS.Models;
+using SAMS.Services.Account;
 using SAMS.Services.Profile.Interface;
 using SAMS.Services.UserProfiles.DTOs;
 
@@ -10,17 +11,19 @@ namespace SAMS.Services.Profile;
 public class UserProfileRepository : IUserProfileRepository
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<AccountRepository> _logger;
 
-    public UserProfileRepository(ApplicationDbContext context)
+    public UserProfileRepository(ApplicationDbContext context, ILogger<AccountRepository> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
 
     public async Task<UserProfile> GetProfileData(string userEmail)
     {
         var user = await _context.UserProfiles.FirstOrDefaultAsync(u => u.Email == userEmail && !u.Cancelled);
-        if(user == null) return null!;
+        if (user == null) return null!;
         return user!;
     }
 
@@ -118,12 +121,64 @@ public class UserProfileRepository : IUserProfileRepository
 
             if (result == null)
                 return (null!, false, "Profile not found.");
-            
+
             return (result, true, "Profile found.");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return (null!, false, "Error retrieving profile details: " + ex.Message);
+        }
+    }
+
+    public async Task<(IEnumerable<GetProfileDetailsResponseObject> responseObject, bool isSuccess, string message)> GetCreatedUserProfilesDetails(List<string> emails)
+    {
+        try
+        {
+            var result = await (from vm in _context.UserProfiles
+                                join _Department in _context.Department on vm.Department equals _Department.Id into _Department
+                                from objDepartment in _Department.DefaultIfEmpty()
+                                join _SubDepartment in _context.SubDepartment on vm.SubDepartment equals _SubDepartment.Id into _SubDepartment
+                                from objSubDepartment in _SubDepartment.DefaultIfEmpty()
+                                join _Designation in _context.Designation on vm.Designation equals _Designation.Id into _Designation
+                                from objDesignation in _Designation.DefaultIfEmpty()
+                                join _ManageRole in _context.ManageUserRoles on vm.RoleId equals _ManageRole.Id into _ManageRole
+                                from objManageRole in _ManageRole.DefaultIfEmpty()
+                                where !vm.Cancelled && emails.Contains(vm.CreatedBy)
+                                orderby vm.CreatedDate descending
+                                select new GetProfileDetailsResponseObject
+                                {
+                                    UserProfileId = vm.UserProfileId,
+                                    ApplicationUserId = vm.ApplicationUserId,
+                                    EmployeeId = vm.EmployeeId,
+                                    FirstName = vm.FirstName,
+                                    LastName = vm.LastName,
+                                    DateOfBirth = vm.DateOfBirth,
+                                    Designation = vm.Designation,
+                                    DesignationDisplay = objDesignation.Name,
+                                    Department = vm.Department,
+                                    DepartmentDisplay = objDepartment.Name,
+                                    SubDepartment = vm.SubDepartment,
+                                    SubDepartmentDisplay = objSubDepartment.Name,
+                                    JoiningDate = vm.JoiningDate,
+                                    LeavingDate = vm.LeavingDate,
+                                    PhoneNumber = vm.PhoneNumber,
+                                    Email = vm.Email,
+                                    Address = vm.Address,
+                                    Country = vm.Country,
+                                    ProfilePicture = vm.ProfilePicture,
+                                    RoleIdDisplay = objManageRole.Name,
+                                    RoleId = vm.RoleId,
+                                }).ToListAsync();
+
+            if (!result.Any())
+                return (Enumerable.Empty<GetProfileDetailsResponseObject>(), false, "No created user profiles found.");
+
+            return (result, true, "Created user profiles retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving created user profiles.");
+            return (Enumerable.Empty<GetProfileDetailsResponseObject>(), false, $"Error retrieving created user profiles: {ex.Message}");
         }
     }
 }
