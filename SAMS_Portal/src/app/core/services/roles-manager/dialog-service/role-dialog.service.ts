@@ -27,7 +27,7 @@ export class RoleDialogService {
     const dialogConfig: MatDialogConfig = {
       width: '900px',
       maxWidth: '95vw',
-      height: '80vh',
+      height: '83vh',
       maxHeight: '90vh',
       data: dialogData,
       disableClose: true,
@@ -58,7 +58,7 @@ export class RoleDialogService {
     const dialogConfig: MatDialogConfig = {
       width: '900px',
       maxWidth: '95vw',
-      height: '80vh',
+      height: '83vh',
       maxHeight: '90vh',
       data: dialogData,
       disableClose: true,
@@ -89,7 +89,7 @@ export class RoleDialogService {
     const dialogConfig: MatDialogConfig = {
       width: '900px',
       maxWidth: '95vw',
-      height: '80vh',
+      height: '83vh',
       maxHeight: '90vh',
       data: dialogData,
       disableClose: false,

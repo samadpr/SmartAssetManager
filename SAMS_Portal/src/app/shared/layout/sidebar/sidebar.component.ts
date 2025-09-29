@@ -10,6 +10,7 @@ import { AccountService } from '../../../core/services/account/account.service';
 import { ToastrService } from 'ngx-toastr';
 import { ProfileService } from '../../../core/services/account/profile/profile.service';
 import { UserProfileData } from '../../../core/models/account/userProfile';
+import { GlobalService } from '../../../core/services/global/global.service';
 
 export type MenuItem = {
   icon: string;
@@ -36,7 +37,8 @@ export class SidebarComponent implements OnInit {
     private auth: AuthService,
     private router: Router,
     private toster: ToastrService,
-    private profileService: ProfileService
+    private profileService: ProfileService,
+    private globalService: GlobalService
   ) { }
   ngOnInit(): void {
     // const userProfile = this.userProfileStorage.get();
@@ -66,7 +68,7 @@ export class SidebarComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error fetching user profile:', err);
-        this.toster.error('Failed to load user profile', 'Error');
+        this.globalService.showToastr('Failed to load user profile', 'error');
       }
     });
   }
@@ -95,13 +97,18 @@ export class SidebarComponent implements OnInit {
     },
     {
       icon: 'group',
-      label: 'Employees',
-      route: '/employees',
+      label: 'Manage Users',
+      route: '/manage-users',
       subItems: [
+        // {
+        //   icon: 'person_add',
+        //   label: 'Add User',
+        //   route: ''
+        // },
         {
-          icon: 'person_add',
-          label: 'Add Employee',
-          route: ''
+          icon: 'assignment_ind',
+          label: 'User Profiles',
+          route: 'user-profile'
         },
         {
           icon: 'work',

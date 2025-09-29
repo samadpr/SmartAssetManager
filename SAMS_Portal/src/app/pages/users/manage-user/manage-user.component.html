@@ -2,4 +2,17 @@
     { label: 'Manage User' }
   ]">
 </app-page-header>
-<router-outlet></router-outlet>
+
+<div class="example-container">
+      <app-list-widget
+        [config]="listConfig"
+        [data]="userProfiles()"
+        [loading]="loading()"
+        (actionClick)="onActionClick($event)"
+        (addClick)="onAddUser()"
+        (refreshClick)="onRefresh()"
+        (selectionChange)="onSelectionChange($event)"
+        (selectionAction)="onSelectionAction($event)"
+        (rowClick)="onRowClick($event)">
+      </app-list-widget>
+    </div>

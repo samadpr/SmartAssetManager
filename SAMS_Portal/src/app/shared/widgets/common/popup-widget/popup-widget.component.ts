@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatNativeDateModule } from '@angular/material/core';
+import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -13,7 +13,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { animate, style, transition, trigger, state } from '@angular/animations';
-import { PopupConfirmConfig, PopupData, PopupField, PopupFormConfig, PopupResult } from '../../../../core/models/interfaces/popup-widget.interface';
+import { PopupConfirmConfig, PopupData, PopupField, PopupFormConfig, PopupResult, PopupViewConfig } from '../../../../core/models/interfaces/popup-widget.interface';
+import { MatRadioModule } from '@angular/material/radio'
+import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
+import { FilesUploadService } from '../../../../core/services/common/files-upload.service';
+import { Country, CountryService } from '../../../../core/services/account/country/country.service';
 
 @Component({
   selector: 'app-popup-widget',
@@ -28,10 +33,17 @@ import { PopupConfirmConfig, PopupData, PopupField, PopupFormConfig, PopupResult
     MatInputModule,
     MatSelectModule,
     MatCheckboxModule,
+    MatRadioModule,
     MatDatepickerModule,
     MatNativeDateModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatCardModule,
+    MatChipsModule
+
+  ],
+  providers: [
+    provideNativeDateAdapter() // 👈 THIS explicitly provides DateAdapter
   ],
   templateUrl: './popup-widget.component.html',
   styleUrl: './popup-widget.component.scss',
@@ -66,25 +78,79 @@ import { PopupConfirmConfig, PopupData, PopupField, PopupFormConfig, PopupResult
 export class PopupWidgetComponent implements OnInit {
   private dialogRef = inject(MatDialogRef<PopupWidgetComponent>);
   private fb = inject(FormBuilder);
+  private filesUploadService = inject(FilesUploadService);
+  private countryService = inject(CountryService);
   public data: PopupData = inject(MAT_DIALOG_DATA);
 
+  @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
+  
   form: FormGroup | null = null;
-  loading = false;        // use boolean for clarity here
-  submitted = false;
+  loading = signal(false);
+  imageUploading = signal(false);
+  submitted = signal(false);
+  imagePreview = signal<string | null>(null);
+  imageFile = signal<File | null>(null);
+  countries = signal<Country[]>([]);
+  countriesLoaded = signal(false);
 
   // Computed properties for type safety and convenience
-  // simple getters (less template weirdness)
-  get isFormType(): boolean { return !!(this.data && this.data.type === 'form'); }
-  get isConfirmType(): boolean { return !!(this.data && this.data.type === 'confirm'); }
-  get formConfig(): PopupFormConfig | null { return this.isFormType ? (this.data.config as PopupFormConfig) : null; }
-  get confirmConfig(): PopupConfirmConfig | null { return this.isConfirmType ? (this.data.config as PopupConfirmConfig) : null; }
+  isFormType = computed(() => this.data?.type === 'form');
+  isViewType = computed(() => this.data?.type === 'view');
+  isConfirmType = computed(() => this.data?.type === 'confirm');
+  isCompactMode = computed(() => {
+    const config = this.data?.config as PopupFormConfig | PopupViewConfig;
+    return config?.compactMode || false;
+  });
+
+  // Use getters instead of computed signals for template access
+  get formConfig(): PopupFormConfig | null {
+    return this.isFormType() ? (this.data.config as PopupFormConfig) : null;
+  }
+
+  get viewConfig(): PopupViewConfig | null {
+    return this.isViewType() ? (this.data.config as PopupViewConfig) : null;
+  }
+
+  get confirmConfig(): PopupConfirmConfig | null {
+    return this.isConfirmType() ? (this.data.config as PopupConfirmConfig) : null;
+  }
 
   ngOnInit() {
-    if (this.isFormType) {
-      this.initializeForm();
+    this.loadCountries();
+    if (this.isFormType()) this.initializeForm();
+    if (this.data?.data?.profilePicture) {
+      this.imagePreview.set(this.data.data.profilePicture);
     }
   }
 
+  private loadCountries() {
+    const allCountries = this.countryService.getAllCountries();
+    this.countries.set(allCountries);
+    this.countriesLoaded.set(true);
+
+    // Re-initialize form if it was waiting for countries
+    if (this.isFormType() && this.form) {
+      this.updateCountryField();
+    }
+  }
+
+  private updateCountryField() {
+    if (!this.form) return;
+
+    const countryControl = this.form.get('country');
+    if (countryControl && this.formConfig) {
+      // Find country field and update its options
+      const countryField = this.formConfig.fields.find(f => f.key === 'country');
+      if (countryField && countryField.type === 'select') {
+        countryField.options = this.countries().map(country => ({
+          value: country.name, // Store country name as value
+          label: country.name,
+          disabled: false,
+          code: country.code // Store code for flag display
+        }));
+      }
+    }
+  }
 
   private initializeForm() {
     const cfg = this.formConfig;
@@ -101,23 +167,45 @@ export class PopupWidgetComponent implements OnInit {
         value = this.data.data[field.key];
       }
 
+      // Handle different field types
       if (field.type === 'checkbox') {
         value = !!value;
+      } else if (field.type === 'date' && value) {
+        value = new Date(value);
       }
 
-      // Explicit FormControl creation - disabled explicit and obvious
-      controls[field.key] = new FormControl({ value, disabled: !!field.disabled }, validators.length ? validators : null);
+      // Special handling for country field
+      if (field.key === 'country' && field.type === 'select') {
+        // Update country options from service
+        field.options = this.countries().map(country => ({
+          value: country.name,
+          label: country.name,
+          disabled: false,
+          code: country.code
+        }));
+      }
+
+      // Create FormControl with proper disabled state
+      controls[field.key] = new FormControl(
+        { value, disabled: !!field.disabled },
+        validators.length ? validators : null
+      );
     });
+
+    // Add profile picture control if not already present
+    if (!controls['profilePicture']) {
+      controls['profilePicture'] = new FormControl(this.data?.data?.profilePicture || '');
+    }
 
     this.form = new FormGroup(controls);
 
-    // DEBUG: inspect control disabled/enabled state right after creation
-    console.log('Popup initialized. form:', this.form);
-    Object.keys(this.form.controls).forEach(k => {
-      console.log(`control: ${k}, disabled: ${this.form!.get(k)!.disabled}`);
+    console.log('Popup form initialized:', {
+      type: this.data.type,
+      formValid: this.form.valid,
+      controls: Object.keys(this.form.controls),
+      countries: this.countries().length
     });
   }
-
 
   private getFieldValidators(field: PopupField) {
     const validators: any[] = [];
@@ -140,49 +228,222 @@ export class PopupWidgetComponent implements OnInit {
     if (field.type === 'number' && field.max !== undefined) {
       validators.push(Validators.max(field.max));
     }
+    if (field.pattern) {
+      validators.push(Validators.pattern(field.pattern));
+    }
     if (field.validators) {
       validators.push(...field.validators);
     }
+
     return validators;
   }
 
+  // Get country flag URL
+  getCountryFlagUrl(countryCode: string): string {
+    return this.countryService.getFlagUrl(countryCode);
+  }
+
+  // Get country code from country name
+  getCountryCodeFromName(countryName: string): string {
+    const country = this.countries().find(c => c.name === countryName);
+    return country ? country.code : '';
+  }
+
+  // Get country name from code (for backward compatibility)
+  getCountryNameFromCode(countryCode: string): string {
+    const country = this.countries().find(c => c.code === countryCode);
+    return country ? country.name : countryCode;
+  }
+
+  openFileChooser(input: HTMLInputElement) {
+    try {
+      // clear prior value so selecting same file triggers change
+      input.value = '';
+    } catch { /* ignore */ }
+    input.click();
+  }
+
+  // Image upload handling
+  onImageSelect(event: Event, input?: HTMLInputElement) {
+    const inputEl = input ?? (event.target as HTMLInputElement);
+    if (!inputEl || !inputEl.files?.length) return;
+
+    const file = inputEl.files[0];
+
+    // validations
+    if (!file.type.startsWith('image/')) {
+      console.warn('Invalid file type selected.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      console.warn('File too large (max 5MB).');
+      return;
+    }
+
+    // store file and show local preview (no upload yet)
+    this.imageFile.set(file);
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => this.imagePreview.set(e.target.result);
+    reader.readAsDataURL(file);
+
+    // reset native input so re-selecting the same file later triggers change
+    // small delay ensures file processing started
+    setTimeout(() => {
+      try { inputEl.value = ''; } catch { /* ignore cross-browser issues */ }
+      // also clear any programmatic reference to native element value
+      if (this.fileInputRef?.nativeElement) {
+        try { this.fileInputRef.nativeElement.value = ''; } catch { }
+      }
+    }, 0);
+
+  }
+
+
+  onImageRemove() {
+    // clear preview + staged file + form profile value + UI flags
+    this.imagePreview.set(null);
+    this.imageFile.set(null);
+    this.imageUploading.set(false);
+    this.imagePreview.set('/assets/images/ProfilePic.png')
+    
+    if (this.form) {
+      this.form.patchValue({ profilePicture: '' });
+    }
+
+    // clear native input value so future selections always trigger change
+    try {
+      if (this.fileInputRef?.nativeElement) {
+        this.fileInputRef.nativeElement.value = '';
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Field validation helpers
   getFieldError(fieldKey: string): string {
     if (!this.form) return '';
     const control = this.form.get(fieldKey);
     if (!control || !control.errors) return '';
+
     const errors = control.errors;
     if (errors['required']) return 'This field is required';
-    if (errors['email']) return 'Please enter a valid email';
+    if (errors['email']) return 'Please enter a valid email address';
     if (errors['minlength']) return `Minimum length is ${errors['minlength'].requiredLength}`;
     if (errors['maxlength']) return `Maximum length is ${errors['maxlength'].requiredLength}`;
     if (errors['min']) return `Minimum value is ${errors['min'].min}`;
     if (errors['max']) return `Maximum value is ${errors['max'].max}`;
+    if (errors['pattern']) return 'Please enter a valid format';
+
     return 'Invalid input';
   }
 
-  isFieldInvalid(key: string) {
+  isFieldInvalid(key: string): boolean {
     if (!this.form) return false;
     const control = this.form.get(key);
-    return !!(control && control.invalid && (control.dirty || control.touched || this.submitted));
+    return !!(control && control.invalid && (control.dirty || control.touched || this.submitted()));
   }
 
-  onSubmit() {
-    if (!this.form) return;
-    this.submitted = true;
-
-    if (this.form.valid) {
-      this.loading = true;
-      setTimeout(() => {
-        const result: PopupResult = { action: 'submit', data: this.form!.value };
-        this.dialogRef.close(result);
-      }, 400);
-    } else {
-      Object.keys(this.form.controls).forEach(k => this.form!.get(k)?.markAsTouched());
+  // Input type helper
+  getInputType(fieldType: string): string {
+    switch (fieldType) {
+      case 'password': return 'password';
+      case 'email': return 'email';
+      case 'number': return 'number';
+      default: return 'text';
     }
   }
 
+  // View mode display helpers
+  getDisplayValue(field: PopupField): any {
+    if (!this.data?.data) return null;
+    return this.data.data[field.key];
+  }
+
+  getSelectDisplayValue(field: PopupField): string {
+    const value = this.getDisplayValue(field);
+    if (!value || !field.options) return value?.toString() || '';
+
+    const option = field.options.find(opt => opt.value === value);
+    return option ? option.label : value.toString();
+  }
+
+  getDateDisplayValue(field: PopupField): string {
+    const value = this.getDisplayValue(field);
+    if (!value) return '';
+
+    try {
+      const date = new Date(value);
+      return date.toLocaleDateString();
+    } catch {
+      return value.toString();
+    }
+  }
+
+  // Form action handlers
+  onSubmit() {
+     if (!this.form) return;
+    this.submitted.set(true);
+
+    if (!this.form.valid) {
+      Object.keys(this.form.controls).forEach(key => this.form!.get(key)?.markAsTouched());
+      return;
+    }
+
+    this.loading.set(true);
+
+    const file = this.imageFile();
+
+    if (file) {
+      // upload first
+      this.imageUploading.set(true);
+      this.filesUploadService.uploadProfilePicture(file).subscribe({
+        next: (res) => {
+          // API returned path/url
+          this.imageUploading.set(false);
+          // set preview to remote url (optional)
+          if (res?.url) {
+            this.imagePreview.set(res.url);
+            this.form!.patchValue({ profilePicture: res.url });
+          }
+          // clear staged file because it's now uploaded
+          this.imageFile.set(null);
+
+          // finalize
+          this.finalizeSubmit();
+        },
+        error: (err) => {
+          console.error('Error uploading image:', err);
+          this.imageUploading.set(false);
+          this.loading.set(false);
+          // Optionally show toast here via globalService if available
+          // this.globalService.showToastr('Image upload failed', 'error');
+        }
+      });
+    } else {
+      // no staged file — just finalize
+      this.finalizeSubmit();
+    }
+  }
+
+  private finalizeSubmit() {
+    // ensure loading remains true while we close (optionally add a slight delay)
+    const formValue = { ...this.form!.value };
+
+    const result: PopupResult = {
+      action: 'submit',
+      data: formValue
+    };
+
+    // close the dialog with the collected data
+    this.dialogRef.close(result);
+
+    // reset loading states if needed (the dialog is closing anyway)
+    this.loading.set(false);
+    this.submitted.set(false);
+  }
+
   onConfirm() {
-    this.loading = true;
+    this.loading.set(true);
     setTimeout(() => {
       this.dialogRef.close({ action: 'confirm' });
     }, 300);
@@ -195,18 +456,86 @@ export class PopupWidgetComponent implements OnInit {
   onClose() {
     this.dialogRef.close({ action: 'close' });
   }
+
+  onEdit() {
+    this.dialogRef.close({ action: 'edit', data: this.data?.data });
+  }
+
   // Helper methods for template
   shouldShowField(field: PopupField): boolean {
-    return !field.disabled || this.form?.get(field.key)?.value;
+    if (field.dependsOn && this.data?.data) {
+      const dependentValue = this.data.data[field.dependsOn];
+      if (field.dependsOnValue !== undefined) {
+        return dependentValue === field.dependsOnValue;
+      }
+      return !!dependentValue;
+    }
+    return true;
   }
 
-  getSelectDisplayValue(field: PopupField, value: any): string {
-    if (!field.options) return value;
-    const option = field.options.find(opt => opt.value === value);
-    return option ? option.label : value;
+  trackByField(index: number, field: PopupField): string {
+    return field.key || index.toString();
   }
 
-  trackByField(index: number, field: PopupField) {
-    return field.key ?? index;
+  // Get user's full name for view mode
+  getUserFullName(): string {
+    if (!this.data?.data) return '';
+    const firstName = this.data.data.firstName || '';
+    const lastName = this.data.data.lastName || '';
+    return `${firstName} ${lastName}`.trim() || 'Unknown User';
+  }
+
+  // Get user's profile image URL
+  getUserProfileImage(): string {
+    if (this.imagePreview()) return this.imagePreview()!;
+    if (this.data?.data?.profilePicture) return this.data.data.profilePicture;
+    return '/assets/images/ProfilePic.png';
+  }
+
+  // Format display values for view mode
+  formatDisplayValue(field: PopupField, value: any): string {
+    if (!value && value !== false) return 'Not specified';
+
+    switch (field.type) {
+      case 'date':
+        return this.getDateDisplayValue(field);
+      case 'select':
+      case 'radio':
+        if (field.key === 'country') {
+          // For country field, value is already the country name
+          return value;
+        }
+        return this.getSelectDisplayValue(field);
+      case 'checkbox':
+        return value ? 'Yes' : 'No';
+      case 'email':
+        return value;
+      case 'phone':
+        return this.formatPhoneNumber(value);
+      case 'textarea':
+        return value;
+      default:
+        return value.toString();
+    }
+  }
+
+  private formatPhoneNumber(phone: string): string {
+    if (!phone) return '';
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length >= 10) {
+      return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '($1)$2-$3');
+    }
+    return phone;
+  }
+
+  isTextareaField(field: PopupField): boolean {
+    return field.type === 'textarea';
+  }
+
+  getFieldColSpanClass(field: PopupField): string {
+    if (field.colSpan === 2) {
+      return 'span-2';
+    }
+    return 'span-1';
   }
 }
