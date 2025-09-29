@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { PageHeaderComponent } from '../../../shared/widgets/page-header/page-header.component';
-import { ListConfig, ListWidgetComponent } from '../../../shared/widgets/common/list-widget/list-widget.component';
+import { ListConfig, ListWidgetComponent, SelectionActionEvent } from '../../../shared/widgets/common/list-widget/list-widget.component';
 import { CommonModule } from '@angular/common';
 import { Designation } from '../../../core/models/account/designation.model';
 import { DesignationService } from '../../../core/services/Designation/designation.service';
@@ -9,6 +9,7 @@ import { PopupWidgetService } from '../../../core/services/popup-widget/popup-wi
 import { Validators } from '@angular/forms';
 import { PopupField } from '../../../core/models/interfaces/popup-widget.interface';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { GlobalService } from '../../../core/services/global/global.service';
 
 @Component({
   selector: 'app-designation',
@@ -23,8 +24,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 export class DesignationComponent implements OnInit {
   private designationService = inject(DesignationService);
   private popupService = inject(PopupWidgetService);
-  private toastr = inject(ToastrService);
-  private snackBar = inject(MatSnackBar);
+  private globalSevice = inject(GlobalService);
 
   designations = signal<Designation[]>([]);
   loading = signal(false);
@@ -37,8 +37,11 @@ export class DesignationComponent implements OnInit {
     showAdd: true,
     addButtonLabel: 'Add Designation',
     selectable: true,
+    compactMode: false, // Set to true for compact layout
+    showSelectionActions: true, // Enable bulk actions
+    rowClickAction: 'view', // Enable row click to view details
     pageSize: 5,
-    pageSizeOptions: [5, 10, 25, 50],
+    pageSizeOptions: [5, 10, 25, 50, 100],
     exportFileName: 'designations_export',
     emptyMessage: 'No designations found. Click "Add Designation" to create one.',
     columns: [
@@ -58,7 +61,8 @@ export class DesignationComponent implements OnInit {
         type: 'text',
         width: '200px',
         align: 'left',
-        visible: true
+        visible: true,
+        ellipsis: true
       },
       {
         key: 'description',
@@ -96,6 +100,8 @@ export class DesignationComponent implements OnInit {
         label: 'Designation Name',
         type: 'text',
         required: true,
+        colSpan: 2,
+        icon: 'work',
         placeholder: 'Enter designation name',
         validators: [Validators.minLength(2), Validators.maxLength(100)]
       },
@@ -104,6 +110,7 @@ export class DesignationComponent implements OnInit {
         label: 'Description',
         type: 'textarea',
         required: false,
+        colSpan: 2,
         placeholder: 'Enter description',
         rows: 4,
         validators: [Validators.minLength(10), Validators.maxLength(500)]
@@ -144,21 +151,100 @@ export class DesignationComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error fetching designations:', err);
-        this.toastr.error('Failed to load designations', 'Error');
+        this.globalSevice.showToastr('Failed to load designations.', 'error')
         this.loading.set(false);
       }
     })
   }
 
   onActionClick(event: { action: string, item: Designation }) {
+    const { action, item } = event;
     switch (event.action) {
+      case 'view':
+        this.viewDesignation(event.item);
+        break;
       case 'edit':
         this.editDesignation(event.item);
         break;
       case 'delete':
         this.deleteDesignation(event.item);
         break;
+      default:
+        console.log('Unknown action:', action);
     }
+  }
+
+  // Handle row clicks (opens detail view)
+  onRowClick(event: { action: string; item: Designation }) {
+    console.log("row clicked")
+    if (event.action === 'view') {
+      this.viewDesignation(event.item);
+    }
+  }
+
+
+  // Handle bulk selection actions
+  onSelectionAction(event: SelectionActionEvent) {
+    switch (event.action) {
+      case 'delete':
+        this.deleteMultipleDesignations(event.selectedItems);
+        break;
+      case 'export':
+        this.exportSelectedDesignations(event.selectedItems);
+        break;
+      default:
+        console.log('Unknown selection action:', event.action);
+    }
+  }
+
+  deleteMultipleDesignations(selectedDesignations: Designation[]) {
+    const count = selectedDesignations.length;
+    const names = selectedDesignations.slice(0, 3).map(e => e.name).join(', ');
+    const message = count <= 3 ?
+      `Are you sure you want to delete ${names}?` :
+      `Are you sure you want to delete ${names} and ${count - 3} other employees?`;
+
+    this.popupService.openDeleteConfirmation(
+      message,
+      `This will permanently delete ${count} employee record${count > 1 ? 's' : ''}.`
+    ).subscribe(result => {
+      if (result && result.action === 'confirm') {
+        this.handleBulkDelete(selectedDesignations);
+      }
+    });
+  }
+
+  private handleBulkDelete(selectedDesignations: Designation[]) {
+    const idsToDelete = selectedDesignations.map(emp => emp.id);
+    idsToDelete.forEach(id => this.handleDeleteDesignation(id));
+    this.globalSevice.showSnackbar(
+      `${selectedDesignations.length} employees deleted successfully`,
+      'success'
+    );
+  }
+
+  exportSelectedDesignations(selectedDesignations: Designation[]) {
+    console.log(`Exporting ${selectedDesignations.length} selected employees`);
+    // Custom export logic here - the widget will handle the actual export
+    this.globalSevice.showSnackbar(`Exported ${selectedDesignations.length} employees`, 'success');
+  }
+
+  viewDesignation(designation: Designation) {
+    const fields = this.getDesignationFields();
+    this.popupService.openViewPopup2('Designation Details', fields, designation, {
+      subtitle: `Designation ID: ${designation.id}`,
+      icon: 'work',
+      columns: 2,
+      maxWidth: '800px',
+      maxHeight: '800px',
+      showEditButton: false
+    }
+    ).subscribe(result => {
+      if (result.action === 'edit') {
+        result.data.id = designation.id;
+        this.handleEditDesignation(designation.id, result.data);
+      }
+    });
   }
 
   onAddDesignation() {
@@ -167,8 +253,11 @@ export class DesignationComponent implements OnInit {
     const fields = this.getDesignationFields();
 
     this.popupService.openAddPopup('Add New Designation', fields, {
-      maxWidth: '600px',
-      submitButtonText: 'Create Designation'
+      subtitle: 'Enter designation information below',
+      icon: 'person_add',
+      columns: 1,
+      maxWidth: '800px',
+      compactMode: false
     }).subscribe(result => {
       if (result && result.action === 'submit') {
         this.handleAddDesignation(result.data);
@@ -180,14 +269,14 @@ export class DesignationComponent implements OnInit {
     this.designationService.createDesignation(formData).subscribe({
       next: (newDesignation) => {
         this.designations.update(designations => [...designations, newDesignation]);
-        this.showSnackbar('Designation created successfully', 'success');
+        this.globalSevice.showSnackbar('Designation created successfully', 'success');
         // this.toastr.success('Designation created successfully', 'Success');
         this.loading.set(false);
       },
       error: (err) => {
         console.error('Error creating designation:', err);
         // this.toastr.error('Failed to create designation', 'Error');
-        this.showSnackbar('Failed to create designation', 'error');
+        this.globalSevice.showToastr('Failed to create designation', 'error');
         this.loading.set(false);
       }
     });
@@ -204,8 +293,10 @@ export class DesignationComponent implements OnInit {
       fields,
       designation,
       {
-        maxWidth: '600px',
-        submitButtonText: 'Update Designation'
+        subtitle: `Update information for ${designation.name}`,
+        icon: 'edit',
+        columns: 1,
+        maxWidth: '800px'
       }
     ).subscribe(result => {
       if (result && result.action === 'submit') {
@@ -222,13 +313,13 @@ export class DesignationComponent implements OnInit {
         this.designations.update(designations =>
           designations.map(d => d.id === id ? updatedDesignation : d)
         );
-        this.showSnackbar('Designation updated successfully', 'success');
+        this.globalSevice.showSnackbar('Designation updated successfully', 'success');
         // this.toastr.success('Designation updated successfully', 'Success');
         this.loading.set(false);
       },
       error: (err) => {
         console.error('Error updating designation:', err);
-        this.toastr.error('Failed to update designation', 'Error');
+        this.globalSevice.showToastr('Failed to update designation', 'error');
         this.loading.set(false);
       }
     });
@@ -255,23 +346,14 @@ export class DesignationComponent implements OnInit {
         this.designations.update(designations =>
           designations.filter(d => d.id !== id)
         );
-        this.showSnackbar('Designation deleted successfully', 'success');
-        // this.toastr.success('Designation deleted successfully', 'Success');
+        this.globalSevice.showSnackbar('Designation deleted successfully', 'success');
         this.loading.set(false);
       },
       error: (err) => {
         console.error('Error deleting designation:', err);
-        this.showSnackbar('Failed to delete designation', 'error');
-        // this.toastr.error('Failed to delete designation', 'Error');
+        this.globalSevice.showToastr('Failed to delete designation', 'error');
         this.loading.set(false);
       }
-    });
-  }
-
-  private showSnackbar(message: string, type: 'success' | 'error'): void {
-    this.snackBar.open(message, 'Close', {
-      duration: 3000,
-      panelClass: type === 'success' ? 'snackbar-success' : 'snackbar-error',
     });
   }
 

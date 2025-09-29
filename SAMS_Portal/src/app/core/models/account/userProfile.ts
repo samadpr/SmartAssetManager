@@ -1,4 +1,6 @@
-export interface UserProfileData {
+import { EntityBase } from "../interfaces/EntityBase.interface";
+
+export interface UserProfileData extends EntityBase{
   userProfileId: number;
   applicationUserId: string;
   employeeId: string;
@@ -22,13 +24,6 @@ export interface UserProfileData {
   level1Approval: boolean;
   level2Approval: boolean;
   level3Approval: boolean;
-
-  // From EntityBase
-  createdDate: string;
-  modifiedDate: string;
-  createdBy: string;
-  modifiedBy: string;
-  cancelled: boolean;
 }
 
 export interface UserProfileDetails {
@@ -47,6 +42,7 @@ export interface UserProfileDetails {
   siteDisplay?: string;
   locationDisplay?: string;
   roleIdDisplay?: string;
+  roleId?: number;
   joiningDate?: string; // ISO Date string from API
   leavingDate?: string; // ISO Date string from API
   phoneNumber?: string;
@@ -73,6 +69,7 @@ export interface UserProfileRequest {
   department?: number;
   subDepartment?: number;
   site?: number;
+  roleId?: number;
   location?: number;
   joiningDate?: Date;
   leavingDate?: Date;
@@ -81,4 +78,21 @@ export interface UserProfileRequest {
   address?: string;
   country?: string;
   profilePicture?: string;
+}
+
+export interface LoginAccessRequest {
+  userProfileId: number;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  roleId: number;
+}
+
+export interface UpdateLoginAccessRequest {
+  userProfileId: number;
+  email: string;
+  oldPassword?: string;
+  password?: string;
+  confirmPassword?: string;
+  roleId: number;
 }

@@ -1,106 +1,267 @@
-<!-- popup-widget.component.html -->
-<div class="popup-widget-container" [@fadeInOut]>
+<!-- enhanced-popup-widget.component.html - Updated with Country Service integration -->
+<div class="enhanced-popup-container" [@fadeInOut] [ngClass]="{
+  'form-type': isFormType,
+  'view-type': isViewType,
+  'confirm-type': isConfirmType,
+  'compact-mode': isCompactMode,
+  'two-column': isFormType() && formConfig?.columns === 2,
+  'one-column': isFormType() && formConfig?.columns === 1
+}">
   
   <!-- FORM POPUP -->
   <ng-container *ngIf="isFormType">
     <ng-container *ngIf="formConfig as config">
       <div *ngIf="form" class="form-popup">
 
-        <!-- Header -->
+        <!-- Header with User Avatar -->
         <div class="popup-header" [@slideInOut]>
           <div class="header-content">
-            <h2 class="popup-title">{{ config.title }}</h2>
+            <div class="header-icon-title">
+              <!-- User Avatar for Form -->
+              <div class="user-avatar-section" *ngIf="config.title.includes('User')">
+                <img [src]="getUserProfileImage()" 
+                     [alt]="getUserFullName()" 
+                     class="header-user-avatar"
+                     loading="lazy">
+              </div>
+              
+              <!-- Regular Icon -->
+              <mat-icon *ngIf="config.icon && !config.title.includes('User')" class="header-icon icon-primary">
+                {{ config.icon }}
+              </mat-icon>
+              
+              <div class="title-section">
+                <h2 class="popup-title">{{ config.title }}</h2>
+                <p *ngIf="config.subtitle" class="popup-subtitle">{{ config.subtitle }}</p>
+              </div>
+            </div>
             <button *ngIf="config.showCloseButton !== false"
                     mat-icon-button class="close-button"
                     (click)="onClose()"
-                    [disabled]="loading"
+                    [disabled]="loading()"
                     matTooltip="Close">
               <mat-icon>close</mat-icon>
             </button>
           </div>
         </div>
 
-        <!-- Form -->
+        <!-- Form Content -->
         <div class="popup-content" [@slideInOut]>
           <form [formGroup]="form" (ngSubmit)="onSubmit()" class="popup-form">
-            <div class="form-fields">
-              <div *ngFor="let field of config.fields; trackBy: trackByField" class="field-container" [@fadeInOut]>
-
-                <!-- TEXT / EMAIL / PASSWORD -->
-                <mat-form-field *ngIf="field.type === 'text' || field.type === 'email' || field.type === 'password'"
-                                appearance="outline" class="form-field">
-                  <mat-label>{{ field.label }}</mat-label>
-                  <input matInput
-                         [formControlName]="field.key"
-                         [type]="field.type === 'password' ? 'password' : (field.type === 'email' ? 'email' : 'text')"
-                         [placeholder]="field.placeholder || ''"
-                         [attr.maxLength]="field.maxLength ?? null">
-                  <mat-icon *ngIf="field.type === 'email'" matSuffix>email</mat-icon>
-                  <mat-icon *ngIf="field.type === 'password'" matSuffix>lock</mat-icon>
-                  <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
-                </mat-form-field>
-
-                <!-- NUMBER -->
-                <mat-form-field *ngIf="field.type === 'number'" appearance="outline" class="form-field">
-                  <mat-label>{{ field.label }}</mat-label>
-                  <input matInput
-                         type="number"
-                         [formControlName]="field.key"
-                         [placeholder]="field.placeholder || ''"
-                         [min]="field.min ?? null"
-                         [max]="field.max ?? null"
-                         >
-                  <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
-                </mat-form-field>
-
-                <!-- TEXTAREA -->
-                <mat-form-field *ngIf="field.type === 'textarea'" appearance="outline" class="form-field textarea-field">
-                  <mat-label>{{ field.label }}</mat-label>
-                  <textarea matInput
-                            [formControlName]="field.key"
-                            [placeholder]="field.placeholder || ''"
-                            [rows]="field.rows || 3"
-                            [attr.maxLength]="field.maxLength ?? null"></textarea>
-                  <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
-                </mat-form-field>
-
-                <!-- SELECT -->
-                <mat-form-field *ngIf="field.type === 'select'" appearance="outline" class="form-field">
-                  <mat-label>{{ field.label }}</mat-label>
-                  <mat-select [formControlName]="field.key">
-                    <mat-option *ngFor="let opt of field.options" [value]="opt.value" [disabled]="opt.disabled">{{ opt.label }}</mat-option>
-                  </mat-select>
-                  <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
-                </mat-form-field>
-
-                <!-- DATE -->
-                <mat-form-field *ngIf="field.type === 'date'" appearance="outline" class="form-field">
-                  <mat-label>{{ field.label }}</mat-label>
-                  <input matInput [matDatepicker]="picker" [formControlName]="field.key" [min]="field.min ?? null" [max]="field.max ?? null">
-                  <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-                  <mat-datepicker #picker></mat-datepicker>
-                  <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
-                </mat-form-field>
-
-                <!-- CHECKBOX -->
-                <div *ngIf="field.type === 'checkbox'" class="checkbox-field">
-                  <mat-checkbox [formControlName]="field.key">
-                    {{ field.label }}
-                  </mat-checkbox>
-                  <div *ngIf="isFieldInvalid(field.key)" class="field-error">{{ getFieldError(field.key) }}</div>
+            
+            <!-- Profile Image Upload Section -->
+            <div class="profile-image-section" *ngIf="config.title.includes('User')">
+              <div class="image-upload-container">
+                <div class="current-image">
+                  <img [src]="getUserProfileImage()" 
+                       [alt]="getUserFullName()" 
+                       class="profile-preview"
+                       loading="lazy">
+                  <div class="image-overlay">
+                    <button type="button" mat-icon-button 
+                            class="upload-btn"
+                            (click)="openFileChooser(fileInput)"
+                            [disabled]="imageUploading()"
+                            matTooltip="Change Photo">
+                      <mat-spinner *ngIf="imageUploading()" diameter="20"></mat-spinner>
+                      <mat-icon *ngIf="!imageUploading()">photo_camera</mat-icon>
+                    </button>
+                    <button type="button" mat-icon-button 
+                            class="remove-btn"
+                            *ngIf="(imagePreview() !== '/assets/images/ProfilePic.png' || (form && form.get('profilePicture')?.value)) && getUserProfileImage() !== '/assets/images/ProfilePic.png'  && !imageUploading()"
+                            (click)="onImageRemove()"
+                            matTooltip="Remove Photo">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
                 </div>
-
-              </div> <!-- end fields loop -->
+                
+                <input #fileInput type="file" 
+                       accept="image/*" 
+                       (change)="onImageSelect($event, fileInput)"
+                       style="display: none;">
+                       
+                <div class="upload-info">
+                  <p class="upload-text">Click on camera to upload photo</p>
+                  <p class="upload-hint">JPG, PNG, GIF up to 5MB</p>
+                </div>
+              </div>
             </div>
 
-            <!-- Actions -->
+            <!-- Form Fields Grid -->
+            <div class="form-grid" [ngClass]="{
+              'grid-2-column': config.columns === 2,
+              'grid-1-column': config.columns === 1,
+              'compact': config.compactMode
+            }">
+              
+              <ng-container *ngFor="let field of config.fields; trackBy: trackByField">
+                <div class="field-wrapper" 
+                     [ngClass]="{
+                       'span-1': field.colSpan === 1,
+                       'span-2': field.colSpan === 2,
+                       'break-after': field.breakAfter
+                     }"
+                     [@fadeInOut]
+                     *ngIf="shouldShowField(field)">
+
+                  <!-- TEXT / EMAIL / PASSWORD -->
+                  <mat-form-field *ngIf="field.type === 'text' || field.type === 'email' || field.type === 'password'"
+                                  appearance="outline" class="form-field">
+                    <mat-label>{{ field.label }}</mat-label>
+                    <input matInput
+                           [formControlName]="field.key"
+                           [type]="getInputType(field.type)"
+                           [placeholder]="field.placeholder || ''"
+                           [attr.maxLength]="field.maxLength ?? null"
+                           [matTooltip]="field.tooltip || ''"
+                           [matTooltipDisabled]="!field.tooltip">
+                    
+                    <mat-icon *ngIf="field.icon" matPrefix class="field-icon">{{ field.icon }}</mat-icon>
+                    <mat-icon *ngIf="field.type === 'email' && !field.icon" matSuffix>email</mat-icon>
+                    <mat-icon *ngIf="field.type === 'password' && !field.icon" matSuffix>lock</mat-icon>
+                    <span *ngIf="field.prefix" matTextPrefix>{{ field.prefix }}</span>
+                    <span *ngIf="field.suffix" matTextSuffix>{{ field.suffix }}</span>
+                    
+                    <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                  </mat-form-field>
+
+                  <!-- NUMBER -->
+                  <mat-form-field *ngIf="field.type === 'number'" appearance="outline" class="form-field">
+                    <mat-label>{{ field.label }}</mat-label>
+                    <input matInput
+                           type="number"
+                           [formControlName]="field.key"
+                           [placeholder]="field.placeholder || ''"
+                           [min]="field.min ?? null"
+                           [max]="field.max ?? null"
+                           [matTooltip]="field.tooltip || ''"
+                           [matTooltipDisabled]="!field.tooltip">
+                    
+                    <mat-icon *ngIf="field.icon" matPrefix class="field-icon">{{ field.icon }}</mat-icon>
+                    <span *ngIf="field.prefix" matTextPrefix>{{ field.prefix }}</span>
+                    <span *ngIf="field.suffix" matTextSuffix>{{ field.suffix }}</span>
+                    
+                    <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                  </mat-form-field>
+
+                  <!-- TEXTAREA -->
+                  <mat-form-field *ngIf="field.type === 'textarea'" appearance="outline" class="form-field textarea-field">
+                    <mat-label>{{ field.label }}</mat-label>
+                    <textarea matInput
+                              [formControlName]="field.key"
+                              [placeholder]="field.placeholder || ''"
+                              [rows]="field.rows || 3"
+                              [attr.maxLength]="field.maxLength ?? null"
+                              [matTooltip]="field.tooltip || ''"
+                              [matTooltipDisabled]="!field.tooltip"></textarea>
+                    
+                    <mat-icon *ngIf="field.icon" matPrefix class="field-icon">{{ field.icon }}</mat-icon>
+                    
+                    <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                  </mat-form-field>
+
+                  <!-- SELECT (including enhanced Country select) -->
+                  <mat-form-field *ngIf="field.type === 'select'" appearance="outline" class="form-field">
+                    <mat-label>{{ field.label }}</mat-label>
+                    <mat-select [formControlName]="field.key"
+                                [matTooltip]="field.tooltip || ''"
+                                [matTooltipDisabled]="!field.tooltip"
+                                [placeholder]="field.placeholder || 'Select ' + field.label">
+                      
+                      <!-- Special handling for country field with flags -->
+                      <ng-container *ngIf="field.key === 'country' && countriesLoaded(); else regularOptions">
+                        <mat-option *ngFor="let country of countries()" 
+                                    [value]="country.name"
+                                    class="country-option">
+                          <div class="country-option-content">
+                            <img [src]="getCountryFlagUrl(country.code)" 
+                                 [alt]="country.name + ' flag'"
+                                 class="country-flag"
+                                 loading="lazy"
+                                 onerror="this.style.display='none'">
+                            <span class="country-name">{{ country.name }}</span>
+                            <span class="country-code">({{ country.code }})</span>
+                          </div>
+                        </mat-option>
+                      </ng-container>
+                      
+                      <!-- Regular select options -->
+                      <ng-template #regularOptions>
+                        <mat-option *ngFor="let opt of field.options" 
+                                    [value]="opt.value" 
+                                    [disabled]="opt.disabled">
+                          {{ opt.label }}
+                        </mat-option>
+                      </ng-template>
+                      
+                    </mat-select>
+                    
+                    <mat-icon *ngIf="field.icon" matPrefix class="field-icon">{{ field.icon }}</mat-icon>
+                    <!-- <mat-icon *ngIf="field.key === 'country'" matPrefix class="field-icon">public</mat-icon> -->
+                    
+                    <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                  </mat-form-field>
+
+                  <!-- DATE -->
+                  <mat-form-field *ngIf="field.type === 'date'" appearance="outline" class="form-field">
+                    <mat-label>{{ field.label }}</mat-label>
+                    <input matInput 
+                           [matDatepicker]="picker" 
+                           [formControlName]="field.key" 
+                           [min]="field.min ?? null" 
+                           [max]="field.max ?? null"
+                           [matTooltip]="field.tooltip || ''"
+                           [matTooltipDisabled]="!field.tooltip">
+                    
+                    <mat-icon *ngIf="field.icon" matPrefix class="field-icon">{{ field.icon }}</mat-icon>
+                    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                    <mat-datepicker #picker></mat-datepicker>
+                    
+                    <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                  </mat-form-field>
+
+                  <!-- CHECKBOX -->
+                  <div *ngIf="field.type === 'checkbox'" class="checkbox-field">
+                    <mat-checkbox [formControlName]="field.key"
+                                  [matTooltip]="field.tooltip || ''"
+                                  [matTooltipDisabled]="!field.tooltip">
+                      {{ field.label }}
+                    </mat-checkbox>
+                    <div *ngIf="isFieldInvalid(field.key)" class="field-error">{{ getFieldError(field.key) }}</div>
+                  </div>
+
+                  <!-- RADIO -->
+                  <div *ngIf="field.type === 'radio'" class="radio-field">
+                    <label class="radio-label">{{ field.label }}</label>
+                    <mat-radio-group [formControlName]="field.key" 
+                                     class="radio-group"
+                                     [matTooltip]="field.tooltip || ''"
+                                     [matTooltipDisabled]="!field.tooltip">
+                      <mat-radio-button *ngFor="let opt of field.options" 
+                                        [value]="opt.value" 
+                                        [disabled]="opt.disabled"
+                                        class="radio-option">
+                        {{ opt.label }}
+                      </mat-radio-button>
+                    </mat-radio-group>
+                    <div *ngIf="isFieldInvalid(field.key)" class="field-error">{{ getFieldError(field.key) }}</div>
+                  </div>
+
+                </div> <!-- field-wrapper -->
+              </ng-container> <!-- fields loop -->
+            </div> <!-- form-grid -->
+
+            <!-- Form Actions -->
             <div class="popup-actions form-actions" [@slideInOut]>
-              <button mat-button type="button" (click)="onCancel()" [disabled]="loading">{{ config.cancelButtonText || 'Cancel' }}</button>
+              <button mat-button type="button" (click)="onCancel()" [disabled]="loading()">
+                {{ config.cancelButtonText || 'Cancel' }}
+              </button>
 
               <button mat-raised-button color="primary" type="submit"
-                      [disabled]="loading || (form && form.invalid && submitted)">
-                <mat-spinner *ngIf="loading" diameter="20" class="button-spinner"></mat-spinner>
-                <span *ngIf="!loading">{{ config.submitButtonText || 'Submit' }}</span>
+                      [disabled]="loading() || (form && form.invalid && submitted())">
+                <mat-spinner *ngIf="loading()" diameter="20" class="button-spinner"></mat-spinner>
+                <span *ngIf="!loading()">{{ config.submitButtonText || 'Submit' }}</span>
               </button>
             </div>
 
@@ -111,27 +272,225 @@
     </ng-container>
   </ng-container>
 
-  <!-- ============= CONFIRMATION TYPE POPUP ============= -->
-  <ng-container *ngIf="isConfirmType && confirmConfig as config" class="confirm-popup">
+  <!-- VIEW TYPE POPUP -->
+  <ng-container *ngIf="isViewType">
+    <ng-container *ngIf="viewConfig as config">
+      <div class="view-popup">
+
+        <!-- Header with User Profile -->
+        <div class="popup-header view-header" [@slideInOut]>
+          <div class="header-content">
+            <div class="user-profile-header" *ngIf="config.title.includes('User')">
+              <img [src]="getUserProfileImage()" 
+                   [alt]="getUserFullName()" 
+                   class="profile-avatar-large"
+                   loading="lazy">
+              <div class="user-info">
+                <h2 class="user-name">{{ getUserFullName() }}</h2>
+                <p class="user-subtitle">{{ config.subtitle }}</p>
+                <div class="user-badges" *ngIf="data?.data">
+                  <mat-chip *ngIf="data.data.designationDisplay" class="designation-chip">
+                    <mat-icon matChipAvatar>work</mat-icon>
+                    {{ data.data.designationDisplay }}
+                  </mat-chip>
+                  <mat-chip *ngIf="data.data.departmentDisplay" class="department-chip">
+                    <mat-icon matChipAvatar>business</mat-icon>
+                    {{ data.data.departmentDisplay }}
+                  </mat-chip>
+                  <mat-chip *ngIf="data.data.roleIdDisplay" class="role-chip">
+                    <mat-icon matChipAvatar>admin_panel_settings</mat-icon>
+                    {{ data.data.roleIdDisplay }}
+                  </mat-chip>
+                </div>
+              </div>
+            </div>
+
+            <!-- Regular Header for non-user views -->
+            <div class="header-icon-title" *ngIf="!config.title.includes('User')">
+              <mat-icon *ngIf="config.icon" class="header-icon icon-primary">
+                {{ config.icon }}
+              </mat-icon>
+              <div class="title-section">
+                <h2 class="popup-title">{{ config.title }}</h2>
+                <p *ngIf="config.subtitle" class="popup-subtitle">{{ config.subtitle }}</p>
+              </div>
+            </div>
+
+            <button mat-icon-button class="close-button"
+                    (click)="onClose()"
+                    matTooltip="Close">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- View Content -->
+        <div class="popup-content view-content" [@slideInOut]>
+          
+          <!-- User Stats Cards (for user view) -->
+          <!-- <div class="user-stats" *ngIf="config.title.includes('User') && data?.data">
+            <mat-card class="stat-card">
+              <mat-card-content>
+                <div class="stat-content">
+                  <mat-icon class="stat-icon">event</mat-icon>
+                  <div class="stat-info">
+                    <p class="stat-label">Joining Date</p>
+                    <p class="stat-value">{{ getDateDisplayValue({key: 'joiningDate', type: 'date', label: 'Joining Date'}) || 'Not specified' }}</p>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="stat-card">
+              <mat-card-content>
+                <div class="stat-content">
+                  <mat-icon class="stat-icon">email</mat-icon>
+                  <div class="stat-info">
+                    <p class="stat-label">Email</p>
+                    <p class="stat-value">{{ data.data.email || 'Not specified' }}</p>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="stat-card">
+              <mat-card-content>
+                <div class="stat-content">
+                  <mat-icon class="stat-icon">phone</mat-icon>
+                  <div class="stat-info">
+                    <p class="stat-label">Phone</p>
+                    <p class="stat-value">{{ data.data.phoneNumber || 'Not specified' }}</p>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="stat-card">
+              <mat-card-content>
+                <div class="stat-content">
+                  <mat-icon class="stat-icon">public</mat-icon>
+                  <div class="stat-info">
+                    <p class="stat-label">Country</p>
+                    <div class="stat-value country-display">
+                      <img *ngIf="data.data.country" 
+                           [src]="getCountryFlagUrl(getCountryCodeFromName(data.data.country))" 
+                           [alt]="data.data.country + ' flag'"
+                           class="country-flag-small"
+                           loading="lazy"
+                           onerror="this.style.display='none'">
+                      <span>{{ data.data.country || 'Not specified' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div> -->
+
+          <!-- Field Display Grid -->
+          <div class="view-grid" [ngClass]="{
+            'grid-2-column': config.columns === 2,
+            'grid-1-column': config.columns === 1,
+            'compact': config.compactMode
+          }">
+            
+            <ng-container *ngFor="let field of config.fields; trackBy: trackByField">
+              <div class="view-field" 
+                   [ngClass]="{
+                     'span-1': field.colSpan === 1 || !field.colSpan,
+                     'span-2': field.colSpan === 2,
+                     'break-after': field.breakAfter
+                   }"
+                   [attr.data-col-span]="field.colSpan || 1"
+                   [@fadeInOut]
+                   *ngIf="shouldShowField(field)">
+
+                <!-- Field Label and Value Display -->
+                <div class="field-display">
+                  <div class="field-header">
+                    <mat-icon *ngIf="field.icon" class="field-icon">{{ field.icon }}</mat-icon>
+                    <label class="field-label">{{ field.label }}</label>
+                  </div>
+                  
+                  <div class="field-value" [ngClass]="{
+                    'value-text': field.type === 'text',
+                    'value-textarea': field.type === 'textarea',
+                    'value-date': field.type === 'date',
+                    'value-select': field.type === 'select',
+                    'value-checkbox': field.type === 'checkbox',
+                    'value-country': field.key === 'country'
+                  }">
+                    <!-- Special handling for country field with flag -->
+                    <div *ngIf="field.key === 'country' && getDisplayValue(field)" class="country-display-value">
+                      <img [src]="getCountryFlagUrl(getCountryCodeFromName(getDisplayValue(field)))" 
+                           [alt]="getDisplayValue(field) + ' flag'"
+                           class="country-flag-inline"
+                           loading="lazy"
+                           onerror="this.style.display='none'">
+                      <span class="country-name">{{ getDisplayValue(field) }}</span>
+                    </div>
+                    
+                    <!-- Regular formatted value for non-country fields -->
+                    <span class="formatted-value" *ngIf="field.type !== 'checkbox' && field.key !== 'country'">
+                      {{ formatDisplayValue(field, getDisplayValue(field)) }}
+                    </span>
+                    
+                    <!-- Special handling for checkboxes -->
+                    <div *ngIf="field.type === 'checkbox'" class="checkbox-value">
+                      <mat-icon class="status-icon" [class.active]="getDisplayValue(field)">
+                        {{ getDisplayValue(field) ? 'check_circle' : 'radio_button_unchecked' }}
+                      </mat-icon>
+                      <span>{{ getDisplayValue(field) ? 'Yes' : 'No' }}</span>
+                    </div>
+                    
+                    <!-- Fallback for country if no value -->
+                    <span *ngIf="field.key === 'country' && !getDisplayValue(field)" class="formatted-value">
+                      Not specified
+                    </span>
+                  </div>
+                </div>
+
+              </div> <!-- view-field -->
+            </ng-container> <!-- fields loop -->
+          </div> <!-- view-grid -->
+
+          <!-- View Actions -->
+          <div class="popup-actions view-actions" [@slideInOut]>
+            <button mat-button (click)="onClose()">
+              {{ config.closeButtonText || 'Close' }}
+            </button>
+
+            <button *ngIf="config.showEditButton" 
+                    mat-raised-button color="primary" 
+                    (click)="onEdit()">
+              <mat-icon>edit</mat-icon>
+              {{ config.editButtonText || 'Edit' }}
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </ng-container>
+  </ng-container>
+
+  <!-- CONFIRMATION TYPE POPUP -->
+  <ng-container *ngIf="isConfirmType() && confirmConfig as config">
     
     <!-- Header -->
     <div class="popup-header" [@slideInOut]>
       <div class="header-content">
         <div class="header-icon-title">
-          <mat-icon 
-            *ngIf="config.icon" 
-            class="header-icon"
-            [class]="'icon-' + (config.iconColor || 'primary')">
+          <mat-icon *ngIf="config.icon" 
+                    class="header-icon"
+                    [class]="'icon-' + (config.iconColor || 'primary')">
             {{ config.icon }}
           </mat-icon>
           <h2 class="popup-title">{{ config.title }}</h2>
         </div>
-        <button 
-          mat-icon-button 
-          class="close-button"
-          (click)="onClose()"
-          [disabled]="loading"
-          matTooltip="Close">
+        <button mat-icon-button class="close-button"
+                (click)="onClose()"
+                [disabled]="loading()"
+                matTooltip="Close">
           <mat-icon>close</mat-icon>
         </button>
       </div>
@@ -147,23 +506,20 @@
 
     <!-- Confirmation Actions -->
     <div class="popup-actions confirm-actions" [@slideInOut]>
-      <button 
-        mat-button 
-        type="button" 
-        (click)="onCancel()"
-        [disabled]="loading"
-        class="cancel-button">
+      <button mat-button type="button" 
+              (click)="onCancel()"
+              [disabled]="loading()"
+              class="cancel-button">
         {{ config.cancelButtonText || 'Cancel' }}
       </button>
       
-      <button 
-        mat-raised-button 
-        [color]="config.confirmButtonColor || 'primary'"
-        (click)="onConfirm()"
-        [disabled]="loading"
-        class="confirm-button">
-        <mat-spinner *ngIf="loading" diameter="20" class="button-spinner"></mat-spinner>
-        <span *ngIf="!loading">{{ config.confirmButtonText || 'Confirm' }}</span>
+      <button mat-raised-button 
+              [color]="config.confirmButtonColor || 'primary'"
+              (click)="onConfirm()"
+              [disabled]="loading()"
+              class="confirm-button">
+        <mat-spinner *ngIf="loading()" diameter="20" class="button-spinner"></mat-spinner>
+        <span *ngIf="!loading()">{{ config.confirmButtonText || 'Confirm' }}</span>
       </button>
     </div>
 

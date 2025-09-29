@@ -21,6 +21,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { profileAnimations } from '../../../shared/animations/profile.animations';
 import { DesignationService } from '../../../core/services/Designation/designation.service';
 import { ToastrService } from 'ngx-toastr';
+import { GlobalService } from '../../../core/services/global/global.service';
 
 
 @Component({
@@ -48,11 +49,11 @@ import { ToastrService } from 'ngx-toastr';
 export class ProfileComponent implements OnInit {
   private fb = inject(FormBuilder);
   private profileService = inject(ProfileService);
-  private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
   private countryService = inject(CountryService);
-  private designationServiece = inject(DesignationService)
-  private toster = inject(ToastrService);
+  private designationServiece = inject(DesignationService);
+  private globalService = inject(GlobalService);
+
 
   isLoading = signal(false);
   isEditing = signal(false);
@@ -115,14 +116,14 @@ export class ProfileComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error loading profile details:', error);
-          this.showSnackbar('Failed to load profile details', 'error');
+          this.globalService.showSnackbar('Failed to load profile details', 'error');
           this.isLoading.set(false);
         }
       });
     }
     catch (error) {
       console.error('Unexpected error loading profile details:', error);
-      this.showSnackbar('Failed to load profile details', 'error');
+      this.globalService.showToastr('Failed to load profile details', 'error');
       this.isLoading.set(false);
     }
   }
@@ -150,7 +151,7 @@ export class ProfileComponent implements OnInit {
     },
     error: (err) => {
       console.log('Failed to load designations', err);
-      this.toster.error('Failed to load designations. Please try again later.', 'Error');
+      this.globalService.showToastr('Failed to load designations. Please try again later.', 'error');
     }
   });
 }
@@ -187,7 +188,7 @@ export class ProfileComponent implements OnInit {
             profilePicture: result
           });
 
-          this.showSnackbar('Profile picture updated successfully', 'success');
+          this.globalService.showSnackbar('Profile picture updated successfully', 'success');
         }
       }
     });
@@ -209,7 +210,7 @@ export class ProfileComponent implements OnInit {
     try {
       const currentProfile = this.profileDetails();
       if (!currentProfile) {
-        this.showSnackbar('Profile data not found', 'error');
+        this.globalService.showSnackbar('Profile data not found', 'error');
         this.isSaving.set(false);
         return;
       }
@@ -243,7 +244,7 @@ export class ProfileComponent implements OnInit {
           //   this.isSaving.set(false);
           //   return;
           // }
-          this.showSnackbar('Profile updated successfully', 'success');
+          this.globalService.showSnackbar('Profile updated successfully', 'success');
           this.isEditing.set(false);
           this.selectedImage.set(null);
           this.imagePreview.set(null);
@@ -252,13 +253,13 @@ export class ProfileComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error updating profile:', error);
-          this.showSnackbar('Failed to update profile', 'error');
+          this.globalService.showSnackbar('Failed to update profile', 'error');
           this.isSaving.set(false);
         }
       });
     } catch (error) {
       console.error('Error saving profile:', error);
-      this.showSnackbar('Failed to save profile', 'error');
+      this.globalService.showSnackbar('Failed to save profile', 'error');
       this.isSaving.set(false);
     }
   }
@@ -267,13 +268,6 @@ export class ProfileComponent implements OnInit {
     Object.keys(this.profileForm.controls).forEach(key => {
       const control = this.profileForm.get(key);
       control?.markAsTouched();
-    });
-  }
-
-  private showSnackbar(message: string, type: 'success' | 'error'): void {
-    this.snackBar.open(message, 'Close', {
-      duration: 3000,
-      panelClass: type === 'success' ? 'snackbar-success' : 'snackbar-error',
     });
   }
 
