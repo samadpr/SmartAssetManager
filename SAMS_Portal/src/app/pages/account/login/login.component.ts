@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { loginresponse, userLogin } from '../../../core/models/account/user.model';
+import { loginresponse, userLogin } from '../../../core/models/interfaces/account/user.model';
 import { ToastrService } from 'ngx-toastr';
 import { Router, RouterModule } from '@angular/router';
 import { AccountService } from '../../../core/services/account/account.service';
@@ -15,7 +15,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { UserProfileStorageService } from '../../../core/services/localStorage/userProfile/user-profile-storage.service';
 import { response } from 'express';
-import { localStorageUserProfile, UserProfileData } from '../../../core/models/account/userProfile';
+import { localStorageUserProfile, UserProfileData } from '../../../core/models/interfaces/account/userProfile';
 
 @Component({
   selector: 'app-login',

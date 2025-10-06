@@ -1,16 +1,16 @@
-<app-page-header [title]="'Designation'" [breadcrumbs]="[
-    { label: 'Manage User', url: '/manage-users' },
-    { label: 'Designation' }
+<app-page-header [title]="'Sub Department'" [breadcrumbs]="[
+    { label: 'Department', url: '/department' },
+    { label: 'Sub Department' }
   ]">
 </app-page-header>
 
-<div class="designation-page">
+<div class="sub-department-page">
   <app-list-widget 
   [config]="listConfig" 
-  [data]="designations()" 
+  [data]="subDepartments()" 
   [loading]="loading()"
   (actionClick)="onActionClick($event)" 
-  (addClick)="onAddDesignation()" 
+  (addClick)="onAddSubDepartment()" 
   (refreshClick)="onRefresh()"
   (selectionChange)="onSelectionChange($event)"
   (selectionAction)="onSelectionAction($event)"

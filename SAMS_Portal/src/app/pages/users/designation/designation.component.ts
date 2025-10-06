@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { PageHeaderComponent } from '../../../shared/widgets/page-header/page-header.component';
 import { ListConfig, ListWidgetComponent, SelectionActionEvent } from '../../../shared/widgets/common/list-widget/list-widget.component';
 import { CommonModule } from '@angular/common';
-import { Designation } from '../../../core/models/account/designation.model';
+import { Designation } from '../../../core/models/interfaces/account/designation.model';
 import { DesignationService } from '../../../core/services/Designation/designation.service';
 import { ToastrService } from 'ngx-toastr';
 import { PopupWidgetService } from '../../../core/services/popup-widget/popup-widget.service';
@@ -202,11 +202,11 @@ export class DesignationComponent implements OnInit {
     const names = selectedDesignations.slice(0, 3).map(e => e.name).join(', ');
     const message = count <= 3 ?
       `Are you sure you want to delete ${names}?` :
-      `Are you sure you want to delete ${names} and ${count - 3} other employees?`;
+      `Are you sure you want to delete ${names} and ${count - 3} other Designations?`;
 
     this.popupService.openDeleteConfirmation(
       message,
-      `This will permanently delete ${count} employee record${count > 1 ? 's' : ''}.`
+      `This will permanently delete ${count} designation record${count > 1 ? 's' : ''}.`
     ).subscribe(result => {
       if (result && result.action === 'confirm') {
         this.handleBulkDelete(selectedDesignations);
@@ -218,15 +218,15 @@ export class DesignationComponent implements OnInit {
     const idsToDelete = selectedDesignations.map(emp => emp.id);
     idsToDelete.forEach(id => this.handleDeleteDesignation(id));
     this.globalSevice.showSnackbar(
-      `${selectedDesignations.length} employees deleted successfully`,
+      `${selectedDesignations.length} designations deleted successfully`,
       'success'
     );
   }
 
   exportSelectedDesignations(selectedDesignations: Designation[]) {
-    console.log(`Exporting ${selectedDesignations.length} selected employees`);
+    console.log(`Exporting ${selectedDesignations.length} selected designations`);
     // Custom export logic here - the widget will handle the actual export
-    this.globalSevice.showSnackbar(`Exported ${selectedDesignations.length} employees`, 'success');
+    this.globalSevice.showSnackbar(`Exported ${selectedDesignations.length} designations`, 'success');
   }
 
   viewDesignation(designation: Designation) {
@@ -254,7 +254,7 @@ export class DesignationComponent implements OnInit {
 
     this.popupService.openAddPopup('Add New Designation', fields, {
       subtitle: 'Enter designation information below',
-      icon: 'person_add',
+      icon: 'add_circle',
       columns: 1,
       maxWidth: '800px',
       compactMode: false

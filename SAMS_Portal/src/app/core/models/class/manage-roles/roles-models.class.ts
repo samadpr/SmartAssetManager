@@ -111,7 +111,7 @@ export class RolePermissionsData {
     },
     {
       category: 'Company & Settings',
-      icon: 'business',
+      icon: 'apartment',
       permissions: this.AVAILABLE_PERMISSIONS.filter(p => p.category === 'Company & Settings')
     },
     {
