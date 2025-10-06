@@ -117,7 +117,7 @@ namespace SAMS.API.UserProfile
             if (!result.Success)
                 return BadRequest(new { success = false, message = "User profile creation failed. " + result.Message });
 
-            return Ok(new { success = true, message = "User profile created successfully" });
+            return Ok(new { success = result.Success, message = result.Message });
         }
 
         [Authorize(Roles = RoleModels.UserManagement)]
@@ -129,6 +129,14 @@ namespace SAMS.API.UserProfile
             if (result == Empty)
                 return NotFound(new { success = false, message = "No user profile found." });
             return Ok(new { success = true, message = "User profile fetched successfully", data = result });
+        }
+
+        [HttpPost("user-profile/user-email-confirm")]
+        public async Task<IActionResult> UserEmailConfirm([FromQuery] string userId, [FromQuery] string token)
+        {
+            var result = await _userProfileService.UserEmailConfirmAsync(userId, token);
+            if (result.Success) return Ok(new { result.Message , isLoginAccess = result.isLoginAccess});
+            return BadRequest(new { result.Message , isLoginAccess = result.isLoginAccess});
         }
 
         [Authorize(Roles = RoleModels.UserManagement)]

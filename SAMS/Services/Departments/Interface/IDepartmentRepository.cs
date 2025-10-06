@@ -11,6 +11,7 @@ public interface IDepartmentRepository
     Task<List<Department>> GetDepartmentsForUserAsync(List<string> emails);
     Task<IEnumerable<Department>> GetDepartmentsCreatedByAsync(string createdByEmail);
     Task<IEnumerable<Department>> GetAllAsync();
-    Task<Department?> GetDepartmentWithSubDepartmentsAsync(long departmentId, List<string> emails);
+    Task<Department?> GetDepartmentWithSubDepartmentsByIdAsync(long departmentId, List<string> emails);
+    Task<IEnumerable<Department?>> GetDepartmentWithSubDepartmentsAsync(List<string> emails);
     
 }

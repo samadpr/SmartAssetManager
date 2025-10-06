@@ -190,12 +190,12 @@ public class DepartmentService : IDepartmentService
         }
     }
 
-    public async Task<(bool isSuccess, DepartmentWithSubDepartmentsDto? data, string message)> GetDepartmentWithSubDepartmentsAsync(long id, string email)
+    public async Task<(bool isSuccess, DepartmentWithSubDepartmentsDto? data, string message)> GetDepartmentWithSubDepartmentsByIdAsync(long id, string email)
     {
         try
         {
             var emails = await _commonService.GetEmailsUnderAdminAsync(email);
-            var department = await _repository.GetDepartmentWithSubDepartmentsAsync(id, emails);
+            var department = await _repository.GetDepartmentWithSubDepartmentsByIdAsync(id, emails);
             if (department == null)
                 return (false, null, "Department not found");
 
@@ -225,4 +225,41 @@ public class DepartmentService : IDepartmentService
         }
     }
 
+    public async Task<(bool isSuccess, IEnumerable<DepartmentWithSubDepartmentsDto>? data, string message)> GetDepartmentWithSubDepartmentsAsync(string email)
+    {
+        try
+        {
+            var emails = await _commonService.GetEmailsUnderAdminAsync(email);
+            var department = await _repository.GetDepartmentWithSubDepartmentsAsync(emails);
+            if (department == null)
+                return (false, null, "Department not found");
+
+            var dto = department
+                .Select(d => new DepartmentWithSubDepartmentsDto
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    Description = d.Description,
+                    SubDepartments = d.SubDepartments
+                        .Where(sd => !sd.Cancelled)
+                        .Select(sd => new SubDepartmentDto
+                        {
+                            Id = sd.Id,
+                            Name = sd.Name,
+                            Description = sd.Description,
+                            DepartmentId = sd.DepartmentId
+                        })
+                        .ToList()
+                })
+                .ToList();
+            
+
+            return (true, dto, "Department retrieved successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching department with sub-departments.");
+            return (false, null, "An error occurred while fetching department.");
+        }
+    }
 }

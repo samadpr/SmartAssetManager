@@ -8,6 +8,8 @@ public class SubDepartmentDto
 
     public long DepartmentId { get; set; }
 
+    public string? DepartmentDisplay { get; set; }
+
     public string? Name { get; set; }
 
     public string? Description { get; set; }

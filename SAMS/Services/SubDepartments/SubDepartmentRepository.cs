@@ -56,13 +56,23 @@ public class SubDepartmentRepository : ISubDepartmentRepository
         return subDepartments;
     }
 
-    public async Task<IEnumerable<SubDepartment>> GetSubDepartmentsAsync(List<string> emails)
+    public async Task<IEnumerable<SubDepartmentDto>> GetSubDepartmentsAsync(List<string> emails)
     {
-        var subDepartments = await _context.SubDepartment
-            .Where(sd => emails.Contains(sd.CreatedBy) && !sd.Cancelled)
-            .OrderByDescending(d => d.CreatedDate)
+        return await _context.SubDepartment
+            .Where(sd => !sd.Cancelled && emails.Contains(sd.CreatedBy))
+            .Join(_context.Department,
+                  sd => sd.DepartmentId,
+                  d => d.Id,
+                  (sd, d) => new SubDepartmentDto
+                  {
+                      Id = sd.Id,
+                      DepartmentId = sd.DepartmentId,
+                      DepartmentDisplay = d.Name,
+                      Name = sd.Name,
+                      Description = sd.Description
+                  })
+            .OrderByDescending(x => x.Id)
             .ToListAsync();
-
-        return subDepartments;
     }
+
 }

@@ -82,8 +82,8 @@ namespace SAMS.API.DepartmentAPIs
             {
                 var result = await _departmentService.GetAllDepartmentsAsync();
                 if (result == null || !result.Any())
-                    return NotFound($"No department found");
-                return Ok(result);
+                    return NotFound(new { success = false, message = "No departments found"});
+                return Ok(new { success = true, message = "Departments found", data = result });
             }
             else
             {
@@ -106,12 +106,25 @@ namespace SAMS.API.DepartmentAPIs
         }
 
         [Authorize(Roles = RoleModels.Department)]
-        [HttpGet("department/get-department-with-sub-departments")]
+        [HttpGet("department/get-department-with-sub-departments-by-id")]
         public async Task<IActionResult> GetDepartmentWithSubDepartments([FromQuery] long id)
         {
             if (id <= 0) return BadRequest("Invalid ID");
             var user = HttpContext.User.Identity?.Name ?? "System";
-            var result = await _departmentService.GetDepartmentWithSubDepartmentsAsync(id, user);
+            var result = await _departmentService.GetDepartmentWithSubDepartmentsByIdAsync(id, user);
+
+            if (!result.isSuccess)
+                return NotFound(new { success = result.isSuccess, message = result.message });
+
+            return Ok(new { success = result.isSuccess, message = result.message, data = result.data });
+        }
+
+        [Authorize(Roles = RoleModels.Department)]
+        [HttpGet("department/get-department-with-sub-departments")]
+        public async Task<IActionResult> GetDepartmentWithSubDepartments()
+        {
+            var user = HttpContext.User.Identity?.Name ?? "System";
+            var result = await _departmentService.GetDepartmentWithSubDepartmentsAsync(user);
 
             if (!result.isSuccess)
                 return NotFound(new { success = result.isSuccess, message = result.message });

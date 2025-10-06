@@ -14,5 +14,6 @@ public interface IDepartmentService
     Task<(bool isSuccess, string message, Department? result)> GetDepartmentByIdAsync(long id, string email);
     Task<(bool isSuccess, string message)> DeleteDepartmentAsync(long id, string modifiedBy);
     Task<(bool isSuccess, string message)> DeleteDepartmentWithSubDepartmentsAsync(long id, string modifiedBy);
-    Task<(bool isSuccess, DepartmentWithSubDepartmentsDto? data, string message)> GetDepartmentWithSubDepartmentsAsync(long id, string email);
+    Task<(bool isSuccess, DepartmentWithSubDepartmentsDto? data, string message)> GetDepartmentWithSubDepartmentsByIdAsync(long id, string email);
+    Task<(bool isSuccess, IEnumerable<DepartmentWithSubDepartmentsDto>? data, string message)> GetDepartmentWithSubDepartmentsAsync(string email);
 }
