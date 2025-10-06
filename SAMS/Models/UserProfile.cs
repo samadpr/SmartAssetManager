@@ -43,6 +43,8 @@ public class UserProfile : EntityBase
 
     public long? RoleId { get; set; }
 
+    public bool? IsAllowLoginAccess { get; set; }
+
     public int? IsApprover { get; set; }
 
     public bool? Level1Approval { get; set; }

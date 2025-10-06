@@ -9,7 +9,7 @@ import { UserProfileStorageService } from '../../../core/services/localStorage/u
 import { AccountService } from '../../../core/services/account/account.service';
 import { ToastrService } from 'ngx-toastr';
 import { ProfileService } from '../../../core/services/account/profile/profile.service';
-import { UserProfileData } from '../../../core/models/account/userProfile';
+import { UserProfileData } from '../../../core/models/interfaces/account/userProfile';
 import { GlobalService } from '../../../core/services/global/global.service';
 
 export type MenuItem = {
@@ -114,6 +114,18 @@ export class SidebarComponent implements OnInit {
           icon: 'work',
           label: 'Designations',
           route: 'designations'
+        },
+      ]
+    },
+    {
+      icon: 'domain',
+      label: 'Departments',
+      route: '/department',
+      subItems: [
+        {
+          icon: 'layers',
+          label: 'Sub Departments',
+          route: 'sub-department'
         },
       ]
     },

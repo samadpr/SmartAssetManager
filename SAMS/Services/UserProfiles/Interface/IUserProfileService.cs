@@ -15,6 +15,8 @@ public interface IUserProfileService
 
     Task<(bool Success, string Message)> CreateUserProfileAsync(UserProfileDto userProfile, string createdBy);
 
+    Task<(bool Success, string Message, bool isLoginAccess)> UserEmailConfirmAsync(string userId, string token);
+
     Task<IEnumerable<UserProfile>> GetCreatedUsersProfile(string createdBy);
 
     Task<(IEnumerable<GetProfileDetailsResponseObject> responseObject, bool isSuccess, string message)> GetCreatedUserProfilesDetails(string email);

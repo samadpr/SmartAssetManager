@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { loginresponse } from '../../../models/account/user.model';
-import { localStorageUserProfile } from '../../../models/account/userProfile';
+import { loginresponse } from '../../../models/interfaces/account/user.model';
+import { localStorageUserProfile } from '../../../models/interfaces/account/userProfile';
 
 @Injectable({
   providedIn: 'root'

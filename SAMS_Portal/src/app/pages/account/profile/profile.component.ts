@@ -8,7 +8,7 @@ import { Country, CountryService } from '../../../core/services/account/country/
 import { ProfileService } from '../../../core/services/account/profile/profile.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
-import { UserProfileDetails, UserProfileRequest } from '../../../core/models/account/userProfile';
+import { UserProfileDetails, UserProfileRequest } from '../../../core/models/interfaces/account/userProfile';
 import { ProfilePictureUploadComponent } from '../../../shared/widgets/profile/profile-picture-upload/profile-picture-upload.component';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';

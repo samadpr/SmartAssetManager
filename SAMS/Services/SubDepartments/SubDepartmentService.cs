@@ -103,10 +103,7 @@ public class SubDepartmentService : ISubDepartmentService
             if (subDepartments == null || !subDepartments.Any())
                 return (false, "No sub-departments found.", null);
 
-            var result = _mapper.Map<IEnumerable<SubDepartmentDto>>(subDepartments);
-            return (true, "Sub-departments found.", result);
-
-
+            return (true, "Sub-departments found.", subDepartments);
         }
         catch (Exception ex)
         {

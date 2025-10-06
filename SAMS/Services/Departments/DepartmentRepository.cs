@@ -59,11 +59,18 @@ public class DepartmentRepository : IDepartmentRepository
             await _context.Department.Where(d => !d.Cancelled).ToListAsync();
 
     
-    public async Task<Department?> GetDepartmentWithSubDepartmentsAsync(long departmentId, List<string> emails)
+    public async Task<Department?> GetDepartmentWithSubDepartmentsByIdAsync(long departmentId, List<string> emails)
     {
         return await _context.Department
             .Include(d => d.SubDepartments)   // EF navigation property
             .FirstOrDefaultAsync(d => d.Id == departmentId && !d.Cancelled && emails.Contains(d.CreatedBy));
     }
 
+    public async Task<IEnumerable<Department?>> GetDepartmentWithSubDepartmentsAsync(List<string> emails)
+    {
+        return await _context.Department
+            .Include(d => d.SubDepartments)   // EF navigation property
+            .Where(d => !d.Cancelled && emails.Contains(d.CreatedBy))
+            .ToListAsync();
+    }
 }

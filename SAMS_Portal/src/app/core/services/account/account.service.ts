@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment.development';
-import { loginresponse, registerconfirm, userLogin, userRegister } from '../../models/account/user.model';
+import { loginresponse, registerconfirm, userLogin, userRegister } from '../../models/interfaces/account/user.model';
 
 @Injectable({
   providedIn: 'root'

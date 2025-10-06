@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, ElementRef, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -19,6 +19,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { FilesUploadService } from '../../../../core/services/common/files-upload.service';
 import { Country, CountryService } from '../../../../core/services/account/country/country.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-popup-widget',
@@ -75,7 +76,7 @@ import { Country, CountryService } from '../../../../core/services/account/count
     '[@dialogAnimation]': 'enter'
   }
 })
-export class PopupWidgetComponent implements OnInit {
+export class PopupWidgetComponent implements OnInit, OnDestroy {
   private dialogRef = inject(MatDialogRef<PopupWidgetComponent>);
   private fb = inject(FormBuilder);
   private filesUploadService = inject(FilesUploadService);
@@ -83,7 +84,7 @@ export class PopupWidgetComponent implements OnInit {
   public data: PopupData = inject(MAT_DIALOG_DATA);
 
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
-  
+
   form: FormGroup | null = null;
   loading = signal(false);
   imageUploading = signal(false);
@@ -92,6 +93,11 @@ export class PopupWidgetComponent implements OnInit {
   imageFile = signal<File | null>(null);
   countries = signal<Country[]>([]);
   countriesLoaded = signal(false);
+
+  // 🆕 Cascading dropdown state management
+  private destroy$ = new Subject<void>();
+  fieldOptionsMap = signal<Map<string, any[]>>(new Map());
+  fieldLoadingMap = signal<Map<string, boolean>>(new Map());
 
   // Computed properties for type safety and convenience
   isFormType = computed(() => this.data?.type === 'form');
@@ -117,11 +123,20 @@ export class PopupWidgetComponent implements OnInit {
 
   ngOnInit() {
     this.loadCountries();
-    if (this.isFormType()) this.initializeForm();
+    if (this.isFormType()) {
+      this.initializeForm();
+      this.setupCascadingDropdowns();
+    }
     if (this.data?.data?.profilePicture) {
       this.imagePreview.set(this.data.data.profilePicture);
     }
   }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
 
   private loadCountries() {
     const allCountries = this.countryService.getAllCountries();
@@ -162,21 +177,21 @@ export class PopupWidgetComponent implements OnInit {
       const validators = this.getFieldValidators(field);
       let value = field.value;
 
-      // If editing, prefer data passed into dialog
       if (this.data?.data && this.data.data[field.key] !== undefined) {
         value = this.data.data[field.key];
       }
 
-      // Handle different field types
       if (field.type === 'checkbox') {
         value = !!value;
       } else if (field.type === 'date' && value) {
         value = new Date(value);
       }
 
+      // 🆕 Handle cascading fields - disable if cascadeFrom is set
+      const isDisabled = field.disabled || (field.cascadeFrom ? true : false);
+
       // Special handling for country field
       if (field.key === 'country' && field.type === 'select') {
-        // Update country options from service
         field.options = this.countries().map(country => ({
           value: country.name,
           label: country.name,
@@ -185,26 +200,149 @@ export class PopupWidgetComponent implements OnInit {
         }));
       }
 
-      // Create FormControl with proper disabled state
+      // Initialize field options in map
+      if (field.options) {
+        this.fieldOptionsMap.update(map => {
+          const newMap = new Map(map);
+          newMap.set(field.key, field.options || []);
+          return newMap;
+        });
+      }
+
       controls[field.key] = new FormControl(
-        { value, disabled: !!field.disabled },
+        { value, disabled: isDisabled },
         validators.length ? validators : null
       );
     });
 
-    // Add profile picture control if not already present
     if (!controls['profilePicture']) {
       controls['profilePicture'] = new FormControl(this.data?.data?.profilePicture || '');
     }
 
     this.form = new FormGroup(controls);
 
-    console.log('Popup form initialized:', {
+    console.log('Popup form initialized with cascading support:', {
       type: this.data.type,
       formValid: this.form.valid,
       controls: Object.keys(this.form.controls),
-      countries: this.countries().length
+      cascadingFields: cfg.fields.filter(f => f.cascadeFrom).map(f => f.key)
     });
+  }
+
+   // 🆕 Setup cascading dropdown relationships
+  private setupCascadingDropdowns() {
+    if (!this.form || !this.formConfig) return;
+
+    const cascadingFields = this.formConfig.fields.filter(f => f.cascadeFrom);
+
+    cascadingFields.forEach(childField => {
+      const parentControl = this.form!.get(childField.cascadeFrom!);
+      
+      if (parentControl) {
+        // Listen to parent value changes
+        parentControl.valueChanges
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(parentValue => {
+            this.handleCascadeChange(childField, parentValue);
+          });
+
+        // 🔥 IMPORTANT: Load initial options if parent has a value
+        const initialParentValue = parentControl.value;
+        if (initialParentValue) {
+          // Use setTimeout to ensure form is fully initialized
+          setTimeout(() => {
+            this.handleCascadeChange(childField, initialParentValue, true);
+          }, 0);
+        }
+      }
+    });
+  }
+
+  // 🆕 Handle cascade change event
+  private handleCascadeChange(childField: PopupField, parentValue: any, isInitial: boolean = false) {
+    const childControl = this.form!.get(childField.key);
+    if (!childControl) return;
+
+    console.log(`Cascading: ${childField.cascadeFrom} → ${childField.key}`, {
+      parentValue,
+      isInitial,
+      currentChildValue: childControl.value
+    });
+
+    // Clear child value if configured (skip on initial load to preserve edit values)
+    if (!isInitial && childField.clearOnParentChange !== false) {
+      childControl.setValue(null);
+    }
+
+    if (!parentValue) {
+      // No parent value - disable and clear options
+      childControl.disable();
+      this.updateFieldOptions(childField.key, []);
+      return;
+    }
+
+    // Parent has value - load child options
+    if (childField.loadOptionsOnChange) {
+      // Dynamic loading via Observable
+      this.setFieldLoading(childField.key, true);
+      childControl.disable();
+
+      childField.loadOptionsOnChange(parentValue)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (options) => {
+            this.updateFieldOptions(childField.key, options);
+            this.setFieldLoading(childField.key, false);
+            childControl.enable();
+
+            console.log(`Loaded ${options.length} options for ${childField.key}`);
+          },
+          error: (error) => {
+            console.error(`Error loading options for ${childField.key}:`, error);
+            this.updateFieldOptions(childField.key, []);
+            this.setFieldLoading(childField.key, false);
+            childControl.enable();
+          }
+        });
+    } else if (childField.options && childField.cascadeProperty) {
+      // Static filtering based on cascade property
+      const filteredOptions = childField.options.filter(opt => 
+        opt[childField.cascadeProperty!] === parentValue
+      );
+      
+      this.updateFieldOptions(childField.key, filteredOptions);
+      childControl.enable();
+
+      console.log(`Filtered to ${filteredOptions.length} options for ${childField.key}`);
+    }
+  }
+
+   // 🆕 Update field options dynamically
+  private updateFieldOptions(fieldKey: string, options: any[]) {
+    this.fieldOptionsMap.update(map => {
+      const newMap = new Map(map);
+      newMap.set(fieldKey, options);
+      return newMap;
+    });
+  }
+
+  // 🆕 Set field loading state
+  private setFieldLoading(fieldKey: string, loading: boolean) {
+    this.fieldLoadingMap.update(map => {
+      const newMap = new Map(map);
+      newMap.set(fieldKey, loading);
+      return newMap;
+    });
+  }
+
+  // 🆕 Get current options for a field
+  getFieldOptions(fieldKey: string): any[] {
+    return this.fieldOptionsMap().get(fieldKey) || [];
+  }
+
+  // 🆕 Check if field is loading
+  isFieldLoading(fieldKey: string): boolean {
+    return this.fieldLoadingMap().get(fieldKey) || false;
   }
 
   private getFieldValidators(field: PopupField) {
@@ -306,7 +444,7 @@ export class PopupWidgetComponent implements OnInit {
     this.imageFile.set(null);
     this.imageUploading.set(false);
     this.imagePreview.set('/assets/images/ProfilePic.png')
-    
+
     if (this.form) {
       this.form.patchValue({ profilePicture: '' });
     }
@@ -381,7 +519,7 @@ export class PopupWidgetComponent implements OnInit {
 
   // Form action handlers
   onSubmit() {
-     if (!this.form) return;
+    if (!this.form) return;
     this.submitted.set(true);
 
     if (!this.form.valid) {

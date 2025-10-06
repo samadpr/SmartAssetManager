@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { PageHeaderComponent } from '../../../shared/widgets/page-header/page-header.component';
 import { ListConfig, ListWidgetComponent, SelectionActionEvent } from '../../../shared/widgets/common/list-widget/list-widget.component';
-import { UserProfileData, UserProfileDetails, UserProfileRequest } from '../../../core/models/account/userProfile';
+import { UserProfileData, UserProfileDetails, UserProfileRequest } from '../../../core/models/interfaces/account/userProfile';
 import { UserProfileService } from '../../../core/services/users/user-profile.service';
 import { ToastrService } from 'ngx-toastr';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -10,10 +10,12 @@ import { GlobalService } from '../../../core/services/global/global.service';
 import { PopupWidgetService } from '../../../core/services/popup-widget/popup-widget.service';
 import { Validators } from '@angular/forms';
 import { PopupField } from '../../../core/models/interfaces/popup-widget.interface';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map, of } from 'rxjs';
 import { DesignationService } from '../../../core/services/Designation/designation.service';
 import { ManageRolesService } from '../../../core/services/roles-manager/manage-roles.service';
 import { CountryService } from '../../../core/services/account/country/country.service';
+import { DepartmentService } from '../../../core/services/department/department.service';
+import { SubDepartmentService } from '../../../core/services/department/sub-department/sub-department.service';
 
 export interface UserProfile {
   userProfileId: number;
@@ -46,12 +48,15 @@ interface DropdownOption {
   value: any;
   label: string;
   disabled?: boolean;
+  // Add optional properties for different dropdown types
+  departmentId?: number; // For subdepartments
+  code?: string; // For countries
 }
 
 interface DropdownData {
   designations: DropdownOption[];
   departments: DropdownOption[];
-  subDepartments: DropdownOption[];
+  allSubDepartments: DropdownOption[];
   sites: DropdownOption[];
   locations: DropdownOption[];
   roles: DropdownOption[];
@@ -73,6 +78,8 @@ export class ManageUserComponent implements OnInit {
   private globalService = inject(GlobalService)
   private popupService = inject(PopupWidgetService)
   private designationService = inject(DesignationService);
+  private departmentService = inject(DepartmentService);
+  private subDepartmentService = inject(SubDepartmentService);
   private rolesService = inject(ManageRolesService);
   private countryService = inject(CountryService);
 
@@ -82,7 +89,7 @@ export class ManageUserComponent implements OnInit {
   dropdownData = signal<DropdownData>({
     designations: [],
     departments: [],
-    subDepartments: [],
+    allSubDepartments: [],
     sites: [],
     locations: [],
     roles: [],
@@ -161,7 +168,17 @@ export class ManageUserComponent implements OnInit {
         label: 'Department',
         sortable: true,
         type: 'text',
-        width: '200px',
+        width: '300px',
+        align: 'left',
+        visible: true,
+        ellipsis: true
+      },
+      {
+        key: 'subDepartmentDisplay',
+        label: 'Sub Department',
+        sortable: true,
+        type: 'text',
+        width: '00px',
         align: 'left',
         visible: true,
         ellipsis: true
@@ -251,6 +268,8 @@ export class ManageUserComponent implements OnInit {
     forkJoin({
       designations: this.designationService.getDesignations(),
       roles: this.rolesService.getUserRoles(),
+      departments: this.departmentService.getDepartments(),
+      subDepartments: this.subDepartmentService.getSubDepartments(),
     }).subscribe({
       next: (responses) => {
         this.dropdownData.update(current => ({
@@ -270,21 +289,18 @@ export class ManageUserComponent implements OnInit {
             value: r.id,
             label: r.name
           })) : [],
+          departments: responses.departments.data?.map(d => ({
+            value: d.id,
+            label: d.name
+          })) ?? [],
+          // 🔥 Store ALL subdepartments with departmentId for filtering
+          allSubDepartments: responses.subDepartments.data?.map(sd => ({
+            value: sd.id,
+            label: sd.name ?? '',
+            departmentId: sd.departmentId // Critical: Store parent reference
+          })) ?? [],
 
           // Mock data for other dropdowns - replace with actual API calls when available
-          departments: [
-            { value: 1, label: 'Information Technology' },
-            { value: 2, label: 'Human Resources' },
-            { value: 3, label: 'Finance' },
-            { value: 4, label: 'Marketing' },
-            { value: 5, label: 'Operations' }
-          ],
-          subDepartments: [
-            { value: 1, label: 'Software Development' },
-            { value: 2, label: 'Quality Assurance' },
-            { value: 3, label: 'DevOps' },
-            { value: 4, label: 'UI/UX Design' }
-          ],
           sites: [
             { value: 1, label: 'Main Office' },
             { value: 2, label: 'Branch Office' },
@@ -301,7 +317,9 @@ export class ManageUserComponent implements OnInit {
         console.log('Dropdown data loaded:', {
           countries: allCountries.length,
           designations: responses.designations.length,
-          roles: responses.roles.success ? responses.roles.data.length : 0
+          roles: responses.roles.success ? responses.roles.data.length : 0,
+          departments: responses.departments.data?.length ?? 0,
+          subDepartments: responses.subDepartments.data?.length ?? 0,
         });
       },
       error: (error) => {
@@ -309,6 +327,28 @@ export class ManageUserComponent implements OnInit {
         this.globalService.showToastr('Failed to load form data', 'error');
       }
     });
+  }
+
+  // 🆕 Method to load subdepartments dynamically based on department
+  private loadSubDepartmentsByDepartment(departmentId: number) {
+    return this.subDepartmentService.getSubDepartmentsByDepartmentId(departmentId).pipe(
+      map(response => {
+        if (response.success && response.data) {
+          return response.data.map(sd => ({
+            value: sd.id,
+            label: sd.name ?? '',
+            departmentId: sd.departmentId
+          }));
+        }
+        return [];
+      })
+    );
+  }
+
+  // 🆕 Method to filter subdepartments from cached data
+  private filterSubDepartmentsByDepartment(departmentId: number) {
+    const allSubs = this.dropdownData().allSubDepartments;
+    return of(allSubs.filter(sub => sub.departmentId === departmentId));
   }
 
   private getUserFormFields(): PopupField[] {
@@ -382,7 +422,8 @@ export class ManageUserComponent implements OnInit {
         required: false,
         colSpan: 1,
         icon: 'business',
-        options: dropdowns.departments
+        options: dropdowns.departments,
+        placeholder: 'Select department first'
       },
       {
         key: 'subDepartment',
@@ -391,7 +432,18 @@ export class ManageUserComponent implements OnInit {
         required: false,
         colSpan: 1,
         icon: 'account_tree',
-        options: dropdowns.subDepartments
+        placeholder: 'Select department first',
+
+        // 🎯 CASCADING CONFIGURATION
+        cascadeFrom: 'department', // Parent field key
+        cascadeProperty: 'departmentId', // Property to match in options
+        clearOnParentChange: true, // Clear value when department changes
+
+        // Option 1: Use cached filtering (faster, no API call)
+        options: dropdowns.allSubDepartments,
+
+        // Option 2: Use dynamic loading (uncomment to use API calls instead)
+        // loadOptionsOnChange: (departmentId) => this.loadSubDepartmentsByDepartment(departmentId)
       },
       {
         key: 'site',
@@ -504,7 +556,7 @@ export class ManageUserComponent implements OnInit {
     };
   }
 
-    // Helper method to get country name from code if needed
+  // Helper method to get country name from code if needed
   private getCountryNameFromCode(countryCode: string): string {
     const country = this.dropdownData().countries.find(c => c.value === countryCode);
     return country ? country.label : countryCode;
@@ -515,7 +567,7 @@ export class ManageUserComponent implements OnInit {
     const country = this.dropdownData().countries.find(c => c.label === countryName);
     return country ? country.value : '';
   }
-  
+
   onRowClick(event: { action: string; item: UserProfile }) {
     if (event.action === 'view') {
       this.viewUser(event.item);
@@ -577,7 +629,7 @@ export class ManageUserComponent implements OnInit {
 
     // Log the form data to see what country value we're getting
     console.log('Form data received:', formData);
-    
+
     // Convert form data to UserProfileRequest format
     const userProfileRequest: UserProfileRequest = {
       userProfileId: 0, // New user

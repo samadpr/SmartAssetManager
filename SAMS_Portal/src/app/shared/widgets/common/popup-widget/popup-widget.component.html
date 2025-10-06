@@ -161,16 +161,26 @@
                     <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
                   </mat-form-field>
 
-                  <!-- SELECT (including enhanced Country select) -->
+                  <!-- Enhanced SELECT field with cascading support -->
                   <mat-form-field *ngIf="field.type === 'select'" appearance="outline" class="form-field">
                     <mat-label>{{ field.label }}</mat-label>
+                    
                     <mat-select [formControlName]="field.key"
                                 [matTooltip]="field.tooltip || ''"
                                 [matTooltipDisabled]="!field.tooltip"
-                                [placeholder]="field.placeholder || 'Select ' + field.label">
+                                [placeholder]="field.placeholder || 'Select ' + field.label"
+                                [disabled]="isFieldLoading(field.key)">
+                      
+                      <!-- Loading indicator for dynamic cascading fields -->
+                      <mat-option *ngIf="isFieldLoading(field.key)" disabled>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <mat-spinner diameter="20"></mat-spinner>
+                          <span>Loading options...</span>
+                        </div>
+                      </mat-option>
                       
                       <!-- Special handling for country field with flags -->
-                      <ng-container *ngIf="field.key === 'country' && countriesLoaded(); else regularOptions">
+                      <ng-container *ngIf="field.key === 'country' && countriesLoaded() && !isFieldLoading(field.key); else regularOptions">
                         <mat-option *ngFor="let country of countries()" 
                                     [value]="country.name"
                                     class="country-option">
@@ -186,21 +196,46 @@
                         </mat-option>
                       </ng-container>
                       
-                      <!-- Regular select options -->
+                      <!-- Regular select options (including cascading fields) -->
                       <ng-template #regularOptions>
-                        <mat-option *ngFor="let opt of field.options" 
-                                    [value]="opt.value" 
-                                    [disabled]="opt.disabled">
-                          {{ opt.label }}
-                        </mat-option>
+                        <ng-container *ngIf="!isFieldLoading(field.key)">
+                          <!-- Use getFieldOptions() for cascading fields, fallback to field.options -->
+                          <mat-option *ngFor="let opt of (field.cascadeFrom ? getFieldOptions(field.key) : field.options)" 
+                                      [value]="opt.value" 
+                                      [disabled]="opt.disabled">
+                            {{ opt.label }}
+                          </mat-option>
+                          
+                          <!-- Empty state for cascading dropdowns -->
+                          <mat-option *ngIf="field.cascadeFrom && getFieldOptions(field.key).length === 0" disabled>
+                            <span style="color: var(--mat-sys-on-surface-variant); font-style: italic;">
+                              {{ field.placeholder || 'No options available' }}
+                            </span>
+                          </mat-option>
+                        </ng-container>
                       </ng-template>
                       
                     </mat-select>
                     
-                    <mat-icon *ngIf="field.icon" matPrefix class="field-icon">{{ field.icon }}</mat-icon>
-                    <!-- <mat-icon *ngIf="field.key === 'country'" matPrefix class="field-icon">public</mat-icon> -->
+                    <mat-icon *ngIf="field.icon && !isFieldLoading(field.key)" matPrefix class="field-icon">
+                      {{ field.icon }}
+                    </mat-icon>
                     
-                    <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+                    <!-- Show spinner icon when loading -->
+                    <mat-spinner *ngIf="isFieldLoading(field.key)" 
+                                 matPrefix 
+                                 diameter="20" 
+                                 style="margin-right: 8px;">
+                    </mat-spinner>
+                    
+                    <mat-error *ngIf="isFieldInvalid(field.key)">
+                      {{ getFieldError(field.key) }}
+                    </mat-error>
+                    
+                    <!-- Helper text for cascading fields -->
+                    <mat-hint *ngIf="field.cascadeFrom && form?.get(field.cascadeFrom)?.disabled">
+                      Select {{ field.cascadeFrom }} first
+                    </mat-hint>
                   </mat-form-field>
 
                   <!-- DATE -->

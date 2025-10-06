@@ -8,13 +8,17 @@ namespace SAMS.API.UserProfileAPIs.RequestObject
 
         public string? Email { get; set; } = null!;
 
+        public bool? IsAllowLoginAccess { get; set; }
+        
+        public bool IsPasswordCreated { get; set; }
+
         [Required]
         [DataType(DataType.Password)]
-        public string Password { get; set; } = null!;
+        public string? Password { get; set; }
 
         [DataType(DataType.Password)]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string ConfirmPassword { get; set; } = null!;
+        public string? ConfirmPassword { get; set; }
 
         public long RoleId { get; set; } 
     }

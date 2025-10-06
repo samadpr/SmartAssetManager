@@ -1,10 +1,12 @@
 // popup-widget.interface.ts - Updated with image upload support
 import { ValidatorFn } from '@angular/forms';
+import { Observable } from 'rxjs';
 
 export interface PopupFieldOption {
   value: any;
   label: string;
   disabled?: boolean;
+  [key: string]: any; // Allow additional properties
 }
 
 export interface PopupField {
@@ -27,6 +29,12 @@ export interface PopupField {
   
   // Select/Radio options
   options?: PopupFieldOption[];
+
+   // 🆕 CASCADING DROPDOWN SUPPORT
+  cascadeFrom?: string; // Parent field key (e.g., 'department')
+  cascadeProperty?: string; // Property to match (e.g., 'departmentId')
+  loadOptionsOnChange?: (parentValue: any) => Observable<PopupFieldOption[]>; // Dynamic loading
+  clearOnParentChange?: boolean; // Clear value when parent changes (default: true)
   
   // Textarea specific
   rows?: number;

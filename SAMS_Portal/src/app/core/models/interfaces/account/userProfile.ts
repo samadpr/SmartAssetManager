@@ -1,4 +1,4 @@
-import { EntityBase } from "../interfaces/EntityBase.interface";
+import { EntityBase } from "../EntityBase.interface";
 
 export interface UserProfileData extends EntityBase{
   userProfileId: number;

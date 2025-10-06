@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AccountService } from '../../../core/services/account/account.service';
-import { registerconfirm } from '../../../core/models/account/user.model';
+import { registerconfirm } from '../../../core/models/interfaces/account/user.model';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 
 

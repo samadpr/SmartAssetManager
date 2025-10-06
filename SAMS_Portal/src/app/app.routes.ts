@@ -12,6 +12,8 @@ import { LayoutbodyComponent } from './shared/layout/layoutbody/layoutbody.compo
 import { ConfirmotpComponent } from './pages/account/confirmotp/confirmotp.component';
 import { authGuard } from './core/guards/auth.guard';
 import { ManageRolesComponent } from './pages/roles/manage-roles/manage-roles.component';
+import { DepartmentComponent } from './pages/department-subdepartment/department/department.component';
+import { SubDepartmentComponent } from './pages/department-subdepartment/sub-department/sub-department.component';
 
 export const routes: Routes = [
     {
@@ -63,6 +65,14 @@ export const routes: Routes = [
             {
                 path: 'manage-users/designations',
                 component: DesignationComponent,
+            },
+            {
+                path: 'department',
+                component: DepartmentComponent
+            },
+            {
+                path: 'department/sub-department',
+                component: SubDepartmentComponent
             },
             {
                 path: 'settings',
