@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SAMS.Migrations
 {
     /// <inheritdoc />
-    public partial class init : Migration
+    public partial class InitialDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -666,6 +666,7 @@ namespace SAMS.Migrations
                     Country = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ProfilePicture = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     RoleId = table.Column<long>(type: "bigint", nullable: true),
+                    IsAllowLoginAccess = table.Column<bool>(type: "bit", nullable: true),
                     IsApprover = table.Column<int>(type: "int", nullable: true),
                     Level1Approval = table.Column<bool>(type: "bit", nullable: true),
                     Level2Approval = table.Column<bool>(type: "bit", nullable: true),

@@ -12,8 +12,8 @@ using SAMS.Data;
 namespace SAMS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251003065927_userProfileUpdated")]
-    partial class userProfileUpdated
+    [Migration("20251007043021_InitialDB")]
+    partial class InitialDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1727,7 +1727,7 @@ namespace SAMS.Migrations
                     b.Property<string>("FirstName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsAllowLoginAccess")
+                    b.Property<bool?>("IsAllowLoginAccess")
                         .HasColumnType("bit");
 
                     b.Property<int?>("IsApprover")

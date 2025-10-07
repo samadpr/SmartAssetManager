@@ -89,7 +89,7 @@ export class ProfileComponent implements OnInit {
       dateOfBirth: [''],
       joiningDate: [''],
       leavingDate: [''],
-      designation: ['', Validators.required] 
+      designation: [''] 
     })
   }
 
