@@ -9,13 +9,13 @@ namespace SAMS.Services.Account.Interface
     {
         Task<(bool isSuccess, string message)> RegisterAsync(RegisterRequestDto registerRequestDto);
 
-        Task<(bool, string)> EmailVarificationAsync(string email, string otpText);
+        Task<LoginResponseDto> EmailVarificationAsync(string email, string otpText);
 
         Task<(bool, string)> SendEmailVarificationCodeAsync(string email);
 
         Task<LoginResponseDto> LoginAsync(LoginRequestDto loginRequestDto);
 
-        Task<bool> LogoutAsync();
+        Task<bool> LogoutAsync(string user);
 
 
     }

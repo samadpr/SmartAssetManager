@@ -80,6 +80,8 @@ public partial class ApplicationDbContext : AuditableIdentityContext
 
     public DbSet<CompanyInfo> CompanyInfo { get; set; }
 
+    public DbSet<Industries> Industries { get; set; }
+
     public DbSet<UserInfoFromBrowser> UserInfoFromBrowser { get; set; }
 
     public DbSet<AssetIssue> AssetIssue { get; set; }

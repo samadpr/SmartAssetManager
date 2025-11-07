@@ -13,5 +13,7 @@ namespace SAMS.Services.Functional.Interface
         Task CreateDefaultSuperAdminAsync();
 
         Task CreateDefaultEmailSettings();
+
+        Task CreateDefaultIndustries();
     }
 }

@@ -60,4 +60,10 @@ private baseUrl = `${environment.apiUrl}/user-profile`;
     const params = new HttpParams().set('roleId', roleId);
     return this.http.get<ApiResponse>(`${this.baseUrl}/get-user-profiles-used-in-role-id`, { params });
   }
+
+
+  verifyEmail(userId: string, token: string): Observable<any> {
+    const url = `${this.baseUrl}/user-email-confirm?userId=${userId}&token=${encodeURIComponent(token)}`;
+    return this.http.post(url, {}); // post with empty body
+  }
 }

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -42,12 +43,12 @@ namespace SAMS.API.Account
             if(emailVerificationRequest == null)
                 return BadRequest(error: "Invalid payload");
 
-            var (isSuccess, message) = await _accountService.EmailVarificationAsync(emailVerificationRequest.Email, emailVerificationRequest.OtpText);
-            if (isSuccess)
+            var response = await _accountService.EmailVarificationAsync(emailVerificationRequest.Email, emailVerificationRequest.OtpText);
+            if (response.IsAuthenticated)
             {
-                return Ok(new { IsSuccess = true, Message = message });
+                return Ok(response);
             }
-            return Accepted(new { IsSuccess = false, Message = message });
+            return Ok(response);
         }
 
         [HttpPost("account/send-email-verification-code")]
@@ -84,10 +85,11 @@ namespace SAMS.API.Account
         }
 
         [HttpPost("account/logout")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> Logout()
         {
-            var isSuccess = await _accountService.LogoutAsync();
+            var user = HttpContext.User.Identity?.Name ?? "System";
+            var isSuccess = await _accountService.LogoutAsync(user);
             if (!isSuccess)
             {
                 return BadRequest(new { IsSuccess = false, Message = "Logout failed." });

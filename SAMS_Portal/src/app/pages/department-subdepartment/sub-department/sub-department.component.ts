@@ -54,8 +54,9 @@ export class SubDepartmentComponent implements OnInit {
     compactMode: false, // Set to true for compact layout
     showSelectionActions: true, // Enable bulk actions
     rowClickAction: 'view', // Enable row click to view details
-    pageSize: 5,
+    pageSize: 10,
     pageSizeOptions: [5, 10, 25, 50, 100],
+    maxVisibleRows: 5,
     exportFileName: 'sub-departments_export',
     emptyMessage: 'No sub departments found. Click "Add Sub Department" to create one.',
     columns: [

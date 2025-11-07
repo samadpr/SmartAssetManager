@@ -39,6 +39,7 @@ export interface UserProfile {
   leavingDate?: string; // ISO Date string from API
   phoneNumber?: string;
   email?: string;
+  isEmailVerified?: boolean;
   address?: string;
   country?: string;
   profilePicture?: string;
@@ -107,8 +108,9 @@ export class ManageUserComponent implements OnInit {
     compactMode: false, // Set to true for compact layout
     showSelectionActions: true, // Enable bulk actions
     rowClickAction: 'view', // Enable row click to view details
-    pageSize: 5,
+    pageSize: 10,
     pageSizeOptions: [5, 10, 25, 50],
+    maxVisibleRows: 5,
     exportFileName: 'users_export',
     emptyMessage: 'No Users found. Click "Add User" to create one.',
     columns: [
@@ -141,7 +143,7 @@ export class ManageUserComponent implements OnInit {
         type: 'date',
         width: '200px',
         align: 'left',
-        visible: true
+        visible: false
       },
       {
         key: 'designationDisplay',
@@ -208,12 +210,16 @@ export class ManageUserComponent implements OnInit {
         label: 'Email',
         type: 'email',
         sortable: false,
-        width: '220px',
+        width: '280px', // Wider to accommodate verification badge
         align: 'left',
         visible: true,
         showIcon: true,
         ellipsis: true,
-        tooltip: 'Click to send email'
+
+        // 🆕 Email Verification Configuration
+        showEmailVerification: true, // Show verification badge
+        emailVerificationKey: 'isEmailVerified', // Field that contains verification status
+        disableUnverifiedClick: true // Disable email click if not verified
       },
       {
         key: 'address',
@@ -281,7 +287,7 @@ export class ManageUserComponent implements OnInit {
           })),
 
           // Other dropdowns from API
-          designations: responses.designations.map(d => ({
+          designations: (responses.designations.data ?? []).map(d => ({
             value: d.id,
             label: d.name
           })),
@@ -316,7 +322,7 @@ export class ManageUserComponent implements OnInit {
 
         console.log('Dropdown data loaded:', {
           countries: allCountries.length,
-          designations: responses.designations.length,
+          designations: responses.designations.data?.length,
           roles: responses.roles.success ? responses.roles.data.length : 0,
           departments: responses.departments.data?.length ?? 0,
           subDepartments: responses.subDepartments.data?.length ?? 0,
@@ -384,7 +390,13 @@ export class ManageUserComponent implements OnInit {
         placeholder: 'Enter email address',
         colSpan: 2,
         icon: 'email',
-        validators: [Validators.email]
+        validators: [Validators.email],
+
+        // 🆕 Enable email verification toggle
+        showEmailVerification: true,
+        emailVerificationKey: 'isEmailVerified', // Form control key (default)
+        emailVerificationLabel: 'Send Verification Email', // Toggle label (optional)
+        emailVerificationTooltip: 'When enabled, a verification link will be automatically sent to this email address. The user must verify their email before accessing the system.' // Custom tooltip (optional)
       },
       {
         key: 'phoneNumber',
@@ -513,7 +525,7 @@ export class ManageUserComponent implements OnInit {
     this.loading.set(true);
     this.userService.getCreatedUsersProfilesDetails().subscribe({
       next: (response) => {
-        if (response.success && response.data) {
+        if (response.success) {
           const mapped = response.data.map((u: UserProfileDetails) => this.mapToUserProfile(u));
           this.userProfiles.set(mapped);
         }
@@ -550,6 +562,7 @@ export class ManageUserComponent implements OnInit {
       leavingDate: data.leavingDate ?? undefined,
       phoneNumber: data.phoneNumber,
       email: data.email,
+      isEmailVerified: data.isEmailVerified,
       address: data.address,
       country: data.country,
       profilePicture: data.profilePicture
@@ -618,6 +631,8 @@ export class ManageUserComponent implements OnInit {
       compactMode: false
     }).subscribe(result => {
       if (result && result.action === 'submit') {
+        console.log('Form data:', result.data);
+        console.log('Email verified?', result.data.isEmailVerified);
         this.handleAddUser(result.data);
       }
     });
@@ -646,6 +661,7 @@ export class ManageUserComponent implements OnInit {
       leavingDate: formData.leavingDate,
       phoneNumber: formData.phoneNumber,
       email: formData.email,
+      isEmailConfirmed: formData.isEmailVerified || false,
       address: formData.address,
       country: formData.country,
       profilePicture: formData.profilePicture
@@ -655,6 +671,12 @@ export class ManageUserComponent implements OnInit {
       next: (response) => {
         if (response.success) {
           this.globalService.showSnackbar('User created successfully', 'success');
+
+          // Show additional message if verification email should be sent
+          if (formData.isEmailVerified) {
+            this.globalService.showSnackbar('Verification email will be sent to ' + formData.email, 'info');
+          }
+
           this.loadUsers(); // Reload the list
         } else {
           this.globalService.showToastr('Failed to create user', 'error');
@@ -710,6 +732,7 @@ export class ManageUserComponent implements OnInit {
       leavingDate: formData.leavingDate,
       phoneNumber: formData.phoneNumber,
       email: formData.email,
+      isEmailConfirmed: formData.isEmailVerified,
       address: formData.address,
       country: formData.country,
       profilePicture: formData.profilePicture
@@ -743,6 +766,7 @@ export class ManageUserComponent implements OnInit {
     ).subscribe(result => {
       if (result && result.action === 'confirm') {
         this.handleDeleteUser(user.userProfileId);
+        this.onRefresh();
       }
     });
   }
@@ -760,8 +784,8 @@ export class ManageUserComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        console.error('Error deleting designation:', err);
-        this.globalService.showToastr('Failed to delete designation', 'error');
+        console.error('Error deleting user:', err);
+        this.globalService.showToastr('Failed to delete user', 'error');
         this.loading.set(false);
       }
     });

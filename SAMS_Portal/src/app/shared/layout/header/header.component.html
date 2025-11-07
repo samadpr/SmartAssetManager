@@ -1,4 +1,5 @@
 <mat-toolbar class="mat-elevation-z3 header-toolbar">
+  <!-- Left Section: Logo & Menu -->
   <div class="navbar-header" [style.width]="layoutService.headerSidenavWidth()">
     <!-- Logo icon (always shown) -->
     <img class="logo-icon" src="assets/images/logos/infoasset_logo-1.png" alt="Logo Icon" />
@@ -13,16 +14,98 @@
 
   <span class="spacer"></span>
 
-  <button mat-icon-button [mat-menu-trigger-for]="themeMenu" class="selected-theme-icon">
-    <mat-icon>{{themeService.selectedTheme()?.icon}}</mat-icon>
-  </button>
-  <mat-menu #themeMenu="matMenu">
-    @for (themes of themeService.getAppTheme(); track themes.name) {
-    <button mat-menu-item (click)="setThemeFromName(themes.name)">
-      <mat-icon>{{themes.icon}}</mat-icon>
-      <span>{{ themes.name | titlecase }}</span>
+  <!-- Right Section: Theme & Company Menu -->
+  <div class="header-actions">
+    <!-- Theme Switcher Button -->
+    <button 
+      mat-icon-button 
+      [mat-menu-trigger-for]="themeMenu" 
+      class="theme-button"
+      matTooltip="Change Theme">
+      <mat-icon>{{themeService.selectedTheme()?.icon}}</mat-icon>
     </button>
-    }
-  </mat-menu>
 
+    <!-- Theme Menu -->
+    <mat-menu #themeMenu="matMenu" xPosition="before">
+      @for (themes of themeService.getAppTheme(); track themes.name) {
+        <button mat-menu-item (click)="setThemeFromName(themes.name)">
+          <mat-icon>{{themes.icon}}</mat-icon>
+          <span>{{ themes.name | titlecase }}</span>
+        </button>
+      }
+    </mat-menu>
+
+    <!-- Company Logo & Menu Button -->
+    <button 
+      mat-icon-button 
+      [mat-menu-trigger-for]="companyMenu" 
+      class="company-logo-button"
+      [matTooltip]="companyName()">
+      <img 
+        [src]="companyLogo()" 
+        alt="Company Logo"
+        class="company-logo-img"
+        (error)="companyLogo.set('assets/images/logos/company_logo.png')" />
+    </button>
+
+    <!-- Company Menu -->
+    <mat-menu #companyMenu="matMenu" xPosition="before" class="company-menu-panel">
+      <!-- Company Header Section -->
+      <div class="company-header-section" mat-menu-item [disabled]="true">
+        <div class="company-logo-container">
+          <img 
+            [src]="companyLogo()" 
+            alt="Company Logo"
+            class="company-logo-large"
+            (error)="companyLogo.set('assets/images/company_logo.png')" />
+        </div>
+        <div class="company-details">
+          <div class="company-name-text">{{ companyName() }}</div>
+          @if (companyEmail()) {
+            <div class="company-email-text">{{ companyEmail() }}</div>
+          }
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Menu Actions -->
+      <button 
+        mat-menu-item 
+        (click)="navigateToCompany()"
+        routerLinkActive="active-menu-item"
+        [routerLinkActiveOptions]="{exact: false}"
+        [routerLink]="['/company']">
+        <mat-icon>business</mat-icon>
+        <span>Company Details</span>
+      </button>
+
+      <button 
+        mat-menu-item 
+        (click)="navigateToProfile()"
+        routerLinkActive="active-menu-item"
+        [routerLinkActiveOptions]="{exact: false}"
+        [routerLink]="['/profile']">
+        <mat-icon>person</mat-icon>
+        <span>My Profile</span>
+      </button>
+
+      <button 
+        mat-menu-item 
+        (click)="navigateToSettings()"
+        routerLinkActive="active-menu-item"
+        [routerLinkActiveOptions]="{exact: false}"
+        [routerLink]="['/settings']">
+        <mat-icon>settings</mat-icon>
+        <span>Settings</span>
+      </button>
+
+      <mat-divider></mat-divider>
+
+      <button mat-menu-item (click)="logout()" class="logout-button">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    </mat-menu>
+  </div>
 </mat-toolbar>

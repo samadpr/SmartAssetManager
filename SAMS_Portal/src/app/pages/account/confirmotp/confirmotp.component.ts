@@ -8,8 +8,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AccountService } from '../../../core/services/account/account.service';
-import { registerconfirm } from '../../../core/models/interfaces/account/user.model';
+import { loginresponse, registerconfirm } from '../../../core/models/interfaces/account/user.model';
 import { trigger, state, style, transition, animate } from '@angular/animations';
+import { AuthService } from '../../../core/services/auth/auth.service';
+import { UserProfileStorageService } from '../../../core/services/localStorage/userProfile/user-profile-storage.service';
+import { localStorageUserProfile } from '../../../core/models/interfaces/account/userProfile';
 
 
 @Component({
@@ -35,7 +38,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
     trigger('slideInUp', [
       transition(':enter', [
         style({ transform: 'translateY(50px)', opacity: 0 }),
-        animate('400ms cubic-bezier(0.4, 0, 0.2, 1)', 
+        animate('400ms cubic-bezier(0.4, 0, 0.2, 1)',
           style({ transform: 'translateY(0)', opacity: 1 }))
       ])
     ])
@@ -51,19 +54,21 @@ export class ConfirmotpComponent implements OnInit, OnDestroy, AfterViewInit {
   isResending = false;
   errorMessage = '';
   resendCooldown = 0;
-  
+
   private cooldownInterval: any;
   private _response: any;
 
   constructor(
-    private toastr: ToastrService, 
-    private router: Router, 
-    private services: AccountService
+    private toastr: ToastrService,
+    private router: Router,
+    private services: AccountService,
+    private authService: AuthService,
+    private userProfileStorage: UserProfileStorageService
   ) { }
 
   ngOnInit(): void {
     this.regresponse = this.services._registerresp();
-    
+
     // If no registration data, redirect to register
     if (!this.regresponse?.email) {
       this.toastr.warning('Please complete registration first', 'Registration Required');
@@ -100,7 +105,7 @@ export class ConfirmotpComponent implements OnInit, OnDestroy, AfterViewInit {
     const value = event.target.value;
     // Only allow numbers
     const numericValue = value.replace(/[^0-9]/g, '');
-    
+
     if (numericValue !== value) {
       this.otptext = numericValue;
       event.target.value = numericValue;
@@ -130,24 +135,29 @@ export class ConfirmotpComponent implements OnInit, OnDestroy, AfterViewInit {
     this.regresponse.otpText = this.otptext;
 
     this.services.confirmRegistration(this.regresponse).subscribe({
-      next: (response) => {
-        this._response = response;
-        debugger
-        if (this._response.isSuccess) {
-          this.toastr.success('Email Verified Successfully!');
-          
-          // Clear registration data
-          this.services._registerresp.set({
-            email: '',
-            otpText: ''
-          });
+      next: (response: loginresponse) => {
+        if (response.isAuthenticated) {
+          // ✅ Store token and user profile just like login
+          this.authService.setToken(response.token);
 
-          // Navigate to login with a slight delay for better UX
+          const localProfile: localStorageUserProfile = {
+            email: response.email,
+            fullName: response.fullName,
+            createdBy: response.createdBy
+          };
+          this.userProfileStorage.save(localProfile);
+
+          this.toastr.success('Email Verified & Logged in Successfully!', 'Success');
+
+          // Clear registration data
+          this.services._registerresp.set({ email: '', otpText: '' });
+
+          // ✅ Redirect to dashboard after verification
           setTimeout(() => {
-            this.router.navigateByUrl('/login');
-          }, 1000);
+            this.router.navigateByUrl('/company-onboarding');
+          }, 800);
         } else {
-          this.errorMessage = this._response.message || 'Verification failed. Please try again.';
+          this.errorMessage = response.message || 'Verification failed. Please try again.';
           this.toastr.error(this.errorMessage, 'Verification Failed');
         }
       },
@@ -176,7 +186,7 @@ export class ConfirmotpComponent implements OnInit, OnDestroy, AfterViewInit {
           this.toastr.success('A new verification code has been sent to your email', 'Code Sent');
           this.otptext = ''; // Clear current OTP
           this.startResendCooldown();
-          
+
           // Focus input after resend
           setTimeout(() => {
             if (this.otpInput) {
@@ -201,7 +211,7 @@ export class ConfirmotpComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private startResendCooldown(): void {
     this.resendCooldown = 60; // 60 seconds cooldown
-    
+
     this.cooldownInterval = setInterval(() => {
       this.resendCooldown--;
       if (this.resendCooldown <= 0) {

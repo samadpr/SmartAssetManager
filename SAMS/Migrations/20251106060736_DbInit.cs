@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SAMS.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialDB : Migration
+    public partial class DbInit : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -124,33 +124,6 @@ namespace SAMS.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CompanyInfo",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Logo = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Currency = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    City = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Country = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Phone = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Fax = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Website = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CompanyInfo", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "DefaultIdentityOption",
                 columns: table => new
                 {
@@ -222,6 +195,25 @@ namespace SAMS.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Designation", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Industries",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Industries", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -591,6 +583,40 @@ namespace SAMS.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CompanyInfo",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    IndustriesId = table.Column<long>(type: "bigint", nullable: true),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Logo = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Currency = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    City = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Country = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Phone = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Email = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    Fax = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Website = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CompanyInfo", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CompanyInfo_Industries_IndustriesId",
+                        column: x => x.IndustriesId,
+                        principalTable: "Industries",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ManageUserRolesDetails",
                 columns: table => new
                 {
@@ -671,6 +697,7 @@ namespace SAMS.Migrations
                     Level1Approval = table.Column<bool>(type: "bit", nullable: true),
                     Level2Approval = table.Column<bool>(type: "bit", nullable: true),
                     Level3Approval = table.Column<bool>(type: "bit", nullable: true),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     DepartmentNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     DesignationNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     LocationNavigationId = table.Column<long>(type: "bigint", nullable: true),
@@ -1192,6 +1219,18 @@ namespace SAMS.Migrations
                 column: "AssetId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CompanyInfo_Email",
+                table: "CompanyInfo",
+                column: "Email",
+                unique: true,
+                filter: "[Email] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CompanyInfo_IndustriesId",
+                table: "CompanyInfo",
+                column: "IndustriesId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ManageUserRolesDetails_ManageRoleId",
                 table: "ManageUserRolesDetails",
                 column: "ManageRoleId");
@@ -1303,6 +1342,9 @@ namespace SAMS.Migrations
 
             migrationBuilder.DropTable(
                 name: "Asset");
+
+            migrationBuilder.DropTable(
+                name: "Industries");
 
             migrationBuilder.DropTable(
                 name: "AssetStatuses");

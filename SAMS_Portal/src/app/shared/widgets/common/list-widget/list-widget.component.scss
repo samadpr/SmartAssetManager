@@ -1,4 +1,3 @@
-// enhanced-list-widget.component.scss
 @use '@angular/material' as mat;
 
 // Design System Variables
@@ -10,9 +9,12 @@
   --avatar-size: 36px;
   --compact-avatar-size: 28px;
   --icon-size: 18px;
+  --badge-size: 20px;
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --header-height: 64px;
   --compact-header-height: 56px;
+  --row-height: 64px; // 🆕 Standard row height
+  --compact-row-height: 52px; // 🆕 Compact row height
 }
 
 .enhanced-list-container {
@@ -22,6 +24,8 @@
   overflow: hidden;
   transition: var(--transition);
   border: 1px solid var(--mat-sys-outline-variant);
+  display: flex;
+  flex-direction: column; // 🆕 Flex layout for proper height management
 
   &:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -41,6 +45,7 @@
   background: var(--mat-sys-surface);
   border-bottom: 1px solid var(--mat-sys-outline-variant);
   transition: var(--transition);
+  flex-shrink: 0; // 🆕 Prevent header from shrinking
 
   &.compact {
     .header-content {
@@ -96,10 +101,7 @@
         color: var(--mat-sys-primary);
       }
 
-      .total-count {
-        color: var(--mat-sys-on-surface-variant);
-      }
-
+      .total-count,
       .items-label {
         color: var(--mat-sys-on-surface-variant);
       }
@@ -121,6 +123,7 @@
       .search-field {
         min-width: 280px;
         max-width: 320px;
+        border-top: 0px solid;
 
         @media (max-width: 768px) {
           min-width: 100%;
@@ -128,7 +131,6 @@
         }
 
         ::ng-deep {
-
           .mat-mdc-form-field-subscript-wrapper,
           mat-mdc-form-field-bottom-align {
             display: none;
@@ -150,7 +152,6 @@
           }
 
           .mat-mdc-form-field-infix {
-            // padding: 16px 12px;
             min-height: 20px;
           }
 
@@ -161,6 +162,11 @@
           .mat-mdc-input-element {
             color: var(--mat-sys-on-surface);
           }
+          
+          .mat-mdc-notch-piece {
+            border-top: 0px solid !important; 
+            border-bottom: 0px solid !important; 
+          }
         }
       }
     }
@@ -170,6 +176,43 @@
       align-items: center;
       gap: 8px;
 
+      .selection-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 16px;
+        background: var(--mat-sys-primary-container);
+        color: var(--mat-sys-on-primary-container);
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: var(--transition);
+
+        .badge-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          color: var(--mat-sys-primary);
+        }
+
+        .badge-text {
+          line-height: 1;
+        }
+      }
+
+      .delete-selected-btn {
+        color: var(--mat-sys-on-surface-variant) !important;
+
+        &:hover {
+          color: var(--mat-sys-primary) !important;
+          transform: scale(1.05);
+        }
+
+        mat-icon {
+          color: inherit;
+        }
+      }
+
       .header-btn {
         width: 40px;
         height: 40px;
@@ -178,15 +221,13 @@
         transition: var(--transition);
 
         &:hover {
-          background: var(--mat-sys-surface-container-high);
-          color: var(--mat-sys-on-surface);
+          color: var(--mat-sys-primary);
           transform: scale(1.05);
         }
 
         mat-icon {
           font-size: var(--icon-size);
           width: var(--icon-size);
-          height: var(--icon-size);
         }
       }
 
@@ -216,37 +257,28 @@
 }
 
 // Selection Actions Bar
-.selection-actions {
+.selection-chip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
-  // background: var(--mat-sys-primary-container);
+  padding: 8px 24px;
+  background: var(--mat-sys-primary-container);
   border-top: 1px solid var(--mat-sys-primary);
+  flex-shrink: 0; // 🆕 Prevent shrinking
 
-  .selection-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .chip-text {
+    font-size: 0.875rem;
     color: var(--mat-sys-on-primary-container);
+    font-weight: 500;
+  }
 
-    mat-icon {
-      color: var(--mat-sys-primary);
-    }
+  .clear-btn {
+    font-size: 0.875rem;
+    color: var(--mat-sys-primary);
+    text-transform: none;
 
-    .clear-selection {
-      margin-left: 16px;
-      color: var(--mat-sys-primary);
-      text-decoration: underline;
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 0.875rem;
-
-      &:hover {
-        color: var(--mat-sys-primary);
-        background: var(--mat-sys-primary-container);
-      }
+    &:hover {
+      background: var(--mat-sys-surface-container-high);
     }
   }
 
@@ -262,46 +294,17 @@
       transition: var(--transition);
 
       &:hover {
-        // background: var(--mat-sys-primary);
-        // color: var(--mat-sys-on-primary);
         transform: scale(1.1);
       }
 
       &.delete-btn:hover {
-        // background: var(--mat-sys-error);
         color: red;
       }
     }
   }
 }
 
-// Column Menu Styles
-.column-menu {
-  ::ng-deep .mat-mdc-menu-content {
-    padding: 8px 0;
-    min-width: 240px;
-
-    .menu-header {
-      padding: 12px 16px 8px;
-      font-weight: 600;
-      font-size: 0.875rem;
-      color: var(--mat-sys-on-surface-variant);
-      border-bottom: 1px solid var(--mat-sys-outline-variant);
-      margin-bottom: 8px;
-    }
-
-    .column-menu-item {
-      padding: 8px 16px;
-      min-height: 40px;
-
-      ::ng-deep .mat-mdc-checkbox {
-        margin-right: 12px;
-      }
-    }
-  }
-}
-
-// Loading Styles
+// Loading Container
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -310,6 +313,7 @@
   padding: 48px;
   gap: 16px;
   background: var(--mat-sys-surface);
+  flex-shrink: 0; // 🆕 Prevent shrinking
 
   p {
     color: var(--mat-sys-on-surface-variant);
@@ -318,27 +322,42 @@
   }
 }
 
-// Table Container
+// 🆕 TABLE CONTAINER WITH SCROLL CONTROL
 .table-container {
   background: var(--mat-sys-surface);
   overflow-x: auto;
+  overflow-y: auto; // 🆕 Enable vertical scrolling
+  flex: 1; // 🆕 Allow container to grow/shrink
+  position: relative;
 
-  // Custom scrollbar
+  // 🆕 Apply max-height dynamically via Angular binding
+  &.scrollable {
+    max-height: var(--table-max-height, none);
+  }
+
+  // Custom scrollbar styling
   &::-webkit-scrollbar {
-    height: 6px;
+    width: 8px; // 🆕 Vertical scrollbar width
+    height: 6px; // Horizontal scrollbar height
   }
 
   &::-webkit-scrollbar-thumb {
     background-color: var(--mat-sys-outline-variant);
-    border-radius: 3px;
+    border-radius: 4px;
+    
+    &:hover {
+      background-color: var(--mat-sys-outline);
+    }
   }
 
   &::-webkit-scrollbar-track {
-    background: transparent;
+    background: var(--mat-sys-surface-container-low);
+    border-radius: 4px;
   }
 
+  // Firefox scrollbar
   scrollbar-width: thin;
-  scrollbar-color: var(--mat-sys-outline-variant) transparent;
+  scrollbar-color: var(--mat-sys-outline-variant) var(--mat-sys-surface-container-low);
 }
 
 // Enhanced Table Styles
@@ -347,10 +366,10 @@
   background: var(--mat-sys-surface);
 
   &.compact {
-
     .data-header,
     .data-cell {
       padding: var(--compact-cell-padding);
+      height: var(--compact-row-height); // 🆕 Set consistent row height
     }
 
     .profile-avatar {
@@ -359,10 +378,35 @@
     }
   }
 
-  // Header Styles
   .mat-mdc-header-row {
     background: var(--mat-sys-surface-variant);
     border-bottom: 1px solid var(--mat-sys-outline);
+    height: 48px; // 🆕 Fixed header height
+    
+    // 🔧 Make entire header row sticky
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    
+    // 🔧 Ensure all header cells stay in place
+    .mat-mdc-header-cell {
+      background: var(--mat-sys-surface-variant);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    // // 🔧 Prevent header from scrolling
+    // &::after {
+    //   content: '';
+    //   position: absolute;
+    //   bottom: 0;
+    //   left: 0;
+    //   right: 0;
+    //   height: 1px;
+    //   background: var(--mat-sys-outline);
+    //   z-index: 1;
+    // }
   }
 
   .data-header {
@@ -377,6 +421,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
+    height: 48px; // 🆕 Fixed header height
 
     .header-content {
       display: flex;
@@ -396,6 +441,23 @@
     }
   }
 
+    // 🔧 FIX: Select and Actions headers must also be sticky
+  // .select-header,
+  // .actions-header {
+  //   background: var(--mat-sys-surface-variant);
+  //   color: var(--mat-sys-on-surface-variant);
+  //   font-weight: 600;
+  //   font-size: 0.8125rem;
+  //   letter-spacing: 0.5px;
+  //   text-transform: uppercase;
+  //   padding: var(--cell-padding);
+  //   border-bottom: none;
+  //   position: sticky;
+  //   top: 0;
+  //   z-index: 10;
+  //   height: 25px;
+  // }
+
   .select-header {
     width: 56px;
     text-align: center;
@@ -406,10 +468,10 @@
     text-align: center;
   }
 
-  // Row Styles
   .table-row {
     transition: var(--transition);
     border-bottom: 1px solid var(--mat-sys-outline-variant);
+    height: var(--row-height); // 🆕 Consistent row height
 
     &.data-row {
       cursor: default;
@@ -432,12 +494,12 @@
     }
   }
 
-  // Cell Styles
   .data-cell {
     padding: var(--cell-padding);
     border-bottom: none;
     vertical-align: middle;
     position: relative;
+    height: var(--row-height); // 🆕 Consistent cell height
 
     &.cell-number {
       font-variant-numeric: tabular-nums;
@@ -503,7 +565,7 @@
     }
   }
 
-  // Contact Cells
+  // Contact Cells Base Styles
   .contact-cell {
     display: flex;
     align-items: center;
@@ -513,6 +575,7 @@
     border-radius: 6px;
     padding: 4px 8px;
     margin: -4px -8px;
+    position: relative;
 
     &:hover {
       background: var(--mat-sys-surface-container-high);
@@ -547,6 +610,8 @@
     }
 
     &.email-cell {
+      padding-right: 32px;
+
       .contact-icon {
         color: var(--mat-sys-tertiary);
       }
@@ -554,6 +619,76 @@
       &:hover {
         background: var(--mat-sys-tertiary-container);
         color: var(--mat-sys-on-tertiary-container);
+      }
+
+      &.verified {
+        .verification-badge .verified-icon {
+          color: var(--mat-sys-primary);
+          animation: verifiedPulse 2s ease-in-out infinite;
+        }
+
+        &:hover {
+          background: var(--mat-sys-tertiary-container);
+        }
+      }
+
+      &.unverified {
+        opacity: 0.7;
+
+        .verification-badge .unverified-icon {
+          color: var(--mat-sys-on-surface-variant);
+        }
+
+        &:not(.clickable) {
+          cursor: not-allowed;
+
+          &:hover {
+            background: var(--mat-sys-error-container);
+            color: var(--mat-sys-on-error-container);
+          }
+
+          .contact-value {
+            text-decoration: line-through;
+            opacity: 0.6;
+          }
+        }
+      }
+
+      .verification-badge {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+
+        mat-icon {
+          font-size: var(--badge-size);
+          width: var(--badge-size);
+          height: var(--badge-size);
+          transition: var(--transition);
+        }
+
+        .verified-icon {
+          color: var(--mat-sys-primary);
+
+          &:hover {
+            transform: scale(1.2);
+            filter: drop-shadow(0 0 4px var(--mat-sys-primary));
+          }
+        }
+
+        .unverified-icon {
+          color: var(--mat-sys-on-surface-variant);
+          opacity: 0.6;
+
+          &:hover {
+            transform: scale(1.2);
+            opacity: 1;
+          }
+        }
       }
     }
 
@@ -575,9 +710,20 @@
     align-items: center;
     gap: 8px;
 
-    .country-flag {
-      font-size: 18px;
+    .country-flag-img {
+      width: 24px;
+      height: 16px;
+      object-fit: cover;
+      border-radius: 2px;
       flex-shrink: 0;
+      border: 1px solid var(--mat-sys-outline-variant);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: var(--transition);
+
+      &:hover {
+        transform: scale(1.15);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      }
     }
 
     .country-name {
@@ -632,13 +778,26 @@
   }
 }
 
-// No Data Styles
+// Verified Pulse Animation
+@keyframes verifiedPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+// No Data Container
 .no-data-container {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 48px;
   background: var(--mat-sys-surface);
+  min-height: 200px; // 🆕 Minimum height for empty state
 
   .no-data-content {
     text-align: center;
@@ -668,10 +827,11 @@
   }
 }
 
-// Pagination Styles
+// Pagination Container
 .pagination-container {
   border-top: 1px solid var(--mat-sys-outline-variant);
   background: var(--mat-sys-surface-container-low);
+  flex-shrink: 0; // 🆕 Prevent pagination from shrinking
 
   .table-paginator {
     background: transparent;
@@ -719,8 +879,12 @@
 }
 
 @media (max-width: 768px) {
-  .enhanced-table {
+  :host {
+    --row-height: 56px; // 🆕 Smaller rows on mobile
+    --compact-row-height: 48px;
+  }
 
+  .enhanced-table {
     .data-header,
     .data-cell {
       padding: 12px 8px;
@@ -740,12 +904,31 @@
       }
     }
 
-    .contact-cell .contact-value.ellipsis {
-      max-width: 120px;
+    .contact-cell {
+      &.email-cell {
+        padding-right: 28px;
+
+        .verification-badge mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      .contact-value.ellipsis {
+        max-width: 120px;
+      }
     }
 
     .cell-content.ellipsis {
       max-width: 120px;
+    }
+
+    .country-cell {
+      .country-flag-img {
+        width: 20px;
+        height: 14px;
+      }
     }
 
     .actions-cell .action-buttons-cell {
@@ -788,7 +971,6 @@
   }
 
   .enhanced-table {
-
     .data-header,
     .data-cell {
       padding: 8px 6px;
@@ -801,12 +983,28 @@
         max-width: 80px;
       }
     }
+
+    .contact-cell.email-cell {
+      padding-right: 24px;
+
+      .verification-badge mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    .country-cell {
+      .country-flag-img {
+        width: 18px;
+        height: 12px;
+      }
+    }
   }
 }
 
 // Accessibility and Focus States
 .enhanced-table {
-
   .mat-mdc-header-cell,
   .mat-mdc-cell {
     &:focus {
@@ -820,6 +1018,10 @@
       outline: 2px solid var(--mat-sys-primary);
       outline-offset: 2px;
       border-radius: 6px;
+    }
+
+    &.email-cell.unverified:not(.clickable):focus {
+      outline-color: var(--mat-sys-error);
     }
   }
 
@@ -845,5 +1047,106 @@
     .table-row {
       border-bottom: 1px solid;
     }
+
+    .country-cell .country-flag-img {
+      border: 2px solid;
+    }
+
+    .email-cell {
+      .verification-badge {
+        .verified-icon {
+          font-weight: bold;
+          text-shadow: 0 0 2px var(--mat-sys-primary);
+        }
+
+        .unverified-icon {
+          font-weight: bold;
+        }
+      }
+
+      &.unverified:not(.clickable) {
+        border: 2px dashed var(--mat-sys-error);
+      }
+    }
+  }
+
+  .table-container {
+    &::-webkit-scrollbar-thumb {
+      border: 2px solid;
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .enhanced-table {
+    .contact-cell,
+    .profile-avatar,
+    .country-flag-img,
+    .action-btn,
+    .verification-badge mat-icon {
+      transition: none;
+      animation: none !important;
+    }
+  }
+}
+
+// Column Menu Styles
+.column-menu {
+  ::ng-deep .mat-mdc-menu-content {
+    padding: 8px 0;
+    min-width: 240px;
+
+    .menu-header {
+      padding: 12px 16px 8px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--mat-sys-on-surface-variant);
+      border-bottom: 1px solid var(--mat-sys-outline-variant);
+      margin-bottom: 8px;
+    }
+
+    .column-menu-item {
+      padding: 8px 16px;
+      min-height: 40px;
+
+      ::ng-deep .mat-mdc-checkbox {
+        margin-right: 12px;
+      }
+    }
+  }
+}
+
+// Animations
+@keyframes badgeAnimation {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes buttonAnimation {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes chipAnimation {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 50px;
   }
 }

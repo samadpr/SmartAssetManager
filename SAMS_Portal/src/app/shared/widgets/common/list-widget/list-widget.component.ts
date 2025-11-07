@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, ChangeDetectorRef, Component, computed, EventEmitter, Input, OnInit, Output, signal, SimpleChanges, TemplateRef, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, computed, EventEmitter, inject, Input, OnInit, Output, signal, ViewChild } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -16,14 +16,14 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import * as XLSX from 'xlsx';
 import { animate, style, transition, trigger } from '@angular/animations';
-
+import { CountryService } from '../../../../core/services/account/country/country.service';
 
 export interface ListColumn {
   key: string;
   label: string;
   sortable?: boolean;
   type?: 'text' | 'number' | 'date' | 'currency' | 'boolean' | 'avatar' | 'phone' | 'email' | 'address' | 'country';
-  format?: string; // for date formatting
+  format?: string;
   visible?: boolean;
   width?: string;
   minWidth?: string;
@@ -31,10 +31,12 @@ export interface ListColumn {
   tooltip?: string;
   showIcon?: boolean;
   ellipsis?: boolean;
-  avatarField?: string; // field name for avatar image
-  nameField?: string; // field name for display name
-  countryCodeField?: string; // field name for country code
-  template?: TemplateRef<any>; // custom template
+  avatarField?: string;
+  nameField?: string;
+  countryCodeField?: string;
+  emailVerificationKey?: string;
+  showEmailVerification?: boolean;
+  disableUnverifiedClick?: boolean;
 }
 
 export interface ListAction {
@@ -61,8 +63,10 @@ export interface ListConfig {
   pageSizeOptions?: number[];
   exportFileName?: string;
   emptyMessage?: string;
-  rowClickAction?: string; // action to emit on row click
-  showSelectionActions?: boolean; // show bulk action buttons when items selected
+  rowClickAction?: string;
+  showSelectionActions?: boolean;
+  // 🆕 NEW: Max visible rows before scrolling (default: 5)
+  maxVisibleRows?: number;
 }
 
 export interface SelectionActionEvent {
@@ -108,13 +112,31 @@ export interface SelectionActionEvent {
         animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))
       ])
     ]),
-    trigger('selectionActions', [
+    trigger('badgeAnimation', [
       transition(':enter', [
-        style({ opacity: 0, transform: 'translateY(-20px)' }),
-        animate('250ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+        style({ opacity: 0, transform: 'scale(0.8)' }),
+        animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))
       ]),
       transition(':leave', [
-        animate('200ms ease-in', style({ opacity: 0, transform: 'translateY(-20px)' }))
+        animate('150ms ease-in', style({ opacity: 0, transform: 'scale(0.8)' }))
+      ])
+    ]),
+    trigger('buttonAnimation', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateX(-10px)' }),
+        animate('200ms ease-out', style({ opacity: 1, transform: 'translateX(0)' }))
+      ]),
+      transition(':leave', [
+        animate('150ms ease-in', style({ opacity: 0, transform: 'translateX(-10px)' }))
+      ])
+    ]),
+    trigger('chipAnimation', [
+      transition(':enter', [
+        style({ opacity: 0, maxHeight: 0 }),
+        animate('250ms ease-out', style({ opacity: 1, maxHeight: '50px' }))
+      ]),
+      transition(':leave', [
+        animate('200ms ease-in', style({ opacity: 0, maxHeight: 0 }))
       ])
     ])
   ],
@@ -139,6 +161,7 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
 
     this.showPagination.set(this._data.length > (this.config?.pageSize ?? 10));
     this.updateSelectionState();
+    this.updateTableHeight(); // 🆕 Update height when data changes
   }
   get data() { return this._data; }
 
@@ -149,6 +172,8 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
   @Output() selectionAction = new EventEmitter<SelectionActionEvent>();
   @Output() rowClick = new EventEmitter<{ action: string, item: any }>();
 
+  private countryService = inject(CountryService);
+
   dataSource = new MatTableDataSource<any>([]);
   selection = new SelectionModel<any>(true, []);
   searchControl = new FormControl('');
@@ -156,39 +181,37 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
   visibleColumns = signal<ListColumn[]>([]);
   hasSelection = signal(false);
   selectedCount = signal(0);
+  
+  // 🆕 NEW: Computed signal for table scrolling
+  shouldScroll = computed(() => {
+    const pageSize = this.paginator?.pageSize || this.config?.pageSize || 10;
+    const maxRows = this.config?.maxVisibleRows || 5;
+    return pageSize > maxRows;
+  });
 
-  // Country code to flag mapping (basic set)
-  // Country code → flag
-  private countryFlags: { [key: string]: string } = {
-    // GCC
-    'SA': '🇸🇦', 'AE': '🇦🇪', 'QA': '🇶🇦', 'OM': '🇴🇲', 'KW': '🇰🇼', 'BH': '🇧🇭',
+  // 🆕 NEW: Computed table height based on page size
+  tableMaxHeight = computed(() => {
+    const maxRows = this.config?.maxVisibleRows || 5;
+    const pageSize = this.paginator?.pageSize || this.config?.pageSize || 10;
+    const rowHeight = this.config?.compactMode ? 52 : 64; // Approximate row heights
+    const headerHeight = 48;
+    
+    if (pageSize <= maxRows) {
+      return 'none'; // No max height, show all rows
+    }
+    
+    // Calculate height for max visible rows + header
+    return `${(maxRows * rowHeight) + headerHeight}px`;
+  });
 
-    // Major European
-    'GB': '🇬🇧', 'FR': '🇫🇷', 'DE': '🇩🇪', 'IT': '🇮🇹', 'ES': '🇪🇸', 'NL': '🇳🇱',
-    'CH': '🇨🇭', 'SE': '🇸🇪', 'NO': '🇳🇴', 'DK': '🇩🇰', 'FI': '🇫🇮',
-
-    // Others
-    'IN': '🇮🇳', 'US': '🇺🇸', 'BR': '🇧🇷', 'AU': '🇦🇺', 'CN': '🇨🇳', 'JP': '🇯🇵'
-  };
-
-  // Country code → name
-  private countryNames: { [key: string]: string } = {
-    // GCC
-    'SA': 'Saudi Arabia', 'AE': 'UAE', 'QA': 'Qatar',
-    'OM': 'Oman', 'KW': 'Kuwait', 'BH': 'Bahrain',
-
-    // Major European
-    'GB': 'United Kingdom', 'FR': 'France', 'DE': 'Germany', 'IT': 'Italy',
-    'ES': 'Spain', 'NL': 'Netherlands', 'CH': 'Switzerland', 'SE': 'Sweden',
-    'NO': 'Norway', 'DK': 'Denmark', 'FI': 'Finland',
-
-    // Others
-    'IN': 'India', 'US': 'United States', 'BR': 'Brazil',
-    'AU': 'Australia', 'CN': 'China', 'JP': 'Japan'
-  };
   constructor(private cdr: ChangeDetectorRef) { }
 
   ngOnInit() {
+    // 🔧 Initialize visible columns FIRST before any data operations
+    if (this.config?.columns) {
+      this.visibleColumns.set(this.config.columns.filter(col => col.visible !== false));
+    }
+    
     this.initializeComponent();
     this.setupSearch();
     this.setupSelectionTracking();
@@ -200,25 +223,41 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     }
     if (this.paginator) {
       this.dataSource.paginator = this.paginator;
+      
+      // 🆕 Listen to page changes to update height
+      this.paginator.page.subscribe(() => {
+        this.updateTableHeight();
+      });
     }
+    
+    // 🔧 Detect changes after view initialization
+    this.cdr.detectChanges();
   }
 
   ngAfterViewChecked() {
     if (this.dataSource && this.paginator && this.dataSource.paginator !== this.paginator) {
       this.dataSource.paginator = this.paginator;
-      this.cdr.detectChanges();
     }
     if (this.dataSource && this.sort && this.dataSource.sort !== this.sort) {
       this.dataSource.sort = this.sort;
-      this.cdr.detectChanges();
     }
   }
 
-  private initializeComponent() {
-    this.dataSource.data = this.data;
-    this.visibleColumns.set(this.config?.columns?.filter(col => col.visible !== false) || []);
+  // 🆕 NEW: Method to update table height (removed detectChanges to prevent errors)
+  private updateTableHeight() {
+    // Height is updated via computed signal automatically
+    // No need for manual change detection here
+  }
 
-    // Enhanced filter predicate
+  private initializeComponent() {
+    // 🔧 Only set data if we have valid columns configured
+    if (!this.config?.columns?.length) {
+      console.warn('ListWidget: No columns configured');
+      return;
+    }
+    
+    this.dataSource.data = this.data;
+
     this.dataSource.filterPredicate = (data: any, filter: string) => {
       const searchTerm = filter.trim().toLowerCase();
       if (!searchTerm) return true;
@@ -227,14 +266,11 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
         const value = data[column.key];
         if (value == null) return false;
 
-        // Special handling for different column types
         switch (column.type) {
           case 'avatar':
-            // Search in name field for avatar columns
             const nameValue = data[column.nameField || column.key];
             return nameValue?.toString().toLowerCase().includes(searchTerm);
           case 'country':
-            // Search in both country code and name
             const countryName = this.getCountryName(value);
             return value?.toString().toLowerCase().includes(searchTerm) ||
               countryName.toLowerCase().includes(searchTerm);
@@ -282,7 +318,6 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     return cols;
   }
 
-  // Selection methods
   isAllSelected(): boolean {
     const numSelected = this.selection.selected.length;
     const numRows = this.dataSource.filteredData.length;
@@ -307,21 +342,17 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     this.selection.toggle(row);
   }
 
-  // Row click handler
   onRowClick(row: any): void {
     if (this.config?.rowClickAction && this.config?.selectable) {
-      // this.onActionClick(this.config.rowClickAction, row);
       this.rowClick.emit({ action: this.config.rowClickAction, item: row });
     }
   }
 
-  // Column visibility toggle
   toggleColumn(column: ListColumn): void {
     column.visible = !column.visible;
     this.visibleColumns.set(this.config.columns.filter(col => col.visible !== false));
   }
 
-  // Action handlers
   onActionClick(action: string, item: any, event?: Event): void {
     event?.stopPropagation();
     this.actionClick.emit({ action, item });
@@ -335,7 +366,6 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     this.refreshClick.emit();
   }
 
-  // Selection action handlers
   onDeleteSelected(): void {
     if (this.selection.selected.length > 0) {
       this.selectionAction.emit({
@@ -348,6 +378,10 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
   onExportSelected(): void {
     if (this.selection.selected.length > 0) {
       this.exportData(this.selection.selected);
+      this.selectionAction.emit({
+        action: 'export',
+        selectedItems: [...this.selection.selected]
+      });
     }
   }
 
@@ -355,7 +389,6 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     this.selection.clear();
   }
 
-  // Export functionality
   exportToExcel(): void {
     this.exportData(this.dataSource.filteredData);
   }
@@ -397,15 +430,20 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
       case 'boolean':
         return value ? 'Yes' : 'No';
       case 'country':
-        return `${this.getCountryFlag(value)} ${this.getCountryName(value)}`;
+        return `${this.getCountryName(value)}`;
       case 'avatar':
         return item[column.nameField || column.key] || '';
+      case 'email':
+        if (column.showEmailVerification && column.emailVerificationKey) {
+          const verified = item[column.emailVerificationKey];
+          return `${value} ${verified ? '(Verified)' : '(Not Verified)'}`;
+        }
+        return value;
       default:
         return value.toString();
     }
   }
 
-  // Cell value formatting
   formatCellValue(value: any, column: ListColumn, item?: any): string {
     if (value == null) return '';
 
@@ -426,7 +464,6 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // Avatar helpers
   getAvatarUrl(item: any, column: ListColumn): string {
     return item[column.avatarField || 'avatar'] || '/assets/images/ProfilePic.png';
   }
@@ -435,39 +472,35 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     return item[column.nameField || column.key] || '';
   }
 
-  // Country helpers
-  getCountryFlag(country: string): string {
-    if (!country) return '🌍';
+  getCountryFlagUrl(country: string): string {
+    if (!country) return '';
 
-    // First check if it's already a code (IN, US, etc.)
-    if (this.countryFlags[country.toUpperCase()]) {
-      return this.countryFlags[country.toUpperCase()];
-    }
-
-    // Otherwise, try to find by name
-    const code = Object.keys(this.countryNames).find(
-      key => this.countryNames[key].toLowerCase() === country.toLowerCase()
+    const countries = this.countryService.getAllCountries();
+    const match = countries.find(c =>
+      c.code.toUpperCase() === country.toUpperCase() ||
+      c.name.toLowerCase() === country.toLowerCase()
     );
 
-    return code ? this.countryFlags[code] : '🌍';
+    const code = match ? match.code : country;
+    return this.countryService.getFlagUrl(code);
   }
 
   getCountryName(countryCode: string): string {
-    return this.countryNames[countryCode?.toUpperCase()] || countryCode;
+    if (!countryCode) return '';
+    const countries = this.countryService.getAllCountries();
+    const country = countries.find(c => c.code.toUpperCase() === countryCode.toUpperCase());
+    return country ? country.name : countryCode;
   }
 
-  // Phone number formatting
   formatPhoneNumber(phone: string | number): string {
     if (!phone) return '';
     const phoneStr = phone.toString();
-    // Basic US phone number formatting
     if (phoneStr.length === 10) {
       return `(${phoneStr.slice(0, 2)}) ${phoneStr.slice(3, 6)}-${phoneStr.slice(6)}`;
     }
     return phoneStr;
   }
 
-  // Tooltip helpers
   getColumnTooltip(column: ListColumn, value: any, item?: any): string {
     if (column.tooltip) return column.tooltip;
 
@@ -479,6 +512,10 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
       case 'phone':
         return `Call ${this.formatPhoneNumber(value)}`;
       case 'email':
+        if (column.showEmailVerification && column.emailVerificationKey && item) {
+          const verified = item[column.emailVerificationKey];
+          return verified ? `Send email to ${value} (Verified)` : `${value} (Not Verified - Click disabled)`;
+        }
         return `Send email to ${value}`;
       case 'address':
         return `Address: ${value}`;
@@ -487,7 +524,6 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // Cell click handlers for special column types
   onPhoneClick(phone: string, event: Event): void {
     event.stopPropagation();
     if (phone) {
@@ -495,11 +531,25 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     }
   }
 
-  onEmailClick(email: string, event: Event): void {
+  onEmailClick(email: string, row: any, column: ListColumn, event: Event): void {
     event.stopPropagation();
+    
+    if (column.showEmailVerification && column.emailVerificationKey && column.disableUnverifiedClick) {
+      const isVerified = row[column.emailVerificationKey];
+      if (!isVerified) {
+        console.log('Email not verified. Click disabled.');
+        return;
+      }
+    }
+    
     if (email) {
       window.open(`mailto:${email}`, '_self');
     }
+  }
+
+  isEmailVerified(row: any, column: ListColumn): boolean {
+    if (!column.emailVerificationKey) return true;
+    return row[column.emailVerificationKey] === true;
   }
 
   onAddressClick(address: string, event: Event): void {
@@ -510,17 +560,14 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // Track by function for performance
   trackByFn(index: number, item: any): any {
     return item.id || item.userProfileId || index;
   }
 
-  // Helper method to check if column should show icon
   shouldShowIcon(column: ListColumn): boolean {
     return column.showIcon !== false && ['phone', 'email', 'address', 'country'].includes(column.type || '');
   }
 
-  // Get appropriate icon for column type
   getColumnIcon(column: ListColumn): string {
     switch (column.type) {
       case 'phone': return 'phone';
@@ -530,5 +577,4 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
       default: return 'info';
     }
   }
-
 }

@@ -76,8 +76,15 @@ namespace SAMS.API.SubDepartmentAPIs
         {
             var user = HttpContext.User.Identity?.Name ?? "System";
             var result = await _subDepartmentService.GetSubDepartmentsAsync(user);
-            if (result.result == null || !result.isSuccess)
-                return NotFound(new { success = false, message = "No sub-departments found" });
+            if (result.result == null)
+            {
+                return Ok(new { success = true, message = result.message });
+            }
+            else if (!result.isSuccess)
+            {
+                return BadRequest(new { success = result.isSuccess, message = result.message });
+            }
+                
             return Ok(new { success = true, message = "Sub-departments found", data = result.result });
         }
 

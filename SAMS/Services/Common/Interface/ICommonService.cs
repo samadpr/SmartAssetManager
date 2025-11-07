@@ -11,5 +11,7 @@ namespace SAMS.Services.Common.Interface
         Task<CreatorDto> GetAdminOrCreatorInfoAsync(string currentUserEmail);
 
         Task<List<string>> GetEmailsUnderAdminAsync(string targetUserEmail);
+
+        Task<Guid?> GetOrganizationIdAsync(string createdBy);
     }
 }

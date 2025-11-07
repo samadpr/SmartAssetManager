@@ -1,4 +1,4 @@
-// popup-widget.interface.ts - Updated with image upload support
+// popup-widget.interface.ts - Updated with email verification support
 import { ValidatorFn } from '@angular/forms';
 import { Observable } from 'rxjs';
 
@@ -6,7 +6,7 @@ export interface PopupFieldOption {
   value: any;
   label: string;
   disabled?: boolean;
-  [key: string]: any; // Allow additional properties
+  [key: string]: any;
 }
 
 export interface PopupField {
@@ -30,24 +30,30 @@ export interface PopupField {
   // Select/Radio options
   options?: PopupFieldOption[];
 
-   // 🆕 CASCADING DROPDOWN SUPPORT
-  cascadeFrom?: string; // Parent field key (e.g., 'department')
-  cascadeProperty?: string; // Property to match (e.g., 'departmentId')
-  loadOptionsOnChange?: (parentValue: any) => Observable<PopupFieldOption[]>; // Dynamic loading
-  clearOnParentChange?: boolean; // Clear value when parent changes (default: true)
+  // 🆕 EMAIL VERIFICATION TOGGLE
+  showEmailVerification?: boolean; // Show verification toggle for this email field
+  emailVerificationKey?: string; // Key for the verification boolean field (default: 'isEmailVerified')
+  emailVerificationLabel?: string; // Label for toggle (default: 'Send Verification Email')
+  emailVerificationTooltip?: string; // Custom tooltip message
+  
+  // Cascading dropdown support
+  cascadeFrom?: string;
+  cascadeProperty?: string;
+  loadOptionsOnChange?: (parentValue: any) => Observable<PopupFieldOption[]>;
+  clearOnParentChange?: boolean;
   
   // Textarea specific
   rows?: number;
   
   // Image upload specific
-  acceptedTypes?: string[]; // e.g., ['image/jpeg', 'image/png']
-  maxFileSize?: number; // in bytes
+  acceptedTypes?: string[];
+  maxFileSize?: number;
   imagePreviewWidth?: number;
   imagePreviewHeight?: number;
   
   // Layout control
-  colSpan?: 1 | 2; // How many columns to span (1 or 2)
-  breakAfter?: boolean; // Force line break after this field
+  colSpan?: 1 | 2;
+  breakAfter?: boolean;
   
   // Display options
   icon?: string;
@@ -55,7 +61,7 @@ export interface PopupField {
   prefix?: string;
   
   // Conditional display
-  dependsOn?: string; // Show field only when another field has value
+  dependsOn?: string;
   dependsOnValue?: any;
 }
 
@@ -67,8 +73,8 @@ export interface PopupFormConfig {
   fields: PopupField[];
   
   // Layout options
-  columns?: 1 | 2; // Number of columns (default: 2)
-  compactMode?: boolean; // Reduces spacing
+  columns?: 1 | 2;
+  compactMode?: boolean;
   
   // Button configuration
   submitButtonText?: string;
@@ -91,7 +97,7 @@ export interface PopupViewConfig {
   subtitle?: string;
   icon?: string;
   
-  fields: PopupField[]; // Same structure, but will be display-only
+  fields: PopupField[];
   
   // Layout options
   columns?: 1 | 2;

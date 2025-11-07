@@ -1039,10 +1039,13 @@ namespace SAMS.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Fax")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<long?>("IndustriesId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Logo")
                         .HasColumnType("nvarchar(max)");
@@ -1057,6 +1060,9 @@ namespace SAMS.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
 
@@ -1064,6 +1070,12 @@ namespace SAMS.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasFilter("[Email] IS NOT NULL");
+
+                    b.HasIndex("IndustriesId");
 
                     b.ToTable("CompanyInfo");
                 });
@@ -1225,6 +1237,42 @@ namespace SAMS.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Designation");
+                });
+
+            modelBuilder.Entity("SAMS.Models.Industries", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("Cancelled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Industries");
                 });
 
             modelBuilder.Entity("SAMS.Models.LoginHistory", b =>
@@ -1761,6 +1809,9 @@ namespace SAMS.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
@@ -2043,6 +2094,15 @@ namespace SAMS.Migrations
                     b.Navigation("Asset");
                 });
 
+            modelBuilder.Entity("SAMS.Models.CompanyInfo", b =>
+                {
+                    b.HasOne("SAMS.Models.Industries", "Industry")
+                        .WithMany("Companies")
+                        .HasForeignKey("IndustriesId");
+
+                    b.Navigation("Industry");
+                });
+
             modelBuilder.Entity("SAMS.Models.ManageUserRolesDetail", b =>
                 {
                     b.HasOne("SAMS.Models.ManageUserRole", "ManageRole")
@@ -2171,6 +2231,11 @@ namespace SAMS.Migrations
             modelBuilder.Entity("SAMS.Models.Designation", b =>
                 {
                     b.Navigation("UserProfiles");
+                });
+
+            modelBuilder.Entity("SAMS.Models.Industries", b =>
+                {
+                    b.Navigation("Companies");
                 });
 
             modelBuilder.Entity("SAMS.Models.ManageUserRole", b =>

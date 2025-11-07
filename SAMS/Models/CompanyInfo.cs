@@ -1,11 +1,17 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 
 namespace SAMS.Models;
 
+[Index(nameof(Email), IsUnique = true)]
 public class CompanyInfo : EntityBase
 {
     public long Id { get; set; }
+
+    public Guid OrganizationId { get; set; }
+
+    public long? IndustriesId { get; set; }
 
     public string? Name { get; set; }
 
@@ -26,4 +32,6 @@ public class CompanyInfo : EntityBase
     public string? Fax { get; set; }
 
     public string? Website { get; set; }
+
+    public Industries? Industry { get; set; }
 }

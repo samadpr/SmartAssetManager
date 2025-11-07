@@ -12,9 +12,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { animate, style, transition, trigger, state } from '@angular/animations';
 import { PopupConfirmConfig, PopupData, PopupField, PopupFormConfig, PopupResult, PopupViewConfig } from '../../../../core/models/interfaces/popup-widget.interface';
-import { MatRadioModule } from '@angular/material/radio'
+import { MatRadioModule } from '@angular/material/radio';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { FilesUploadService } from '../../../../core/services/common/files-upload.service';
@@ -40,12 +41,10 @@ import { Subject, takeUntil } from 'rxjs';
     MatProgressSpinnerModule,
     MatTooltipModule,
     MatCardModule,
-    MatChipsModule
-
+    MatChipsModule,
+    MatSlideToggleModule
   ],
-  providers: [
-    provideNativeDateAdapter() // 👈 THIS explicitly provides DateAdapter
-  ],
+  providers: [provideNativeDateAdapter()],
   templateUrl: './popup-widget.component.html',
   styleUrl: './popup-widget.component.scss',
   animations: [
@@ -73,7 +72,7 @@ import { Subject, takeUntil } from 'rxjs';
     ])
   ],
   host: {
-    '[@dialogAnimation]': 'enter'
+    '[@dialogAnimation]': "'enter'"
   }
 })
 export class PopupWidgetComponent implements OnInit, OnDestroy {
@@ -94,12 +93,10 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
   countries = signal<Country[]>([]);
   countriesLoaded = signal(false);
 
-  // 🆕 Cascading dropdown state management
   private destroy$ = new Subject<void>();
   fieldOptionsMap = signal<Map<string, any[]>>(new Map());
   fieldLoadingMap = signal<Map<string, boolean>>(new Map());
 
-  // Computed properties for type safety and convenience
   isFormType = computed(() => this.data?.type === 'form');
   isViewType = computed(() => this.data?.type === 'view');
   isConfirmType = computed(() => this.data?.type === 'confirm');
@@ -108,7 +105,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     return config?.compactMode || false;
   });
 
-  // Use getters instead of computed signals for template access
   get formConfig(): PopupFormConfig | null {
     return this.isFormType() ? (this.data.config as PopupFormConfig) : null;
   }
@@ -137,13 +133,11 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-
   private loadCountries() {
     const allCountries = this.countryService.getAllCountries();
     this.countries.set(allCountries);
     this.countriesLoaded.set(true);
 
-    // Re-initialize form if it was waiting for countries
     if (this.isFormType() && this.form) {
       this.updateCountryField();
     }
@@ -154,14 +148,13 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
     const countryControl = this.form.get('country');
     if (countryControl && this.formConfig) {
-      // Find country field and update its options
       const countryField = this.formConfig.fields.find(f => f.key === 'country');
       if (countryField && countryField.type === 'select') {
         countryField.options = this.countries().map(country => ({
-          value: country.name, // Store country name as value
+          value: country.name,
           label: country.name,
           disabled: false,
-          code: country.code // Store code for flag display
+          code: country.code
         }));
       }
     }
@@ -187,10 +180,8 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         value = new Date(value);
       }
 
-      // 🆕 Handle cascading fields - disable if cascadeFrom is set
       const isDisabled = field.disabled || (field.cascadeFrom ? true : false);
 
-      // Special handling for country field
       if (field.key === 'country' && field.type === 'select') {
         field.options = this.countries().map(country => ({
           value: country.name,
@@ -200,7 +191,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         }));
       }
 
-      // Initialize field options in map
       if (field.options) {
         this.fieldOptionsMap.update(map => {
           const newMap = new Map(map);
@@ -213,6 +203,13 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         { value, disabled: isDisabled },
         validators.length ? validators : null
       );
+
+      // 🆕 Add email verification control if enabled
+      if (field.type === 'email' && field.showEmailVerification) {
+        const verificationKey = field.emailVerificationKey || 'isEmailVerified';
+        const verificationValue = this.data?.data?.[verificationKey] ?? false;
+        controls[verificationKey] = new FormControl(verificationValue);
+      }
     });
 
     if (!controls['profilePicture']) {
@@ -221,15 +218,13 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
     this.form = new FormGroup(controls);
 
-    console.log('Popup form initialized with cascading support:', {
+    console.log('Popup form initialized:', {
       type: this.data.type,
       formValid: this.form.valid,
-      controls: Object.keys(this.form.controls),
-      cascadingFields: cfg.fields.filter(f => f.cascadeFrom).map(f => f.key)
+      controls: Object.keys(this.form.controls)
     });
   }
 
-   // 🆕 Setup cascading dropdown relationships
   private setupCascadingDropdowns() {
     if (!this.form || !this.formConfig) return;
 
@@ -239,17 +234,14 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       const parentControl = this.form!.get(childField.cascadeFrom!);
       
       if (parentControl) {
-        // Listen to parent value changes
         parentControl.valueChanges
           .pipe(takeUntil(this.destroy$))
           .subscribe(parentValue => {
             this.handleCascadeChange(childField, parentValue);
           });
 
-        // 🔥 IMPORTANT: Load initial options if parent has a value
         const initialParentValue = parentControl.value;
         if (initialParentValue) {
-          // Use setTimeout to ensure form is fully initialized
           setTimeout(() => {
             this.handleCascadeChange(childField, initialParentValue, true);
           }, 0);
@@ -258,7 +250,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     });
   }
 
-  // 🆕 Handle cascade change event
   private handleCascadeChange(childField: PopupField, parentValue: any, isInitial: boolean = false) {
     const childControl = this.form!.get(childField.key);
     if (!childControl) return;
@@ -275,15 +266,12 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     }
 
     if (!parentValue) {
-      // No parent value - disable and clear options
       childControl.disable();
       this.updateFieldOptions(childField.key, []);
       return;
     }
 
-    // Parent has value - load child options
     if (childField.loadOptionsOnChange) {
-      // Dynamic loading via Observable
       this.setFieldLoading(childField.key, true);
       childControl.disable();
 
@@ -294,8 +282,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
             this.updateFieldOptions(childField.key, options);
             this.setFieldLoading(childField.key, false);
             childControl.enable();
-
-            console.log(`Loaded ${options.length} options for ${childField.key}`);
           },
           error: (error) => {
             console.error(`Error loading options for ${childField.key}:`, error);
@@ -305,19 +291,15 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
           }
         });
     } else if (childField.options && childField.cascadeProperty) {
-      // Static filtering based on cascade property
       const filteredOptions = childField.options.filter(opt => 
         opt[childField.cascadeProperty!] === parentValue
       );
       
       this.updateFieldOptions(childField.key, filteredOptions);
       childControl.enable();
-
-      console.log(`Filtered to ${filteredOptions.length} options for ${childField.key}`);
     }
   }
 
-   // 🆕 Update field options dynamically
   private updateFieldOptions(fieldKey: string, options: any[]) {
     this.fieldOptionsMap.update(map => {
       const newMap = new Map(map);
@@ -326,7 +308,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     });
   }
 
-  // 🆕 Set field loading state
   private setFieldLoading(fieldKey: string, loading: boolean) {
     this.fieldLoadingMap.update(map => {
       const newMap = new Map(map);
@@ -335,12 +316,10 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     });
   }
 
-  // 🆕 Get current options for a field
   getFieldOptions(fieldKey: string): any[] {
     return this.fieldOptionsMap().get(fieldKey) || [];
   }
 
-  // 🆕 Check if field is loading
   isFieldLoading(fieldKey: string): boolean {
     return this.fieldLoadingMap().get(fieldKey) || false;
   }
@@ -376,18 +355,28 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     return validators;
   }
 
-  // Get country flag URL
+  // 🆕 Get email verification control
+  getEmailVerificationControl(field: PopupField): FormControl | null {
+    if (!this.form || !field.showEmailVerification) return null;
+    const key = field.emailVerificationKey || 'isEmailVerified';
+    return this.form.get(key) as FormControl;
+  }
+
+  // 🆕 Get default verification tooltip
+  getEmailVerificationTooltip(field: PopupField): string {
+    return field.emailVerificationTooltip || 
+      'When enabled, a verification link will be automatically sent to this email address. The user must verify their email before accessing the system.';
+  }
+
   getCountryFlagUrl(countryCode: string): string {
     return this.countryService.getFlagUrl(countryCode);
   }
 
-  // Get country code from country name
   getCountryCodeFromName(countryName: string): string {
     const country = this.countries().find(c => c.name === countryName);
     return country ? country.code : '';
   }
 
-  // Get country name from code (for backward compatibility)
   getCountryNameFromCode(countryCode: string): string {
     const country = this.countries().find(c => c.code === countryCode);
     return country ? country.name : countryCode;
@@ -395,20 +384,17 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
   openFileChooser(input: HTMLInputElement) {
     try {
-      // clear prior value so selecting same file triggers change
       input.value = '';
-    } catch { /* ignore */ }
+    } catch { }
     input.click();
   }
 
-  // Image upload handling
   onImageSelect(event: Event, input?: HTMLInputElement) {
     const inputEl = input ?? (event.target as HTMLInputElement);
     if (!inputEl || !inputEl.files?.length) return;
 
     const file = inputEl.files[0];
 
-    // validations
     if (!file.type.startsWith('image/')) {
       console.warn('Invalid file type selected.');
       return;
@@ -418,46 +404,37 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // store file and show local preview (no upload yet)
     this.imageFile.set(file);
 
     const reader = new FileReader();
     reader.onload = (e: any) => this.imagePreview.set(e.target.result);
     reader.readAsDataURL(file);
 
-    // reset native input so re-selecting the same file later triggers change
-    // small delay ensures file processing started
     setTimeout(() => {
-      try { inputEl.value = ''; } catch { /* ignore cross-browser issues */ }
-      // also clear any programmatic reference to native element value
+      try { inputEl.value = ''; } catch { }
       if (this.fileInputRef?.nativeElement) {
         try { this.fileInputRef.nativeElement.value = ''; } catch { }
       }
     }, 0);
-
   }
 
-
   onImageRemove() {
-    // clear preview + staged file + form profile value + UI flags
     this.imagePreview.set(null);
     this.imageFile.set(null);
     this.imageUploading.set(false);
-    this.imagePreview.set('/assets/images/ProfilePic.png')
+    this.imagePreview.set('/assets/images/ProfilePic.png');
 
     if (this.form) {
       this.form.patchValue({ profilePicture: '' });
     }
 
-    // clear native input value so future selections always trigger change
     try {
       if (this.fileInputRef?.nativeElement) {
         this.fileInputRef.nativeElement.value = '';
       }
-    } catch { /* ignore */ }
+    } catch { }
   }
 
-  // Field validation helpers
   getFieldError(fieldKey: string): string {
     if (!this.form) return '';
     const control = this.form.get(fieldKey);
@@ -481,7 +458,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     return !!(control && control.invalid && (control.dirty || control.touched || this.submitted()));
   }
 
-  // Input type helper
   getInputType(fieldType: string): string {
     switch (fieldType) {
       case 'password': return 'password';
@@ -491,7 +467,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     }
   }
 
-  // View mode display helpers
   getDisplayValue(field: PopupField): any {
     if (!this.data?.data) return null;
     return this.data.data[field.key];
@@ -517,7 +492,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Form action handlers
   onSubmit() {
     if (!this.form) return;
     this.submitted.set(true);
@@ -532,39 +506,29 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     const file = this.imageFile();
 
     if (file) {
-      // upload first
       this.imageUploading.set(true);
       this.filesUploadService.uploadProfilePicture(file).subscribe({
         next: (res) => {
-          // API returned path/url
           this.imageUploading.set(false);
-          // set preview to remote url (optional)
           if (res?.url) {
             this.imagePreview.set(res.url);
             this.form!.patchValue({ profilePicture: res.url });
           }
-          // clear staged file because it's now uploaded
           this.imageFile.set(null);
-
-          // finalize
           this.finalizeSubmit();
         },
         error: (err) => {
           console.error('Error uploading image:', err);
           this.imageUploading.set(false);
           this.loading.set(false);
-          // Optionally show toast here via globalService if available
-          // this.globalService.showToastr('Image upload failed', 'error');
         }
       });
     } else {
-      // no staged file — just finalize
       this.finalizeSubmit();
     }
   }
 
   private finalizeSubmit() {
-    // ensure loading remains true while we close (optionally add a slight delay)
     const formValue = { ...this.form!.value };
 
     const result: PopupResult = {
@@ -572,10 +536,7 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       data: formValue
     };
 
-    // close the dialog with the collected data
     this.dialogRef.close(result);
-
-    // reset loading states if needed (the dialog is closing anyway)
     this.loading.set(false);
     this.submitted.set(false);
   }
@@ -599,7 +560,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     this.dialogRef.close({ action: 'edit', data: this.data?.data });
   }
 
-  // Helper methods for template
   shouldShowField(field: PopupField): boolean {
     if (field.dependsOn && this.data?.data) {
       const dependentValue = this.data.data[field.dependsOn];
@@ -615,7 +575,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     return field.key || index.toString();
   }
 
-  // Get user's full name for view mode
   getUserFullName(): string {
     if (!this.data?.data) return '';
     const firstName = this.data.data.firstName || '';
@@ -623,14 +582,12 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     return `${firstName} ${lastName}`.trim() || 'Unknown User';
   }
 
-  // Get user's profile image URL
   getUserProfileImage(): string {
     if (this.imagePreview()) return this.imagePreview()!;
     if (this.data?.data?.profilePicture) return this.data.data.profilePicture;
     return '/assets/images/ProfilePic.png';
   }
 
-  // Format display values for view mode
   formatDisplayValue(field: PopupField, value: any): string {
     if (!value && value !== false) return 'Not specified';
 
@@ -640,7 +597,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       case 'select':
       case 'radio':
         if (field.key === 'country') {
-          // For country field, value is already the country name
           return value;
         }
         return this.getSelectDisplayValue(field);
@@ -664,16 +620,5 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '($1)$2-$3');
     }
     return phone;
-  }
-
-  isTextareaField(field: PopupField): boolean {
-    return field.type === 'textarea';
-  }
-
-  getFieldColSpanClass(field: PopupField): string {
-    if (field.colSpan === 2) {
-      return 'span-2';
-    }
-    return 'span-1';
   }
 }

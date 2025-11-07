@@ -56,9 +56,15 @@ namespace SAMS.API.DepartmentAPIs
         {
             var user = HttpContext.User.Identity?.Name ?? "System";
             var result = await _departmentService.GetDepartmentsAsync(user);
-            if (result == null || !result.Any())
+            if (!result.isSuccess)
+            {
                 return NotFound(new { success = false, message = "No departments found" });
-            return Ok(new { success = true, message = "Departments found", data = result });
+            }else if(result.data == null)
+            {
+                return NotFound(new { success = true, message = "No departments found" });
+            }
+                
+            return Ok(new { success = true, message = "Departments found", data = result.data });
         }
 
         [Authorize(Roles = RoleModels.Department)]

@@ -131,12 +131,13 @@ namespace SAMS.API.UserProfile
             return Ok(new { success = true, message = "User profile fetched successfully", data = result });
         }
 
+        [AllowAnonymous]
         [HttpPost("user-profile/user-email-confirm")]
         public async Task<IActionResult> UserEmailConfirm([FromQuery] string userId, [FromQuery] string token)
         {
             var result = await _userProfileService.UserEmailConfirmAsync(userId, token);
-            if (result.Success) return Ok(new { result.Message , isLoginAccess = result.isLoginAccess});
-            return BadRequest(new { result.Message , isLoginAccess = result.isLoginAccess});
+            if (result.Success) return Ok(new {success = result.Success, message = result.Message , isLoginAccess = result.isLoginAccess});
+            return BadRequest(new { success = result.Success, message = result.Message , isLoginAccess = result.isLoginAccess});
         }
 
         [Authorize(Roles = RoleModels.UserManagement)]
@@ -147,7 +148,7 @@ namespace SAMS.API.UserProfile
             var result = await _userProfileService.GetCreatedUserProfilesDetails(user);
             if (!result.isSuccess)
                 return NotFound(new { success = false, message = "No user profile found." });
-            return Ok(new { success = true, message = "User profile fetched successfully", data = result.responseObject });
+            return Ok(new { success = true, message = result.message, data = result.responseObject });
         }
 
         [Authorize(Roles = RoleModels.UserManagement)]
@@ -162,7 +163,7 @@ namespace SAMS.API.UserProfile
             var result = await _userProfileService.UpdateCreatedUserProfileAsync(mappedProfile, user);
             if (!result.success)
                 return BadRequest(new { success = false, message = "User profile update failed. " + result.message });
-            return Ok(new { success = true, message = "User profile updated successfully" });
+            return Ok(new { success = true, message = result.message });
         }
 
         [Authorize(Roles = RoleModels.UserManagement)]
@@ -173,7 +174,7 @@ namespace SAMS.API.UserProfile
             var result = await _userProfileService.DeleteCreatedUserProfile(userProfileId, user);
             if (!result.success)
                 return BadRequest("User profile delete failed." + result.message);
-            return Ok(result.message);
+            return Ok(new { success = true, message = result.message });
         }
 
         [Authorize(Roles = RoleModels.Admin)]

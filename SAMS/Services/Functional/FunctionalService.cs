@@ -140,5 +140,17 @@ namespace SAMS.Services.Functional
                 throw new Exception("Failed to create default email settings", ex);
             }
         }
+
+        public async Task CreateDefaultIndustries()
+        {
+            try
+            {
+                await _functionalRepo.CreateDefaultIndustriesAsync();
+            }
+            catch(Exception ex)
+            {
+                throw new Exception("Failed to create default industries", ex);
+            }
+        }
     }
 }

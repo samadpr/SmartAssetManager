@@ -68,9 +68,9 @@ namespace SAMS.API.DesignationAPIs
         {
             var user =  HttpContext.User.Identity?.Name ?? "System";
             var result = await _designationService.GetDesignationAsync(user);
-            if (result == null)
-                return NotFound($"No designation found");
-            return Ok(result);
+            if (!result.isSuccess)
+                return NotFound(new { result.message, result.isSuccess });  
+            return Ok(new {data = result.designations, message = result.message, success = result.isSuccess});
         }
 
         [Authorize(Roles = RoleModels.Designation)]
