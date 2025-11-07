@@ -12,14 +12,14 @@ export class GlobalService {
 
   constructor() { }
 
-  public showSnackbar(message: string, type: 'success' | 'error'): void {
+  public showSnackbar(message: string, type: 'success' | 'error' | 'info'): void {
     this.snackBar.open(message, 'Close', {
       duration: 3000,
       panelClass: [type === 'success' ? 'snackbar-success' : 'snackbar-error'],
     });
   }
 
-  public showToastr(message: string, type: 'success' | 'error'): void {
+  public showToastr(message: string, type: 'success' | 'error' | 'info' | 'Required'): void {
     const options: Partial<IndividualConfig> = {
       timeOut: 3000,
       closeButton: true,

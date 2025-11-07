@@ -15,5 +15,8 @@ namespace SAMS.Services.Functional.Interface
         Task SaveUserProfileAsync(UserProfile profile);
 
         Task CreateDefaultEmailSettingsAsync();
+
+        Task CreateDefaultIndustriesAsync();
+
     }
 }

@@ -193,7 +193,7 @@
           <mat-icon>cancel</mat-icon>
           Cancel
         </button>
-        <button mat-raised-button color="primary" (click)="saveProfile()" [disabled]="profileForm.invalid || isSaving()"
+        <button mat-raised-button color="primary"   (click)="saveProfile()" [disabled]="profileForm.invalid || isSaving()"
           [@saveButtonAnimation]>
           <mat-icon *ngIf="!isSaving()">save</mat-icon>
           <mat-progress-bar *ngIf="isSaving()" mode="indeterminate" class="inline-progress"></mat-progress-bar>

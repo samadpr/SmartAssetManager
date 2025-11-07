@@ -63,6 +63,25 @@ namespace SAMS.Services.Common
             }
         }
 
+        public async Task<Guid?> GetOrganizationIdAsync(string createdBy)
+        {
+            try
+            {
+                var userProfile = await _userProfileRepository.GetProfileData(createdBy);
+                if(userProfile == null && userProfile.OrganizationId == Guid.Empty)
+                {
+                    return Guid.Empty;
+                }
+
+                return userProfile.OrganizationId;
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving organization ID for user: {Email}", createdBy);
+                return Guid.Empty;
+            }
+        }
+
         public async Task<bool> InsertToLoginHistory(LoginHistory history)
         {
             try

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using SAMS.API.Account.RequestObject;
+using SAMS.API.CompanyAPIs.RequestObject;
 using SAMS.API.DepartmentAPIs.RequstObject;
 using SAMS.API.DesignationAPIs.RequestObject;
 using SAMS.API.ManageUserRolesAPIs.RequestObject;
@@ -48,6 +49,8 @@ namespace SAMS.Extensions
             CreateMap<SubDepartment, SubDepartmentDto>().ReverseMap();
             
             CreateMap<SubDepartmentRequest, SubDepartmentDto>().ReverseMap();
+
+            CreateMap<CompanyRequestObject, CompanyInfo>().ReverseMap();
 
         }
     }

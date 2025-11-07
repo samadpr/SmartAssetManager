@@ -101,7 +101,7 @@ public class SubDepartmentService : ISubDepartmentService
 
             var subDepartments = await _repository.GetSubDepartmentsAsync(emails);
             if (subDepartments == null || !subDepartments.Any())
-                return (false, "No sub-departments found.", null);
+                return (true, "No sub-departments found.", null);
 
             return (true, "Sub-departments found.", subDepartments);
         }

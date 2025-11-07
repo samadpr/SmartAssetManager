@@ -141,13 +141,18 @@ namespace SAMS.Services.DesignationServices
             }
         }
 
-        public async Task<List<Designation>> GetDesignationAsync(string targetUserEmail)
+        public async Task<(bool isSuccess, string message, List<Designation>? designations)> GetDesignationAsync(string targetUserEmail)
         {
             var emails = await _commonService.GetEmailsUnderAdminAsync(targetUserEmail);
 
             var designations = await _repository.GetDesignationsForUserAsync(emails.ToList());
+                
+            if(designations == null || !designations.Any() || designations.Count == 0)
+            {
+                return (true, "No designations found for the user.", null);
+            }
 
-            return designations;
+            return (true, "Designations found successfully.", designations);
         }
     }
 }

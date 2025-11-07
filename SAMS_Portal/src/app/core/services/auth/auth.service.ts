@@ -1,11 +1,13 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { jwtDecode } from 'jwt-decode';
+import { AccountService } from '../account/account.service';
 
 export interface JwtPayload {
   email: string;
   role: string;
   exp: number;
+  name?: string;
   [key: string]: any;
 }
 
@@ -13,6 +15,7 @@ export interface JwtPayload {
   providedIn: 'root'
 })
 export class AuthService {
+   private accountService = inject(AccountService);
 
   private tokenKey = 'auth_token';
 
@@ -56,7 +59,19 @@ export class AuthService {
   }
 
   logout(): void {
-    this.clearToken();
-    this.router.navigate(['/login']);
+    this.accountService.logout().subscribe({
+      next: (res) => {
+        // Call succeeded (API returned 200)
+        console.log(res.message || 'Logout successful');
+        this.clearToken();
+        this.router.navigate(['/login']);
+      },
+      error: (err) => {
+        // Call failed (e.g. network issue or token already invalid)
+        console.error('Logout API failed:', err);
+        this.clearToken();
+        this.router.navigate(['/login']);
+      }
+    });
   }
 }

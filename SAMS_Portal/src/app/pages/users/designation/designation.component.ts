@@ -40,8 +40,9 @@ export class DesignationComponent implements OnInit {
     compactMode: false, // Set to true for compact layout
     showSelectionActions: true, // Enable bulk actions
     rowClickAction: 'view', // Enable row click to view details
-    pageSize: 5,
+    pageSize: 10,
     pageSizeOptions: [5, 10, 25, 50, 100],
+    maxVisibleRows: 5,
     exportFileName: 'designations_export',
     emptyMessage: 'No designations found. Click "Add Designation" to create one.',
     columns: [
@@ -146,7 +147,12 @@ export class DesignationComponent implements OnInit {
     // Simulate API call
     this.designationService.getDesignations().subscribe({
       next: (data) => {
-        this.designations.set(data);
+        if (!data.success) {
+          this.globalSevice.showSnackbar(data.message || 'Failed to load designations.', 'error')
+          this.loading.set(false);
+          return;
+        }
+        this.designations.set(data.data || []);
         this.loading.set(false);
       },
       error: (err) => {

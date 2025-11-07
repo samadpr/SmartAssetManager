@@ -6,7 +6,6 @@ import { MatCardModule } from '@angular/material/card';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Country, CountryService } from '../../../core/services/account/country/country.service';
 import { ProfileService } from '../../../core/services/account/profile/profile.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { UserProfileDetails, UserProfileRequest } from '../../../core/models/interfaces/account/userProfile';
 import { ProfilePictureUploadComponent } from '../../../shared/widgets/profile/profile-picture-upload/profile-picture-upload.component';
@@ -20,7 +19,6 @@ import { MatNativeDateModule, MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { profileAnimations } from '../../../shared/animations/profile.animations';
 import { DesignationService } from '../../../core/services/Designation/designation.service';
-import { ToastrService } from 'ngx-toastr';
 import { GlobalService } from '../../../core/services/global/global.service';
 
 
@@ -89,7 +87,7 @@ export class ProfileComponent implements OnInit {
       dateOfBirth: [''],
       joiningDate: [''],
       leavingDate: [''],
-      designation: ['', Validators.required] 
+      designation: [''] 
     })
   }
 
@@ -137,7 +135,7 @@ export class ProfileComponent implements OnInit {
       address: profile.address || '',
       country: profile.country || '',
       profilePicture: profile.profilePicture || '',
-      designation: profile.designation || '',
+      designation: profile.designation || null,
       dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth) : null,
       joiningDate: profile.joiningDate ? new Date(profile.joiningDate) : null,
       leavingDate: profile.leavingDate ? new Date(profile.leavingDate) : null
@@ -147,7 +145,7 @@ export class ProfileComponent implements OnInit {
   loadDesignations() {
   this.designationServiece.getDesignations().subscribe({
     next: (res) => {
-      this.designations = res;
+      this.designations = res.data || [];
     },
     error: (err) => {
       console.log('Failed to load designations', err);
@@ -229,7 +227,7 @@ export class ProfileComponent implements OnInit {
         joiningDate: formValue.joiningDate,
         leavingDate: formValue.leavingDate,
         profilePicture: currentProfile.profilePicture,
-        designation: formValue.designation,  // These should come from dropdowns in a real app
+        designation: formValue.designation ,  // These should come from dropdowns in a real app
         department: 0,
         subDepartment: 0,
         site: 0,

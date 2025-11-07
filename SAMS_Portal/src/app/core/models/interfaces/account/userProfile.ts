@@ -47,6 +47,7 @@ export interface UserProfileDetails {
   leavingDate?: string; // ISO Date string from API
   phoneNumber?: string;
   email?: string;
+  isEmailVerified?: boolean;
   address?: string;
   country?: string;
   profilePicture?: string;
@@ -75,6 +76,7 @@ export interface UserProfileRequest {
   leavingDate?: Date;
   phoneNumber?: string;
   email?: string;
+  isEmailConfirmed?: boolean;
   address?: string;
   country?: string;
   profilePicture?: string;

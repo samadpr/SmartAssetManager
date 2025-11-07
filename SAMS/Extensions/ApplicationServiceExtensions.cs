@@ -8,6 +8,8 @@ using SAMS.Services.Account;
 using SAMS.Services.Account.Interface;
 using SAMS.Services.Common;
 using SAMS.Services.Common.Interface;
+using SAMS.Services.Company;
+using SAMS.Services.Company.Interface;
 using SAMS.Services.Departments;
 using SAMS.Services.Departments.Interface;
 using SAMS.Services.DesignationServices;
@@ -16,6 +18,8 @@ using SAMS.Services.EmailService;
 using SAMS.Services.EmailService.Interface;
 using SAMS.Services.Functional;
 using SAMS.Services.Functional.Interface;
+using SAMS.Services.Industries;
+using SAMS.Services.Industries.Interface;
 using SAMS.Services.ManageUserRoles;
 using SAMS.Services.ManageUserRoles.Interface;
 using SAMS.Services.Profile;
@@ -79,6 +83,12 @@ namespace SAMS.Extensions
 
             services.AddScoped<ISubDepartmentService, SubDepartmentService>();
             services.AddScoped<ISubDepartmentRepository, SubDepartmentRepository>();
+
+            services.AddScoped<ICompanyService, CompanyService>();
+            services.AddScoped<ICompanyRepository, CompanyRepository>();
+
+            services.AddScoped<IIndustriesService, IndustriesService>();
+            services.AddScoped<IIndustriesRepository, IndustriesRepository>();
 
 
             return services;

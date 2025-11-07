@@ -140,5 +140,23 @@ namespace SAMS.Services.Functional
                 throw new Exception("Error while creating default email settings: " + ex.Message);
             }
         }
+
+        public async Task CreateDefaultIndustriesAsync()
+        {
+            if (!_context.Industries.Any())
+            {
+                var industriesList = _CommonData.GetDefaultIndustriesList();
+                foreach (var industry in industriesList)
+                {
+                    industry.CreatedDate = DateTime.Now;
+                    industry.ModifiedDate = DateTime.Now;
+                    industry.CreatedBy = RoleModels.SuperAdmin;
+                    industry.ModifiedBy = RoleModels.SuperAdmin;
+                    await _context.Industries.AddAsync(industry);
+                }
+                await _context.SaveChangesAsync();
+            }
+        }
+
     }
 }

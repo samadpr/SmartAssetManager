@@ -6,6 +6,7 @@ using SAMS.Models.EmailServiceModels;
 using SAMS.Services.Account.DTOs;
 using SAMS.Services.Account.Interface;
 using SAMS.Services.Common.Interface;
+using SAMS.Services.Company.Interface;
 using SAMS.Services.EmailService.Interface;
 using SAMS.Services.Roles.Interface;
 using SAMS.Services.Roles.PagesModel;
@@ -26,6 +27,7 @@ namespace SAMS.Services.Account
         private readonly IConfiguration _configuration;
         private readonly IRolesService _roleService;
         private readonly IEmailService _emailService;
+        private readonly ICompanyService _companyService;
 
         public AccountService(IAccountRepository accountRepository,
                                  UserManager<ApplicationUser> userManager,
@@ -35,7 +37,8 @@ namespace SAMS.Services.Account
                                  ICommonService commonService,
                                  IConfiguration configuration,
                                  IRolesService roleService,
-                                 IEmailService emailService)
+                                 IEmailService emailService,
+                                 ICompanyService companyService)
         {
             _accountRepository = accountRepository;
             _userManager = userManager;
@@ -46,6 +49,7 @@ namespace SAMS.Services.Account
             _configuration = configuration;
             _roleService = roleService;
             _emailService = emailService;
+            _companyService = companyService;
         }
 
         public async Task<LoginResponseDto> LoginAsync(LoginRequestDto loginRequestDto)
@@ -147,7 +151,19 @@ namespace SAMS.Services.Account
                     _logger.LogWarning("User registration failed: {Error}", error);
                     return (false, error);
                 }
-
+                //create company initial
+                Guid OrganizationId = Guid.NewGuid();
+                var company = new CompanyInfo
+                {
+                    OrganizationId = OrganizationId,
+                };
+                var companyResult = await _companyService.AddCompanyAsync(company, requestDto.Email);
+                if (!companyResult.isSuccess)
+                {
+                    string error = "User registration failed.";
+                    _logger.LogWarning("User registration failed: {Error}", error);
+                    return (false, error);
+                }
 
                 // Create UserProfile
                 var profile = new UserProfile
@@ -160,12 +176,14 @@ namespace SAMS.Services.Account
                     Address = requestDto.Address,
                     Country = requestDto.Country,
                     ProfilePicture = "",
+                    IsAllowLoginAccess = true,
                     RoleId = 2,
                     EmployeeId = "GA-" + StaticData.RandomDigits(6),
                     CreatedDate = DateTime.Now,
                     ModifiedDate = DateTime.Now,
                     CreatedBy = "Admin",
-                    ModifiedBy = requestDto.Email
+                    ModifiedBy = requestDto.Email,
+                    OrganizationId = OrganizationId
                 };
 
                 await _accountRepository.AddUserProfile(profile);
@@ -210,27 +228,74 @@ namespace SAMS.Services.Account
             }
         }
 
-        public async Task<(bool, string)> EmailVarificationAsync(string email, string otpText)
+        public async Task<LoginResponseDto> EmailVarificationAsync(string email, string otpText)
         {
             try
             {
                 var user = await _userManager.FindByEmailAsync(email);
                 if (user == null)
-                    return (false, "User not found");
+                    return new LoginResponseDto
+                    {
+                        IsAuthenticated = false,
+                        Message = "User not found."
+                    };
 
-                var isVerified = await _userManager.ConfirmEmailAsync(user, otpText);
-
-                if (isVerified.Succeeded)
+                // Confirm email
+                var result = await _userManager.ConfirmEmailAsync(user, otpText);
+                if (!result.Succeeded)
                 {
-                    return (true, "Email verified successfully");
+                    return new LoginResponseDto
+                    {
+                        IsAuthenticated = false,
+                        Message = "Email verification failed or OTP invalid."
+                    };
                 }
 
-                return (false, "Email verification failed");
+                // Email confirmed successfully
+                _logger.LogInformation("User {Email} verified email successfully.", user.Email);
+
+                // Automatically sign in
+                await _signInManager.SignInAsync(user, isPersistent: false);
+
+                // Generate JWT token (reuse your existing helper)
+                var loginRequest = new LoginRequestDto
+                {
+                    Email = user.Email!,
+                    RememberMe = true
+                };
+
+                var tokenResponse = await GenerateJwtToken(loginRequest);
+
+                // Get profile info
+                var userProfile = await _accountRepository.GetUserProfileByApplicationUserId(user.Id);
+                tokenResponse.FullName = $"{userProfile?.FirstName} {userProfile?.LastName}";
+                tokenResponse.CreatedBy = userProfile?.CreatedBy;
+                tokenResponse.IsAuthenticated = true;
+                tokenResponse.Message = "Email verified and login successful.";
+                /*// Insert Login History
+                //var loginHistory = new LoginHistory
+                //{
+                //    UserName = user.Email,
+                //    Latitude = null,
+                //    Longitude = null,
+                //    PublicIp = null,
+                //    Browser = "AutoLogin",
+                //    OperatingSystem = "System",
+                //    Device = "AutoLogin",
+                //    Action = "EmailVerificationLogin"
+                //};
+                //await InsertLoginHistory(true, true, loginHistory);*/
+
+                return tokenResponse;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while registering user.");
-                return (false, $"An error occurred: {ex.Message}");
+                return new LoginResponseDto
+                {
+                    IsAuthenticated = false,
+                    Message = $"An error occurred: {ex.Message}"
+                };
             }
         }
 
@@ -520,16 +585,23 @@ namespace SAMS.Services.Account
             return emailBody;
         }
 
-        public async Task<bool> LogoutAsync()
+        public async Task<bool> LogoutAsync(string userMail)
         {
             try
             {
-                var user = await _userManager.GetUserAsync(_signInManager.Context.User!);
+                if (string.IsNullOrEmpty(userMail))
+                    return false;
+
+                var user = await _userManager.FindByEmailAsync(userMail);
+                if (user == null)
+                    return false;
+
                 await _signInManager.SignOutAsync();
 
                 var loginHistory = new LoginHistory
                 {
-                    UserName = user.Email
+                    UserName = user.Email ?? "Unknown",
+                    LogoutTime = DateTime.UtcNow
                 };
 
                 await InsertLoginHistory(false, true, loginHistory);
@@ -558,20 +630,32 @@ namespace SAMS.Services.Account
             {
                 var _LoginHistory = _accountRepository.GetLoginHistory(loginHistory.UserName!);
 
-                loginHistory.UserName = _LoginHistory.UserName;
-                loginHistory.Latitude = _LoginHistory.Latitude;
-                loginHistory.Longitude = _LoginHistory.Longitude;
-                loginHistory.PublicIp = _LoginHistory.PublicIp;
-                loginHistory.Browser = _LoginHistory.Browser;
-                loginHistory.OperatingSystem = _LoginHistory.OperatingSystem;
-                loginHistory.Device = _LoginHistory.Device;
-                loginHistory.LoginTime = _LoginHistory.LoginTime;
-                loginHistory.LogoutTime = DateTime.Now;
-                loginHistory.Duration = (DateTime.Now - _LoginHistory.LoginTime).TotalMinutes;
-                loginHistory.Action = "Logout";
-                loginHistory.ActionStatus = _IsSuccess == true ? "Success" : "Failed";
-                loginHistory.CreatedBy = _LoginHistory.UserName!;
-                loginHistory.ModifiedBy = _LoginHistory.UserName!;
+                if (_LoginHistory != null)
+                {
+                    loginHistory.UserName = _LoginHistory.UserName;
+                    loginHistory.Latitude = _LoginHistory.Latitude;
+                    loginHistory.Longitude = _LoginHistory.Longitude;
+                    loginHistory.PublicIp = _LoginHistory.PublicIp;
+                    loginHistory.Browser = _LoginHistory.Browser;
+                    loginHistory.OperatingSystem = _LoginHistory.OperatingSystem;
+                    loginHistory.Device = _LoginHistory.Device;
+                    loginHistory.LoginTime = _LoginHistory.LoginTime;
+                    loginHistory.LogoutTime = DateTime.Now;
+                    loginHistory.Duration = (DateTime.Now - _LoginHistory.LoginTime).TotalMinutes;
+                    loginHistory.Action = "Logout";
+                    loginHistory.ActionStatus = _IsSuccess ? "Success" : "Failed";
+                    loginHistory.CreatedBy = _LoginHistory.UserName!;
+                    loginHistory.ModifiedBy = _LoginHistory.UserName!;
+                }
+                else
+                {
+                    _logger.LogWarning("No login history found for user {UserName}", loginHistory.UserName);
+                    loginHistory.Action = "Logout";
+                    loginHistory.ActionStatus = _IsSuccess ? "Success" : "Failed";
+                    loginHistory.LogoutTime = DateTime.Now;
+                    loginHistory.CreatedBy = loginHistory.UserName!;
+                    loginHistory.ModifiedBy = loginHistory.UserName!;
+                }
 
             }
             await _commonService.InsertToLoginHistory(loginHistory);

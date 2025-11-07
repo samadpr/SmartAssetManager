@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment.development';
 import { Observable } from 'rxjs';
+import { ApiResponse } from '../../models/interfaces/ApiResponse.interface';
+import { Designation } from '../../models/interfaces/account/designation.model';
 
 export interface DesignationRequest {
   id?: number;
@@ -28,8 +30,8 @@ export class DesignationService {
   }
 
   // 📌 Get All Designations
-  getDesignations(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/get-designations`);
+  getDesignations(): Observable<ApiResponse<Designation[]>> {
+    return this.http.get<ApiResponse<Designation[]>>(`${this.baseUrl}/get-designations`);
   }
 
   // ❌ Delete Designation

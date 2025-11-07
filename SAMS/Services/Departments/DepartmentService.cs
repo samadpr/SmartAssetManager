@@ -70,11 +70,12 @@ public class DepartmentService : IDepartmentService
         }
     }
 
-    public async Task<List<Department>> GetDepartmentsAsync(string targetUserEmail)
+    public async Task<(bool isSuccess, string message, List<Department>? data)> GetDepartmentsAsync(string targetUserEmail)
     {
         var emails = await _commonService.GetEmailsUnderAdminAsync(targetUserEmail);
+        if(emails == null) return (false, "No emails found", null);
         var depts = await _repository.GetDepartmentsForUserAsync(emails.ToList());
-        return depts;
+        return (true, "Departments retrieved successfully", depts);
     }
 
     public async Task<IEnumerable<Department>> GetUserDepartmentsAsync(string email)

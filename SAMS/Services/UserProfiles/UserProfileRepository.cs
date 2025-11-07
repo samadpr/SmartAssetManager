@@ -93,6 +93,8 @@ public class UserProfileRepository : IUserProfileRepository
                                 from objDesignation in _Designation.DefaultIfEmpty()
                                 join _ManageRole in _context.ManageUserRoles on vm.RoleId equals _ManageRole.Id into _ManageRole
                                 from objManageRole in _ManageRole.DefaultIfEmpty()
+                                join _AspNetUser in _context.Users on vm.Email equals _AspNetUser.Email into _AspNetUser
+                                from objAspNetUser in _AspNetUser.DefaultIfEmpty()
                                 where vm.Cancelled == false && vm.Email == userEmail
                                 select new GetProfileDetailsResponseObject
                                 {
@@ -112,6 +114,7 @@ public class UserProfileRepository : IUserProfileRepository
                                     LeavingDate = vm.LeavingDate,
                                     PhoneNumber = vm.PhoneNumber,
                                     Email = vm.Email,
+                                    IsEmailVerified = objAspNetUser != null ? objAspNetUser.EmailConfirmed : false,
                                     Address = vm.Address,
                                     Country = vm.Country,
                                     ProfilePicture = vm.ProfilePicture,
@@ -143,6 +146,8 @@ public class UserProfileRepository : IUserProfileRepository
                                 from objDesignation in _Designation.DefaultIfEmpty()
                                 join _ManageRole in _context.ManageUserRoles on vm.RoleId equals _ManageRole.Id into _ManageRole
                                 from objManageRole in _ManageRole.DefaultIfEmpty()
+                                join _AspNetUser in _context.Users on vm.Email equals _AspNetUser.Email into _AspNetUser
+                                from objAspNetUser in _AspNetUser.DefaultIfEmpty()
                                 where !vm.Cancelled && emails.Contains(vm.CreatedBy)
                                 orderby vm.CreatedDate descending
                                 select new GetProfileDetailsResponseObject
@@ -163,6 +168,7 @@ public class UserProfileRepository : IUserProfileRepository
                                     LeavingDate = vm.LeavingDate,
                                     PhoneNumber = vm.PhoneNumber,
                                     Email = vm.Email,
+                                    IsEmailVerified = objAspNetUser != null ? objAspNetUser.EmailConfirmed : false,
                                     Address = vm.Address,
                                     Country = vm.Country,
                                     ProfilePicture = vm.ProfilePicture,

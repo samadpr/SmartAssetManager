@@ -14,6 +14,9 @@ import { authGuard } from './core/guards/auth.guard';
 import { ManageRolesComponent } from './pages/roles/manage-roles/manage-roles.component';
 import { DepartmentComponent } from './pages/department-subdepartment/department/department.component';
 import { SubDepartmentComponent } from './pages/department-subdepartment/sub-department/sub-department.component';
+import { UserEmailVerificationComponent } from './pages/users/user-email-verification/user-email-verification.component';
+import { CompanyComponent } from './pages/company/company/company.component';
+import { CompanyOnboardingComponent } from './pages/company/company-onboarding/company-onboarding.component';
 
 export const routes: Routes = [
     {
@@ -32,6 +35,15 @@ export const routes: Routes = [
     {
         path: 'confirmotp',
         component: ConfirmotpComponent
+    },
+    {
+        path: 'company-onboarding',
+        component: CompanyOnboardingComponent,
+        canActivate: [authGuard]
+    },
+    {
+        path: 'user-email-verification',
+        component: UserEmailVerificationComponent
     },
     {
         path: '',
@@ -77,6 +89,10 @@ export const routes: Routes = [
             {
                 path: 'settings',
                 component: SettingsComponent
+            },
+            {
+                path: 'company',
+                component: CompanyComponent
             }
         ]
     }

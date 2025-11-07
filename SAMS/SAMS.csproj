@@ -32,4 +32,10 @@
     <PackageReference Include="UAParser" Version="3.1.47" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\Company\DTOs\" />
+    <Folder Include="Services\Industrie\DTOs\" />
+    <Folder Include="wwwroot\uploads\profile\" />
+  </ItemGroup>
+
 </Project>

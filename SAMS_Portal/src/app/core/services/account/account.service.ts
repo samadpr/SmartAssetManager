@@ -3,6 +3,7 @@ import { Injectable, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment.development';
 import { loginresponse, registerconfirm, userLogin, userRegister } from '../../models/interfaces/account/user.model';
+import { ApiResponse } from '../../models/interfaces/ApiResponse.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -23,7 +24,7 @@ export class AccountService {
   }
 
   confirmRegistration(_data: registerconfirm) {
-    return this.http.post(this.baseUrl + '/account/email-confirmation', _data);
+    return this.http.post<loginresponse>(this.baseUrl + '/account/email-confirmation', _data);
   }
 
   resendVerificationCode(email: string) {
@@ -33,9 +34,14 @@ export class AccountService {
     );
   }
 
-  proceedLogin(_data: userLogin){
+  proceedLogin(_data: userLogin) {
     return this.http.post<loginresponse>(this.baseUrl + '/account/login', _data);
   }
+
+  logout(): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.baseUrl}/account/logout`, {});
+  }
+
 
   // getProfileData(): Observable<UserProfile> {
   //   return this.http.get<UserProfile>(`${this.baseUrl}/account/get-profile-Data`);

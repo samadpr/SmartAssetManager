@@ -1,0 +1,137 @@
+
+<div class="verification-container">
+  <!-- Loading State -->
+  <ng-container *ngIf="verificationState.loading">
+    <div class="verification-wrapper" @slideIn>
+      <mat-card class="verification-card loading-card">
+        <mat-card-header>
+          <div class="card-header-content">
+            <mat-icon class="header-icon loading-icon">{{ icons.loading }}</mat-icon>
+            <h1 class="header-title">Email Verification</h1>
+          </div>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="loading-content">
+            <div class="spinner-wrapper">
+              <mat-spinner diameter="60" strokeWidth="4"></mat-spinner>
+            </div>
+            <p class="loading-message">{{ verificationState.message }}</p>
+            <p class="loading-subtitle">Please wait while we verify your email address</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </ng-container>
+
+  <!-- Success State -->
+  <ng-container *ngIf="!verificationState.loading && verificationState.success">
+    <div class="verification-wrapper" @fadeIn>
+      <mat-card class="verification-card success-card" [class.status-success]="true">
+        <mat-card-header>
+          <div class="card-header-content">
+            <mat-icon class="header-icon success-icon">{{ icons.success }}</mat-icon>
+            <h1 class="header-title">Success!</h1>
+          </div>
+        </mat-card-header>
+
+        <mat-divider></mat-divider>
+
+        <mat-card-content>
+          <div class="success-content">
+            <p class="main-message">{{ verificationState.message }}</p>
+            
+            <div class="confirmation-details">
+              <div class="detail-item">
+                <mat-icon class="detail-icon">email</mat-icon>
+                <span class="detail-text">Your email has been verified</span>
+              </div>
+              <div class="detail-item">
+                <mat-icon class="detail-icon">shield</mat-icon>
+                <span class="detail-text">Your account is now secure</span>
+              </div>
+            </div>
+
+            <p class="info-text" *ngIf="verificationState.isLoginAccess">
+              <mat-icon class="info-icon">info</mat-icon>
+              Redirecting to login in a few seconds...
+            </p>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-stroked-button 
+                  color="primary" 
+                  (click)="navigateToHome()"
+                  class="action-button">
+            <mat-icon>dashboard</mat-icon>
+            Go to Dashboard
+          </button>
+
+          <button mat-raised-button 
+                  color="primary" 
+                  (click)="navigateToLogin()"
+                  class="action-button">
+            <mat-icon>{{ icons.redirect }}</mat-icon>
+            Go to Login
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </ng-container>
+
+  <!-- Error State -->
+  <ng-container *ngIf="!verificationState.loading && !verificationState.success">
+    <div class="verification-wrapper" @fadeIn>
+      <mat-card class="verification-card error-card" [class.status-error]="true">
+        <mat-card-header>
+          <div class="card-header-content">
+            <mat-icon class="header-icon error-icon">{{ icons.error }}</mat-icon>
+            <h1 class="header-title">Verification Failed</h1>
+          </div>
+        </mat-card-header>
+
+        <mat-divider></mat-divider>
+
+        <mat-card-content>
+          <div class="error-content">
+            <p class="main-message">{{ verificationState.message }}</p>
+            
+            <div class="error-details">
+              <div class="detail-item">
+                <mat-icon class="detail-icon">warning</mat-icon>
+                <span class="detail-text">The verification link may have expired</span>
+              </div>
+              <div class="detail-item">
+                <mat-icon class="detail-icon">link_off</mat-icon>
+                <span class="detail-text">Please request a new verification email</span>
+              </div>
+            </div>
+
+            <p class="help-text">
+              If you continue to experience issues, please contact our support team.
+            </p>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-stroked-button 
+                  (click)="navigateToHome()"
+                  class="action-button">
+            <mat-icon>home</mat-icon>
+            Back to Home
+          </button>
+
+          <button mat-raised-button 
+                  color="warn" 
+                  (click)="navigateToLogin()"
+                  class="action-button">
+            <mat-icon>login</mat-icon>
+            Go to Login
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </ng-container>
+</div>
+

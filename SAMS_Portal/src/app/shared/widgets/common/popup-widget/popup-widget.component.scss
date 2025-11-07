@@ -1,7 +1,7 @@
-// enhanced-popup-widget.component.scss - Updated for Angular 19 with Country Service
+// popup-widget.component.scss - Complete with colSpan fix & email verification
 @use '@angular/material' as mat;
 
-// Design System Variables for Angular 19 Material Design 3
+// Design System Variables
 :host {
   --popup-radius: 24px;
   --compact-radius: 16px;
@@ -48,15 +48,9 @@
       gap: var(--compact-grid-gap);
     }
   }
-
-  // Material Design 3 color scheme adaptation
-  @media (prefers-color-scheme: dark) {
-    background: var(--mat-sys-surface-container);
-    box-shadow: var(--mat-sys-elevation-4);
-  }
 }
 
-// Enhanced Header Styles with MD3 tokens
+// Enhanced Header Styles
 .popup-header {
   background: linear-gradient(135deg, 
     var(--mat-sys-primary-container) 0%, 
@@ -320,129 +314,7 @@
   }
 }
 
-// Country Selection Styles
-.country-option {
-  .country-option-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-
-    .country-flag {
-      width: var(--flag-size);
-      height: var(--flag-size);
-      border-radius: var(--mat-sys-corner-extra-small);
-      object-fit: cover;
-      flex-shrink: 0;
-      box-shadow: var(--mat-sys-elevation-1);
-    }
-
-    .country-name {
-      flex: 1;
-      font: var(--mat-sys-body-medium);
-      color: var(--mat-sys-on-surface);
-    }
-
-    .country-code {
-      font: var(--mat-sys-body-small);
-      color: var(--mat-sys-on-surface-variant);
-      opacity: 0.7;
-    }
-  }
-}
-
-// Country Display in View Mode
-.country-display,
-.country-display-value {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  .country-flag-small {
-    width: var(--flag-size-small);
-    height: var(--flag-size-small);
-    border-radius: var(--mat-sys-corner-extra-small);
-    object-fit: cover;
-    box-shadow: var(--mat-sys-elevation-1);
-  }
-
-  .country-flag-inline {
-    width: var(--flag-size-inline);
-    height: var(--flag-size-inline);
-    border-radius: var(--mat-sys-corner-extra-small);
-    object-fit: cover;
-    margin-right: 4px;
-  }
-
-  .country-name {
-    font: var(--mat-sys-body-medium);
-    color: var(--mat-sys-on-surface);
-  }
-}
-
-// User Stats Cards with MD3
-.user-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin: 24px 0;
-
-  .stat-card {
-    background: var(--mat-sys-surface-container-low);
-    border: 1px solid var(--mat-sys-outline-variant);
-    border-radius: var(--mat-sys-corner-large);
-    transition: var(--transition);
-
-    &:hover {
-      background: var(--mat-sys-surface-container);
-      transform: translateY(-2px);
-      box-shadow: var(--mat-sys-elevation-2);
-    }
-
-    .mat-mdc-card-content {
-      padding: 16px;
-
-      .stat-content {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .stat-icon {
-          color: var(--mat-sys-primary);
-          font-size: 24px;
-          width: 24px;
-          height: 24px;
-        }
-
-        .stat-info {
-          flex: 1;
-
-          .stat-label {
-            margin: 0 0 4px;
-            font: var(--mat-sys-label-small);
-            color: var(--mat-sys-on-surface-variant);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-
-          .stat-value {
-            margin: 0;
-            font: var(--mat-sys-body-medium);
-            color: var(--mat-sys-on-surface);
-
-            &.country-display {
-              .country-flag-small {
-                margin-right: 6px;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-// Content Styles with MD3
+// Content Styles
 .popup-content {
   flex: 1;
   padding: 24px;
@@ -450,7 +322,6 @@
   max-height: calc(90vh - 200px);
   background: var(--mat-sys-surface);
 
-  // Modern scrollbar styling
   &::-webkit-scrollbar {
     width: 8px;
   }
@@ -472,7 +343,7 @@
   scrollbar-color: var(--mat-sys-outline-variant) transparent;
 }
 
-// Enhanced Form Grid Layout with MD3
+// 🔥 CRITICAL FIX: Proper grid layout for colSpan
 .form-grid {
   display: grid;
   gap: var(--grid-gap);
@@ -483,21 +354,36 @@
   }
 
   &.grid-2-column {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   &.compact {
     gap: var(--compact-grid-gap);
   }
 
+  // 🔥 FIX: Make field-wrapper a proper grid item
   .field-wrapper {
-    display: contents;
+    min-width: 0;
+    
+    // Default: span 1 column
+    grid-column: span 1;
 
-    &.span-1 { grid-column: span 1; }
-    &.span-2 { grid-column: span 2; }
-    &.break-after { grid-column: 1 / -1; }
+    &.span-2 { 
+      grid-column: span 2; 
+    }
+    
+    &.break-after { 
+      grid-column: 1 / -1; 
+    }
 
-    // Enhanced form field styling for Angular 19
+    // Email verification container
+    &.has-email-verification {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    // Enhanced form field styling
     .form-field {
       width: 100%;
       margin-bottom: 0;
@@ -551,7 +437,7 @@
       }
     }
 
-    // Enhanced checkbox styling with MD3
+    // Enhanced checkbox styling
     .checkbox-field {
       padding: 16px;
       border-radius: var(--mat-sys-corner-large);
@@ -592,7 +478,7 @@
       }
     }
 
-    // Enhanced radio styling with MD3
+    // Enhanced radio styling
     .radio-field {
       padding: 16px;
       border-radius: var(--mat-sys-corner-large);
@@ -642,7 +528,163 @@
   }
 }
 
-// Enhanced View Grid Layout with MD3
+// 🆕 EMAIL VERIFICATION TOGGLE STYLES
+.email-verification-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: var(--mat-sys-corner-medium);
+  border: 1px solid var(--mat-sys-outline-variant);
+  transition: var(--transition);
+  margin-top: -8px;
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+    border-color: var(--mat-sys-outline);
+  }
+
+  .verification-toggle {
+    flex: 1;
+
+    ::ng-deep {
+      .mdc-form-field {
+        width: 100%;
+      }
+
+      .mdc-switch {
+        margin-right: 12px;
+      }
+
+      .mdc-label {
+        font: var(--mat-sys-body-medium);
+        color: var(--mat-sys-on-surface);
+      }
+    }
+  }
+
+  .toggle-label {
+    font: var(--mat-sys-body-medium);
+    color: var(--mat-sys-on-surface);
+    user-select: none;
+  }
+
+  .info-button {
+    flex-shrink: 0;
+    // width: 32px;
+    // height: 32px;
+    transition: var(--transition);
+
+    .info-icon {
+      font-size: 20px;
+      width: 20px;
+      // height: 20px;
+      color: var(--mat-sys-primary);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    &:hover {
+      background: var(--mat-sys-primary-container);
+      transform: scale(1.1);
+
+      .info-icon {
+        color: var(--mat-sys-on-primary-container);
+        animation: none;
+      }
+    }
+  }
+}
+
+// Pulse animation for info icon
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+// Custom tooltip styling for verification info
+::ng-deep .verification-tooltip {
+  max-width: 350px !important;
+  font: var(--mat-sys-body-small) !important;
+  line-height: 1.5 !important;
+  padding: 12px 16px !important;
+  background: var(--mat-sys-inverse-surface) !important;
+  color: var(--mat-sys-inverse-on-surface) !important;
+  border-radius: var(--mat-sys-corner-medium) !important;
+  box-shadow: var(--mat-sys-elevation-2) !important;
+
+  .mdc-tooltip__surface {
+    max-width: 350px !important;
+  }
+}
+
+// Country Selection Styles
+.country-option {
+  .country-option-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+
+    .country-flag {
+      width: var(--flag-size);
+      height: var(--flag-size);
+      border-radius: var(--mat-sys-corner-extra-small);
+      object-fit: cover;
+      flex-shrink: 0;
+      box-shadow: var(--mat-sys-elevation-1);
+    }
+
+    .country-name {
+      flex: 1;
+      font: var(--mat-sys-body-medium);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .country-code {
+      font: var(--mat-sys-body-small);
+      color: var(--mat-sys-on-surface-variant);
+      opacity: 0.7;
+    }
+  }
+}
+
+// Country Display in View Mode
+.country-display,
+.country-display-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .country-flag-small {
+    width: var(--flag-size-small);
+    height: var(--flag-size-small);
+    border-radius: var(--mat-sys-corner-extra-small);
+    object-fit: cover;
+    box-shadow: var(--mat-sys-elevation-1);
+  }
+
+  .country-flag-inline {
+    width: var(--flag-size-inline-width);
+    height: var(--flag-size-inline);
+    border-radius: var(--mat-sys-corner-extra-small);
+    object-fit: cover;
+    margin-right: 4px;
+  }
+
+  .country-name {
+    font: var(--mat-sys-body-medium);
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+// Enhanced View Grid Layout
 .view-grid {
   display: grid;
   gap: var(--grid-gap);
@@ -653,7 +695,7 @@
   }
 
   &.grid-2-column {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   &.compact {
@@ -661,10 +703,11 @@
   }
 
   .view-field {
+    min-width: 0;
+    
     &.span-1 { grid-column: span 1; }
     &.span-2 { grid-column: span 2; }
     &.break-after { grid-column: 1 / -1; }
-    &[data-col-span="2"] { grid-column: 1 / -1; }
 
     .field-display {
       background: var(--mat-sys-surface-container-low);
@@ -770,6 +813,41 @@
         }
       }
     }
+
+    // 🆕 Email verification status in view mode
+    .email-verification-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: var(--mat-sys-surface-container-lowest);
+      border-radius: var(--mat-sys-corner-small);
+      border: 1px solid var(--mat-sys-outline-variant);
+
+      .status-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+
+        &.verified {
+          color: var(--mat-sys-primary);
+        }
+
+        &.not-verified {
+          color: var(--mat-sys-on-surface-variant);
+        }
+      }
+
+      .status-text {
+        font: var(--mat-sys-body-small);
+        color: var(--mat-sys-on-surface-variant);
+
+        &.verified {
+          color: var(--mat-sys-primary);
+        }
+      }
+    }
   }
 }
 
@@ -795,7 +873,7 @@
   }
 }
 
-// Enhanced Action Buttons with MD3
+// Enhanced Action Buttons
 .popup-actions {
   padding: 24px;
   border-top: 1px solid var(--mat-sys-outline-variant);
@@ -852,7 +930,7 @@
   }
 }
 
-// Responsive Design with proper breakpoints
+// Responsive Design
 @media (max-width: 768px) {
   .enhanced-popup-container {
     min-width: 350px;
@@ -894,8 +972,14 @@
       max-height: calc(85vh - 160px);
     }
 
-    .user-stats {
-      grid-template-columns: 1fr;
+    .email-verification-toggle {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+
+      .info-button {
+        align-self: flex-end;
+      }
     }
 
     .form-grid,
@@ -911,19 +995,6 @@
           }
         }
       }
-
-      .field-wrapper,
-      .view-field {
-        &[data-field-type="textarea"],
-        &[data-col-span="2"] {
-          grid-column: 1 / -1;
-          
-          .field-display,
-          .form-field {
-            width: 100%;
-          }
-        }
-      }
     }
 
     .popup-actions {
@@ -936,7 +1007,6 @@
       }
     }
 
-    // Mobile country option styling
     .country-option .country-option-content {
       .country-flag {
         width: var(--flag-size-small);
@@ -992,8 +1062,16 @@
     border: 2px solid var(--mat-sys-outline);
   }
 
+  .email-verification-toggle {
+    border-width: 2px;
+  }
+
   .popup-actions button[mat-button] {
     border-width: 3px;
+  }
+
+  .info-button .info-icon {
+    font-weight: bold;
   }
 
   .country-flag,
@@ -1009,13 +1087,18 @@
   .popup-header .header-content .close-button,
   .form-grid .field-wrapper .form-field,
   .view-grid .view-field .field-display,
-  .user-stats .stat-card,
-  .popup-actions button {
+  .popup-actions button,
+  .email-verification-toggle,
+  .info-button {
     transition: none;
   }
 
   .image-overlay {
     opacity: 1;
+  }
+
+  .info-icon {
+    animation: none !important;
   }
 }
 

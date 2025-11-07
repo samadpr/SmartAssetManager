@@ -151,6 +151,8 @@ public class UserProfileService : IUserProfileService
 
                 var mapedProfile = _mapper.Map<UserProfile>(userProfileDto);
 
+                mapedProfile.OrganizationId = await _commonService.GetOrganizationIdAsync(createdby);
+
                 var userCreated = await _userProfileRepository.CreateUserProfileAsync(mapedProfile);
 
                 if (userProfileDto.IsEmailConfirmed == true)
@@ -180,7 +182,7 @@ public class UserProfileService : IUserProfileService
                             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
                             // 🔗 Build verification link (Angular route)
-                            var verificationLink = $"{_configuration["AppSettings:ClientUrl"]}/verify-email?userId={_applicationUser.Id}&token={encodedToken}";
+                            var verificationLink = $"{_configuration["AppSettings:ClientUrl"]}/user-email-verification?userId={_applicationUser.Id}&token={encodedToken}";
 
                             // 📧 Send email using your SendMail method
                             var mailSent = await SendMail(_applicationUser.Email!, verificationLink, $"{userProfileDto.FirstName} {userProfileDto.LastName}");
@@ -542,8 +544,15 @@ public class UserProfileService : IUserProfileService
             if (result.Succeeded)
             {
                 _logger.LogInformation("Email confirmed for {Email}", user.Email);
+                var userProfile = await _userProfileRepository.GetProfileData(user.Email!);
+                if (userProfile == null)
+                    return (true, "User profile not found.", false);
 
-                return (true, "Email confirmed successfully.", true);
+                if(userProfile.IsAllowLoginAccess == true && userProfile.ApplicationUserId != null)
+                {
+                    return (true, "Email confirmed successfully.", true);
+                }
+                return (true, "Email confirmed successfully.", false);
             }
 
             return (false, "Email confirmation failed.", false);
@@ -582,7 +591,7 @@ public class UserProfileService : IUserProfileService
             if (userProfilesDeails.responseObject == null || !userProfilesDeails.responseObject.Any())
             {
                 _logger.LogWarning("User profiles not found for email: {Email}", email);
-                return (Enumerable.Empty<GetProfileDetailsResponseObject>(), false, "User profiles not found.");
+                return (Enumerable.Empty<GetProfileDetailsResponseObject>(), true, "User profiles not found.");
             }
 
             return (userProfilesDeails.responseObject, true, "User profiles found.");
@@ -603,8 +612,14 @@ public class UserProfileService : IUserProfileService
             if (getUserProfile.user == null)
                 return (false, getUserProfile.message);
 
+            var user = await _userManager.FindByEmailAsync(userProfileDto.Email!);
+            IdentityResult _identityDeleteResult = null!;
+            var existUser = await _userManager.FindByEmailAsync(getUserProfile.user.Email!);
+            if(existUser != null && existUser.Email != userProfileDto.Email)
+                _identityDeleteResult = await _userManager.DeleteAsync(existUser);
+
             if (getUserProfile.user.ApplicationUserId != null && getUserProfile.user.Email != userProfileDto.Email)
-                return (false, "You hvae not permission to update this user email.");
+                return (false, "You have not permission to update this user email.");
 
             getUserProfile.user.FirstName = userProfileDto.FirstName;
             getUserProfile.user.LastName = userProfileDto.LastName;
@@ -637,8 +652,48 @@ public class UserProfileService : IUserProfileService
             if (!userUpdated.success)
             {
                 _logger.LogWarning("Failed to update user profile: {UserProfileId}", userProfileDto.UserProfileId);
+                return (false, "Failed to update user profile.");
             }
-            return (userUpdated.success, userUpdated.message);
+
+            if (user == null && userProfileDto.IsEmailConfirmed == true)
+            {
+                IdentityResult _identityResult = null!;
+                ApplicationUser _applicationUser = new ApplicationUser()
+                {
+                    UserName = userProfileDto.Email,
+                    PhoneNumber = getUserProfile.user.PhoneNumber,
+                    Email = userProfileDto.Email,
+                };
+
+                _identityResult = await _userManager.CreateAsync(_applicationUser);
+                if (_identityResult.Succeeded)
+                {
+                    _logger.LogInformation("User created successfully with email: {Email}", userProfileDto.Email);
+
+                    // 🔑 Generate confirmation token
+                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(_applicationUser);
+                    var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+                    // 🔗 Build verification link (Angular route)
+                    var verificationLink = $"{_configuration["AppSettings:ClientUrl"]}/user-email-verification?userId={_applicationUser.Id}&token={encodedToken}";
+
+                    // 📧 Send email using your SendMail method
+                    var mailSent = await SendMail(_applicationUser.Email!, verificationLink, $"{userProfileDto.FirstName} {userProfileDto.LastName}");
+
+                    if (!mailSent)
+                    {
+                        _logger.LogWarning("Failed to send verification email to user with email: {Email}", userProfileDto.Email);
+                        return (false, "Failed to send verification email to user.");
+                    }
+                    _logger.LogInformation("Verification email sent to user with email: {Email}", userProfileDto.Email);
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to create user with email: {Email}", userProfileDto.Email);
+                    return (false, "Failed to create application user.");
+                }
+            }
+            return (userUpdated.success, $"{userUpdated.message}, Email sent to: {userProfileDto.Email}, successfully.");
         }
         catch (Exception ex)
         {
@@ -783,10 +838,12 @@ public class UserProfileService : IUserProfileService
                 };
                 if (loginAccessRequestObject.Password.Equals(loginAccessRequestObject.ConfirmPassword))
                 {
-                    var exists = _userManager.Users.Any(u => u.Email == loginAccessRequestObject.Email);
-                    if (exists)
+                    var existingUser = await _userManager.FindByEmailAsync(loginAccessRequestObject.Email!);
+                    if (existingUser != null)
                     {
                         _logger.LogWarning("User already exists with email: {Email}", loginAccessRequestObject.Email);
+
+                        _identityResult = await _userManager.AddPasswordAsync(existingUser, loginAccessRequestObject.Password);
                     }
                     else
                     {
@@ -802,7 +859,7 @@ public class UserProfileService : IUserProfileService
                     getUserProfile.user.ModifiedDate = DateTime.Now;
                     getUserProfile.user.RoleId = loginAccessRequestObject.RoleId;
                     getUserProfile.user.Email = _applicationUser.Email;
-
+                    getUserProfile.user.IsAllowLoginAccess = loginAccessRequestObject.IsAllowLoginAccess;
                     var userUpdated = await _userProfileRepository.UpdateUserProfileAsync(getUserProfile.user);
                     if (!userUpdated.success)
                     {
@@ -846,85 +903,6 @@ public class UserProfileService : IUserProfileService
             
             return (true, "User login access allowed successfully.");
 
-            // if (getUserProfile.user.ApplicationUserId is null && getUserProfile.user.Email == loginAccessRequestObject.Email && roleExists.Id == loginAccessRequestObject.RoleId)
-            // {
-            //     IdentityResult _identityResult = null!;
-            //     ApplicationUser _applicationUser = new ApplicationUser()
-            //     {
-            //         UserName = loginAccessRequestObject.Email,
-            //         PhoneNumber = getUserProfile.user.PhoneNumber,
-            //         Email = loginAccessRequestObject.Email,
-            //         EmailConfirmed = true,
-            //     };
-            //     if (loginAccessRequestObject.Password.Equals(loginAccessRequestObject.ConfirmPassword))
-            //     {
-            //         var exists = _userManager.Users.Any(u => u.Email == loginAccessRequestObject.Email);
-            //         if (exists)
-            //         {
-            //             _logger.LogWarning("User already exists with email: {Email}", loginAccessRequestObject.Email);
-            //         }
-            //         else
-            //         {
-            //             _identityResult = await _userManager.CreateAsync(_applicationUser, loginAccessRequestObject.Password);
-            //         }
-            //     }
-
-            //     if (_identityResult.Succeeded)
-            //     {
-            //         long? roleId = getUserProfile.user.RoleId;
-            //         getUserProfile.user.ApplicationUserId = _applicationUser.Id;
-            //         getUserProfile.user.ModifiedBy = createdBy;
-            //         getUserProfile.user.ModifiedDate = DateTime.Now;
-            //         getUserProfile.user.RoleId = loginAccessRequestObject.RoleId;
-            //         getUserProfile.user.Email = _applicationUser.Email;
-
-            //         var userUpdated = await _userProfileRepository.UpdateUserProfileAsync(getUserProfile.user);
-            //         if (!userUpdated.success)
-            //         {
-            //             _logger.LogWarning("Failed to update user profile: {UserProfileId}", loginAccessRequestObject.UserProfileId);
-            //             return (userUpdated.success, userUpdated.message);
-            //         }
-
-            //         if (roleId != loginAccessRequestObject.RoleId)
-            //         {
-            //             var manageUserRoleDetails = await _manageUserRolesService.GetUserRoleByIdWithRoleDetailsAsync(loginAccessRequestObject.RoleId);
-            //             ManageUserRolesDto manageUserRolesDto = new ManageUserRolesDto()
-            //             {
-            //                 ApplicationUserId = _applicationUser.Id,
-            //                 RolePermissions = manageUserRoleDetails.RolePermissions
-            //             };
-            //             var roleUpdateResult = await _rolesService.UpdateUserRoles(manageUserRolesDto);
-            //             if (!roleUpdateResult.isSuccess)
-            //             {
-            //                 _logger.LogWarning("Failed to update user roles: {UserProfileId}", loginAccessRequestObject.UserProfileId);
-            //                 return (roleUpdateResult.isSuccess, roleUpdateResult.message);
-            //             }
-
-            //             _logger.LogInformation("User login access allowed for user: {UserProfileId}", loginAccessRequestObject.UserProfileId);
-            //             return (true, "User login access allowed successfully." + roleUpdateResult.message);
-            //         }
-            //     }
-            //     else
-            //     {
-            //         foreach (var error in _identityResult.Errors)
-            //         {
-            //             _logger.LogWarning("Failed to create user profile: {UserProfileId}", loginAccessRequestObject.UserProfileId);
-            //             return (false, "Failed to create user profile: " + error.Description);
-            //         }
-            //     }
-            // }
-            // else if (getUserProfile.user.ApplicationUserId is not null && getUserProfile.user.Email == loginAccessRequestObject.Email)
-            // {
-            //     _logger.LogWarning("You hvae not permission to update this user email.");
-            //     return (false, "You hvae not permission to update this user email.");
-            // }
-            // else
-            // {
-            //     _logger.LogWarning("User already exists with email: {Email}", loginAccessRequestObject.Email);
-            //     return (false, "User already exists with email: " + loginAccessRequestObject.Email);
-            // }
-            // _logger.LogInformation("User login access allowed for user: {UserProfileId}", loginAccessRequestObject.UserProfileId);
-            // return (true, "User login access allowed successfully.");
         }
         catch (Exception ex)
         {
@@ -1030,7 +1008,7 @@ public class UserProfileService : IUserProfileService
                     getUserProfile.user.RoleId = null;
                     getUserProfile.user.ModifiedBy = modifiedBy;
                     getUserProfile.user.ModifiedDate = DateTime.Now;
-
+                    getUserProfile.user.IsAllowLoginAccess = false;
                     var userUpdated = await _userProfileRepository.UpdateUserProfileAsync(getUserProfile.user);
                     if (!userUpdated.success)
                     {

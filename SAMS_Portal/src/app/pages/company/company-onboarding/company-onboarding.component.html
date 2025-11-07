@@ -1,0 +1,253 @@
+<div class="onboarding-container" [@fadeIn]>
+    <!-- Progress Bar -->
+    <div class="progress-bar-container">
+        <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="progressPercentage()"></div>
+        </div>
+        <div class="progress-text">
+            Step {{ currentStep() + 1 }} of 4
+        </div>
+    </div>
+
+    <!-- Main Content Card -->
+    <mat-card class="onboarding-card" [@scaleIn]>
+        <mat-card-content>
+
+            <!-- Step 1: Select Industry -->
+            @if (currentStep() === 0) {
+            <div class="step-container" [@slideInOut]>
+                <div class="step-header">
+                    <div class="icon-container">
+                        <mat-icon class="step-icon">business_center</mat-icon>
+                    </div>
+                    <h2 class="step-title">Select Your Industry</h2>
+                    <p class="step-subtitle">Choose the industry that best describes your business</p>
+                </div>
+
+                <form [formGroup]="industryForm" class="step-form">
+                    @if (isLoading()) {
+                    <div class="loading-container">
+                        <mat-progress-spinner [diameter]="50" mode="indeterminate" color="primary">
+                        </mat-progress-spinner>
+                        <p class="loading-text">Loading industries...</p>
+                    </div>
+                    } @else {
+                    <mat-radio-group formControlName="industriesId" class="industry-radio-group">
+                        @for (industry of industries(); track industry.id) {
+                        <mat-card class="industry-card"
+                            [class.selected]="industryForm.value.industriesId === industry.id"
+                            (click)="industryForm.patchValue({industriesId: industry.id})">
+                            <mat-radio-button [value]="industry.id" class="industry-radio">
+                                <div class="industry-content">
+                                    <h3 class="industry-name">{{ industry.name }}</h3>
+                                    @if (industry.description) {
+                                    <p class="industry-description">{{ industry.description }}</p>
+                                    }
+                                </div>
+                            </mat-radio-button>
+                        </mat-card>
+                        }
+                    </mat-radio-group>
+                    }
+                </form>
+
+                <div class="step-actions">
+                    <button mat-raised-button color="primary" (click)="nextStep()"
+                        [disabled]="industryForm.invalid || isLoading()" class="next-button">
+                        Next
+                        <mat-icon>arrow_forward</mat-icon>
+                    </button>
+                </div>
+            </div>
+            }
+
+            <!-- Step 2: Basic Company Info -->
+            @if (currentStep() === 1) {
+            <div class="step-container" [@slideInOut]>
+                <div class="step-header">
+                    <div class="icon-container">
+                        <mat-icon class="step-icon">info</mat-icon>
+                    </div>
+                    <h2 class="step-title">Company Information</h2>
+                    <p class="step-subtitle">Tell us about your company</p>
+                </div>
+
+                <form [formGroup]="basicInfoForm" class="step-form">
+                    <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>Company Name</mat-label>
+                        <input matInput formControlName="name" placeholder="Enter company name">
+                        <mat-icon matSuffix>business</mat-icon>
+                        <mat-error *ngIf="basicInfoForm.get('name')?.hasError('required')">
+                            Company name is required
+                        </mat-error>
+                        <mat-error *ngIf="basicInfoForm.get('name')?.hasError('minlength')">
+                            Name must be at least 2 characters
+                        </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>Company Email</mat-label>
+                        <input matInput type="email" formControlName="email" placeholder="company@example.com">
+                        <mat-icon matSuffix>email</mat-icon>
+                        <mat-error *ngIf="basicInfoForm.get('email')?.hasError('required')">
+                            Email is required
+                        </mat-error>
+                        <mat-error *ngIf="basicInfoForm.get('email')?.hasError('email')">
+                            Please enter a valid email
+                        </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>Company Phone</mat-label>
+                        <input matInput type="tel" formControlName="phone" placeholder="+1234567890">
+                        <mat-icon matSuffix>phone</mat-icon>
+                        <mat-error *ngIf="basicInfoForm.get('phone')?.hasError('required')">
+                            Phone number is required
+                        </mat-error>
+                        <mat-error *ngIf="basicInfoForm.get('phone')?.hasError('pattern')">
+                            Please enter a valid phone number
+                        </mat-error>
+                    </mat-form-field>
+                </form>
+
+                <div class="step-actions">
+                    <button mat-button (click)="previousStep()" class="back-button">
+                        <mat-icon>arrow_back</mat-icon>
+                        Back
+                    </button>
+                    <button mat-raised-button color="primary" (click)="nextStep()" [disabled]="basicInfoForm.invalid"
+                        class="next-button">
+                        Next
+                        <mat-icon>arrow_forward</mat-icon>
+                    </button>
+                </div>
+            </div>
+            }
+
+            <!-- Step 3: Address (Optional) -->
+            @if (currentStep() === 2) {
+            <div class="step-container" [@slideInOut]>
+                <div class="step-header">
+                    <div class="icon-container">
+                        <mat-icon class="step-icon">location_on</mat-icon>
+                    </div>
+                    <h2 class="step-title">Company Address</h2>
+                    <p class="step-subtitle">Add your company location (optional)</p>
+                </div>
+
+                <form [formGroup]="addressForm" class="step-form">
+                    <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>Street Address</mat-label>
+                        <textarea matInput formControlName="address" placeholder="Enter street address"
+                            rows="2"></textarea>
+                        <mat-icon matSuffix>home</mat-icon>
+                    </mat-form-field>
+
+                    <div class="form-row">
+                        <mat-form-field appearance="outline" class="half-width">
+                            <mat-label>City</mat-label>
+                            <input matInput formControlName="city" placeholder="Enter city">
+                            <mat-icon matSuffix>location_city</mat-icon>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" class="half-width">
+                            <mat-label>Country</mat-label>
+                            <mat-select formControlName="country">
+                                @for (country of countries(); track country.code) {
+                                <mat-option [value]="country.name">
+                                    <img [src]="getFlagUrl(country.code)" width="24" height="16"
+                                        style="margin-right: 8px; vertical-align: middle;" />
+                                    {{ country.name }}
+                                </mat-option>
+                                }
+                            </mat-select>
+                            <mat-icon matSuffix>public</mat-icon>
+                        </mat-form-field>
+                    </div>
+                </form>
+
+                <div class="step-actions">
+                    <button mat-button (click)="previousStep()" class="back-button">
+                        <mat-icon>arrow_back</mat-icon>
+                        Back
+                    </button>
+                    <button mat-button (click)="skipStep()" class="skip-button">
+                        Skip
+                    </button>
+                    <button mat-raised-button color="primary" (click)="nextStep()" class="next-button">
+                        Next
+                        <mat-icon>arrow_forward</mat-icon>
+                    </button>
+                </div>
+            </div>
+            }
+
+            <!-- Step 4: Website (Optional) -->
+            @if (currentStep() === 3) {
+            <div class="step-container" [@slideInOut]>
+                <div class="step-header">
+                    <div class="icon-container">
+                        <mat-icon class="step-icon">language</mat-icon>
+                    </div>
+                    <h2 class="step-title">Company Website</h2>
+                    <p class="step-subtitle">Add your website URL (optional)</p>
+                </div>
+
+                <form [formGroup]="websiteForm" class="step-form">
+                    <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>Website URL</mat-label>
+                        <input matInput formControlName="website" placeholder="https://www.example.com">
+                        <mat-icon matSuffix>link</mat-icon>
+                        <mat-error *ngIf="websiteForm.get('website')?.hasError('pattern')">
+                            Please enter a valid URL
+                        </mat-error>
+                    </mat-form-field>
+
+                    <div class="info-box">
+                        <mat-icon>info</mat-icon>
+                        <p>You can update this information later from your company settings.</p>
+                    </div>
+                </form>
+
+                <div class="step-actions">
+                    <button mat-button (click)="previousStep()" class="back-button">
+                        <mat-icon>arrow_back</mat-icon>
+                        Back
+                    </button>
+                    <button mat-button (click)="skipStep()" class="skip-button">
+                        Skip
+                    </button>
+                    <button mat-raised-button color="primary" (click)="submitCompany()" [disabled]="isSubmitting()"
+                        class="submit-button">
+                        @if (isSubmitting()) {
+                        <ng-container>
+                            <mat-progress-spinner [diameter]="20" mode="indeterminate"
+                                color="accent"></mat-progress-spinner>
+                            <span>Setting up...</span>
+                        </ng-container>
+                        } @else {
+                        <ng-container>
+                            <mat-icon>check_circle</mat-icon>
+                            <span>Complete Setup</span>
+                        </ng-container>
+                        }
+                    </button>
+                </div>
+            </div>
+            }
+
+        </mat-card-content>
+    </mat-card>
+
+    <!-- Loading Overlay -->
+    @if (isSubmitting()) {
+    <div class="loading-overlay" [@fadeIn]>
+        <div class="loading-content">
+            <mat-progress-spinner [diameter]="80" mode="indeterminate" color="primary">
+            </mat-progress-spinner>
+            <h3>Setting up your workspace...</h3>
+            <p>Please wait while we prepare everything for you</p>
+        </div>
+    </div>
+    }
+</div>
