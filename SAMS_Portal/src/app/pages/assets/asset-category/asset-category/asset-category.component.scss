@@ -1,0 +1,39 @@
+// Asset Categories Page Styles
+.asset-categories-page {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+    .asset-categories-page {
+        border: 2px solid var(--mat-sys-outline);
+        padding: 22px;
+    }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+    .asset-categories-page {
+        animation: none;
+    }
+}
+
+// Print styles
+@media print {
+    .asset-categories-page {
+        padding: 0;
+        background: white;
+    }
+}

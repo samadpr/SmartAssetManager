@@ -18,7 +18,7 @@
       <!-- Actions Section -->
       <div class="header-actions">
         <!-- Search -->
-        <div class="search-section" *ngIf="config?.showSearch">
+        <div class="search-section" *ngIf="config.showSearch">
           <mat-form-field appearance="outline" class="search-field">
             <mat-label>Search</mat-label>
             <input matInput [formControl]="searchControl" placeholder="Search all columns">
@@ -36,7 +36,7 @@
 
           <!-- Delete Selected Button (only visible when items selected) -->
           <button mat-icon-button 
-                  *ngIf="hasSelection() && config?.showSelectionActions" 
+                  *ngIf="hasSelection() && config.showSelectionActions" 
                   (click)="onDeleteSelected()"
                   matTooltip="Delete Selected ({{ selectedCount() }})"
                   class="header-btn delete-selected-btn"
@@ -51,7 +51,7 @@
           </button>
           <mat-menu #columnMenu="matMenu" class="column-menu">
             <div class="menu-header">Visible Columns</div>
-            <button mat-menu-item *ngFor="let column of config?.columns" 
+            <button mat-menu-item *ngFor="let column of config.columns" 
                     (click)="toggleColumn(column)" class="column-menu-item">
               <mat-checkbox [checked]="column.visible !== false" 
                           (change)="toggleColumn(column)"
@@ -62,7 +62,7 @@
           </mat-menu>
 
           <!-- Refresh -->
-          <button mat-icon-button *ngIf="config?.showRefresh" 
+          <button mat-icon-button *ngIf="config.showRefresh" 
                   (click)="onRefreshClick()" 
                   matTooltip="Refresh" class="header-btn">
             <mat-icon>refresh</mat-icon>
@@ -70,7 +70,7 @@
 
           <!-- Export Menu with Options -->
           <button mat-icon-button 
-                  *ngIf="config?.showDownload && dataSource.data.length" 
+                  *ngIf="config.showDownload && dataSource.data.length" 
                   [matMenuTriggerFor]="exportMenu"
                   matTooltip="Export Options" 
                   class="header-btn">
@@ -90,7 +90,7 @@
           </mat-menu>
 
           <!-- Add Button -->
-          <button mat-raised-button color="primary" *ngIf="config?.showAdd" 
+          <button mat-raised-button color="primary" *ngIf="config.showAdd" 
                   (click)="onAddClick()" class="add-button">
             <mat-icon>add</mat-icon>
             {{ config.addButtonLabel || 'Add New' }}
@@ -124,7 +124,7 @@
            [class.selectable]="config.selectable">
 
       <!-- Selection Column -->
-      <ng-container matColumnDef="select" *ngIf="config?.selectable">
+      <ng-container matColumnDef="select" *ngIf="config.selectable">
         <th mat-header-cell *matHeaderCellDef class="select-header">
           <mat-checkbox [checked]="isAllSelected()"
                         [indeterminate]="isIndeterminate()"
@@ -242,11 +242,11 @@
       </ng-container>
 
       <!-- Actions Column -->
-      <ng-container matColumnDef="actions" *ngIf="config?.actions?.length">
+      <ng-container matColumnDef="actions" *ngIf="config.actions?.length">
         <th mat-header-cell *matHeaderCellDef class="actions-header">Actions</th>
         <td mat-cell *matCellDef="let row" class="actions-cell">
           <div class="action-buttons-cell">
-            <button *ngFor="let action of config?.actions" 
+            <button *ngFor="let action of config.actions" 
                     mat-icon-button
                     [color]="action.color || 'primary'"
                     [matTooltip]="action.tooltip || action.label"

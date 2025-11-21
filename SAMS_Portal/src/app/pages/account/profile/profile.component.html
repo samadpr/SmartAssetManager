@@ -3,311 +3,355 @@
   ]">
 </app-page-header>
 
-<div class="profile-container">
-  <div class="loading-overlay" *ngIf="isLoading()">
-    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+<div class="profile-container" [@fadeIn]>
+  <!-- Loading State -->
+  @if (isLoading()) {
+  <div class="loading-container">
+    <mat-progress-spinner [diameter]="60" mode="indeterminate" color="primary"></mat-progress-spinner>
+    <p class="loading-text">Loading profile...</p>
   </div>
+  }
 
-  <mat-card class="profile-header-card" [@slideInFromTop]>
-    <div class="profile-header">
+  @if (!isLoading() && profileDetails()) {
+  <!-- Hero Card with Profile Picture -->
+  <mat-card class="hero-card" [@slideIn]>
+    <div class="hero-background"></div>
+    <div class="hero-content">
       <div class="profile-picture-section">
-        <div class="profile-picture-container">
-          <img [src]="profilePictureUrl()" [alt]="fullName() + ' Profile Picture'" class="profile-picture"
-            [@profilePictureAnimation] />
-          <div class="picture-overlay" *ngIf="isEditing()" (click)="openProfilePictureDialog()">
+        <div class="profile-picture-container" [class.editable]="isEditing()">
+          <img [src]="profilePictureUrl()" [alt]="fullName() + ' Profile Picture'" class="profile-picture" />
+          @if (isEditing()) {
+          <div class="picture-overlay" (click)="openProfilePictureDialog()">
             <mat-icon>camera_alt</mat-icon>
             <span>Change Photo</span>
           </div>
+          }
         </div>
-        <!-- <input type="file" id="file-input" accept="image/*" style="display: none;" /> -->
       </div>
-      <div class="profile-info">
-        <h1 class="profile-name" [@fadeInAnimation]> {{ fullName() }} </h1>
-        <div class="profile-details" *ngIf="profileDetails() as profile" [@fadeInAnimation]>
-          <div class="detail-item" *ngIf="profile.employeeId">
-            <mat-icon>badge</mat-icon>
-            <span> {{profile.employeeId}} </span>
-          </div>
-          <div class="detail-item" *ngIf="profile.designationDisplay">
-            <mat-icon>work</mat-icon>
-            <span> {{profile.designationDisplay}} </span>
-          </div>
-          <div class="detail-item" *ngIf="profile.departmentDisplay">
+
+      <div class="profile-header-info">
+        <h1 class="profile-name">{{ fullName() }}</h1>
+        @if (profileDetails()?.designationDisplay) {
+        <p class="profile-title">{{ profileDetails()?.designationDisplay }}</p>
+        }
+        
+        <div class="profile-meta">
+          @if (profileDetails()?.departmentDisplay) {
+          <div class="meta-item">
             <mat-icon>business</mat-icon>
-            <span> {{profile.departmentDisplay}} </span>
+            <span>{{ profileDetails()?.departmentDisplay }}</span>
           </div>
-          <div class="detail-item" *ngIf="profile.email">
+          }
+          @if (profileDetails()?.email) {
+          <div class="meta-item">
             <mat-icon>email</mat-icon>
-            <span> {{profile.email}} </span>
+            <span>{{ profileDetails()?.email }}</span>
           </div>
+          }
+          @if (profileDetails()?.phoneNumber) {
+          <div class="meta-item">
+            <mat-icon>phone</mat-icon>
+            <span>{{ profileDetails()?.phoneNumber }}</span>
+          </div>
+          }
         </div>
       </div>
+
       <div class="profile-actions">
-        <button mat-raised-button color="primary" (click)="toggleEdit()" [disabled]="isSaving()" [@buttonAnimation]>
-          <mat-icon>{{ isEditing() ? 'close' : 'edit' }}</mat-icon>
-          {{ isEditing() ? 'Cancel' : 'Edit Profile' }}
+        @if (!isEditing()) {
+        <button mat-raised-button color="primary" (click)="toggleEdit()">
+          <mat-icon>edit</mat-icon>
+          Edit Profile
         </button>
+        } @else {
+        <button mat-button (click)="cancelEdit()" [disabled]="isSaving()">
+          <mat-icon>close</mat-icon>
+          Cancel
+        </button>
+        <button mat-raised-button color="primary" (click)="saveProfile()" [disabled]="profileForm.invalid || isSaving()">
+          @if (isSaving()) {
+          <mat-progress-spinner [diameter]="20" mode="indeterminate"></mat-progress-spinner>
+          } @else {
+          <mat-icon>save</mat-icon>
+          }
+          <span>{{ isSaving() ? 'Saving...' : 'Save Changes' }}</span>
+        </button>
+        }
       </div>
     </div>
   </mat-card>
 
-  <!-- Profile Content -->
-  <div class="profile-content" [@slideInFromBottom]>
-    <mat-card *ngIf="isEditing()" class="edit-form-card" [@expandAnimation]>
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>edit</mat-icon>
-          Edit Profile Information
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <form [formGroup]="profileForm" class="profile-form" novalidate>
-          <!-- Personal Information -->
-          <div class="form-section">
-            <h3 class="section-title">
-              <mat-icon>person</mat-icon>
-              Personal Information
-            </h3>
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>First Name</mat-label>
-                <input matInput formControlName="firstName" placeholder="Enter your first name" type="text">
-                <mat-icon matSuffix>person</mat-icon>
-                <mat-error *ngIf="profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched">
-                  {{ getErrorMessage('firstName') }}
-                </mat-error>
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Last Name</mat-label>
-                <input matInput formControlName="lastName" placeholder="Enter your last name" type="text">
-                <mat-icon matSuffix>person</mat-icon>
-                <mat-error *ngIf="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched">
-                  {{ getErrorMessage('lastName') }}
-                </mat-error>
-              </mat-form-field>
+  <!-- Main Content -->
+  <div class="content-grid">
+    <!-- Left Column -->
+    <div class="left-column">
+      <!-- Personal Information Card -->
+      <mat-card class="info-card" [@slideIn]>
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>person</mat-icon>
+            Personal Information
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (!isEditing()) {
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">First Name</span>
+              <span class="info-value">{{ profileDetails()?.firstName || 'Not specified' }}</span>
             </div>
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Email</mat-label>
-                <input matInput formControlName="email" placeholder="Enter email address" type="email" readonly>
-                <mat-icon matSuffix>email</mat-icon>
-                <mat-error *ngIf="profileForm.get('email')?.invalid && profileForm.get('email')?.touched">
-                  {{ getErrorMessage('email') }}
-                </mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Phone Number</mat-label>
-                <input matInput formControlName="phoneNumber" placeholder="Enter phone number" type="tel">
-                <mat-icon matSuffix>phone</mat-icon>
-                <mat-error *ngIf="profileForm.get('phoneNumber')?.invalid && profileForm.get('phoneNumber')?.touched">
-                  {{ getErrorMessage('phoneNumber') }}
-                </mat-error>
-              </mat-form-field>
+            <div class="info-item">
+              <span class="info-label">Last Name</span>
+              <span class="info-value">{{ profileDetails()?.lastName || 'Not specified' }}</span>
             </div>
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="form-field full-width">
-                <mat-label>Address</mat-label>
-                <textarea matInput formControlName="address" placeholder="Enter address" rows="2"></textarea>
-                <mat-icon matSuffix>location_on</mat-icon>
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Country</mat-label>
-
-                <mat-select formControlName="country">
-                  <!-- Trigger shows flag + name for the selected NAME -->
-                  <mat-select-trigger>
-                    <ng-container *ngIf="getSelectedCountry() as country">
-                      <img [src]="getFlagUrl(country.code)" width="24" height="16" style="margin-right:8px" />
-                      {{ country.name }}
-                    </ng-container>
-                  </mat-select-trigger>
-
-                  <!-- Options store NAME (string) so it matches the FormControl exactly -->
-                  <mat-option *ngFor="let country of filteredCountries" [value]="country.name">
-                    <img [src]="getFlagUrl(country.code)" width="24" height="16" style="margin-right:8px" />
-                    {{ country.name }}
-                  </mat-option>
-                </mat-select>
-
-                <mat-icon matSuffix>public</mat-icon>
-              </mat-form-field>
+            <div class="info-item">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{ profileDetails()?.email || 'Not specified' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Phone</span>
+              <span class="info-value">{{ profileDetails()?.phoneNumber || 'Not specified' }}</span>
+            </div>
+            <div class="info-item full-width">
+              <span class="info-label">Address</span>
+              <span class="info-value">{{ profileDetails()?.address || 'Not specified' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Country</span>
+              <span class="info-value">{{ profileDetails()?.country || 'Not specified' }}</span>
             </div>
           </div>
-          <mat-divider class="mb-3"></mat-divider>
+          } @else {
+          <form [formGroup]="profileForm" class="edit-form">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>First Name</mat-label>
+              <input matInput formControlName="firstName" placeholder="Enter first name">
+              <mat-icon matSuffix>person</mat-icon>
+              <mat-error *ngIf="profileForm.get('firstName')?.hasError('required')">
+                First name is required
+              </mat-error>
+            </mat-form-field>
 
-          <!-- Date Information -->
-          <div class="form-section">
-            <h3 class="section-title">
-              <mat-icon>event</mat-icon>
-              Date Information
-            </h3>
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Date of Birth</mat-label>
-                <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth">
-                <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
-                <mat-datepicker #dobPicker></mat-datepicker>
-              </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Last Name</mat-label>
+              <input matInput formControlName="lastName" placeholder="Enter last name">
+              <mat-icon matSuffix>person</mat-icon>
+              <mat-error *ngIf="profileForm.get('lastName')?.hasError('required')">
+                Last name is required
+              </mat-error>
+            </mat-form-field>
 
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Joining Date</mat-label>
-                <input matInput [matDatepicker]="joiningPicker" formControlName="joiningDate">
-                <mat-datepicker-toggle matSuffix [for]="joiningPicker"></mat-datepicker-toggle>
-                <mat-datepicker #joiningPicker></mat-datepicker>
-              </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Email</mat-label>
+              <input matInput type="email" formControlName="email" placeholder="email@example.com" readonly>
+              <mat-icon matSuffix>email</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Phone Number</mat-label>
+              <input matInput type="tel" formControlName="phoneNumber" placeholder="+1234567890">
+              <mat-icon matSuffix>phone</mat-icon>
+              <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('pattern')">
+                Invalid phone format
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Address</mat-label>
+              <textarea matInput formControlName="address" placeholder="Enter address" rows="2"></textarea>
+              <mat-icon matSuffix>location_on</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Country</mat-label>
+              <mat-select formControlName="country">
+                <mat-select-trigger>
+                  @if (getSelectedCountry(); as country) {
+                  <img [src]="getFlagUrl(country.code)" width="24" height="16" style="margin-right: 8px;" />
+                  {{ country.name }}
+                  }
+                </mat-select-trigger>
+                @for (country of filteredCountries; track country.code) {
+                <mat-option [value]="country.name">
+                  <img [src]="getFlagUrl(country.code)" width="24" height="16" style="margin-right: 8px;" />
+                  {{ country.name }}
+                </mat-option>
+                }
+              </mat-select>
+              <mat-icon matSuffix>public</mat-icon>
+            </mat-form-field>
+          </form>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Work Information Card -->
+      <mat-card class="info-card" [@slideIn]>
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>work</mat-icon>
+            Work Information
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (!isEditing()) {
+          <div class="info-grid">
+            @if (profileDetails()?.employeeId) {
+            <div class="info-item">
+              <span class="info-label">Employee ID</span>
+              <span class="info-value">{{ profileDetails()?.employeeId }}</span>
             </div>
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Leaving Date</mat-label>
-                <input matInput [matDatepicker]="leavingPicker" formControlName="leavingDate">
-                <mat-datepicker-toggle matSuffix [for]="leavingPicker"></mat-datepicker-toggle>
-                <mat-datepicker #leavingPicker></mat-datepicker>
-              </mat-form-field>
+            }
+            @if (profileDetails()?.designationDisplay) {
+            <div class="info-item">
+              <span class="info-label">Designation</span>
+              <span class="info-value">{{ profileDetails()?.designationDisplay }}</span>
             </div>
+            }
+            @if (profileDetails()?.departmentDisplay) {
+            <div class="info-item">
+              <span class="info-label">Department</span>
+              <span class="info-value">{{ profileDetails()?.departmentDisplay }}</span>
+            </div>
+            }
+            @if (profileDetails()?.subDepartmentDisplay) {
+            <div class="info-item">
+              <span class="info-label">Sub Department</span>
+              <span class="info-value">{{ profileDetails()?.subDepartmentDisplay }}</span>
+            </div>
+            }
+            @if (profileDetails()?.roleIdDisplay) {
+            <div class="info-item">
+              <span class="info-label">Role</span>
+              <span class="info-value">{{ profileDetails()?.roleIdDisplay === 'General' ? 'Admin' : profileDetails()?.roleIdDisplay }}</span>
+            </div>
+            }
           </div>
-          <mat-divider class="mb-3"></mat-divider>
-          <!-- Work Information -->
-          <div class="form-section">
-            <h3 class="section-title">
-              <mat-icon>work</mat-icon>
-              Work Information
-            </h3>
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Designation</mat-label>
-                <mat-select formControlName="designation" placeholder="Select your designation">
-                  <mat-option *ngFor="let des of designations" [value]="des.id">
-                    {{ des.name }}
-                  </mat-option>
-                </mat-select>
-                <mat-icon matSuffix>work</mat-icon>
-              </mat-form-field>
+          } @else {
+          <form [formGroup]="profileForm" class="edit-form">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Designation</mat-label>
+              <mat-select formControlName="designation">
+                @for (des of designations; track des.id) {
+                <mat-option [value]="des.id">{{ des.name }}</mat-option>
+                }
+              </mat-select>
+              <mat-icon matSuffix>work</mat-icon>
+            </mat-form-field>
+          </form>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
 
+    <!-- Right Column -->
+    <div class="right-column">
+      <!-- Date Information Card -->
+      <mat-card class="info-card" [@slideIn]>
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>event</mat-icon>
+            Important Dates
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (!isEditing()) {
+          <div class="info-grid">
+            @if (profileDetails()?.dateOfBirth) {
+            <div class="info-item full-width">
+              <span class="info-label">Date of Birth</span>
+              <span class="info-value">{{ profileDetails()?.dateOfBirth | date:'mediumDate' }}</span>
             </div>
+            }
+            @if (profileDetails()?.joiningDate) {
+            <div class="info-item full-width">
+              <span class="info-label">Joining Date</span>
+              <span class="info-value">{{ profileDetails()?.joiningDate | date:'mediumDate' }}</span>
+            </div>
+            }
+            @if (profileDetails()?.leavingDate) {
+            <div class="info-item full-width">
+              <span class="info-label">Leaving Date</span>
+              <span class="info-value">{{ profileDetails()?.leavingDate | date:'mediumDate' }}</span>
+            </div>
+            }
           </div>
-        </form>
-      </mat-card-content>
-      <mat-card-actions align="end" class="form-actions">
-        <button mat-button (click)="cancelEdit()" [disabled]="isSaving()">
-          <mat-icon>cancel</mat-icon>
-          Cancel
-        </button>
-        <button mat-raised-button color="primary"   (click)="saveProfile()" [disabled]="profileForm.invalid || isSaving()"
-          [@saveButtonAnimation]>
-          <mat-icon *ngIf="!isSaving()">save</mat-icon>
-          <mat-progress-bar *ngIf="isSaving()" mode="indeterminate" class="inline-progress"></mat-progress-bar>
-          {{ isSaving() ? 'Saving...' : 'Save Changes' }}
-        </button>
-      </mat-card-actions>
-    </mat-card>
+          } @else {
+          <form [formGroup]="profileForm" class="edit-form">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Date of Birth</mat-label>
+              <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth">
+              <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
+              <mat-datepicker #dobPicker></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Joining Date</mat-label>
+              <input matInput [matDatepicker]="joiningPicker" formControlName="joiningDate">
+              <mat-datepicker-toggle matSuffix [for]="joiningPicker"></mat-datepicker-toggle>
+              <mat-datepicker #joiningPicker></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Leaving Date</mat-label>
+              <input matInput [matDatepicker]="leavingPicker" formControlName="leavingDate">
+              <mat-datepicker-toggle matSuffix [for]="leavingPicker"></mat-datepicker-toggle>
+              <mat-datepicker #leavingPicker></mat-datepicker>
+            </mat-form-field>
+          </form>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Quick Stats Card -->
+      <mat-card class="stats-card" [@slideIn]>
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>insights</mat-icon>
+            Account Information
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="stats-grid">
+            @if (profileDetails()?.createdDate) {
+            <div class="stat-item">
+              <div class="stat-icon">
+                <mat-icon>calendar_today</mat-icon>
+              </div>
+              <div class="stat-info">
+                <span class="stat-label">Member Since</span>
+                <span class="stat-value">{{ profileDetails()?.createdDate | date:'mediumDate' }}</span>
+              </div>
+            </div>
+            }
+            @if (profileDetails()?.modifiedDate) {
+            <div class="stat-item">
+              <div class="stat-icon">
+                <mat-icon>update</mat-icon>
+              </div>
+              <div class="stat-info">
+                <span class="stat-label">Last Updated</span>
+                <span class="stat-value">{{ profileDetails()?.modifiedDate | date:'mediumDate' }}</span>
+              </div>
+            </div>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
   </div>
+  }
 
-  <!-- View Mode -->
-  <div *ngIf="!isEditing() && profileDetails() as profile" class="view-mode">
-    <mat-card class="info-card" [@cardAnimation]>
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>person</mat-icon>
-          Personal Information
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="info-grid">
-          <div class="info-item" *ngIf="profile.firstName">
-            <label>First Name</label>
-            <span>{{ profile.firstName }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.lastName">
-            <label>Last Name</label>
-            <span>{{ profile.lastName }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.email">
-            <label>Email</label>
-            <span>{{ profile.email }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.phoneNumber">
-            <label>Phone</label>
-            <span>{{ profile.phoneNumber }}</span>
-          </div>
-          <div class="info-item full-width" *ngIf="profile.address">
-            <label>Address</label>
-            <span>{{ profile.address }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.country">
-            <label>Country</label>
-            <span>{{ profile.country }}</span>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Work Information Card -->
-    <mat-card class="info-card" [@cardAnimation]>
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>work</mat-icon>
-          Work Information
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="info-grid">
-          <div class="info-item" *ngIf="profile.employeeId">
-            <label>Employee ID</label>
-            <span>{{ profile.employeeId }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.designationDisplay">
-            <label>Designation</label>
-            <span>{{ profile.designationDisplay }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.departmentDisplay">
-            <label>Department</label>
-            <span>{{ profile.departmentDisplay }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.subDepartmentDisplay">
-            <label>Sub Department</label>
-            <span>{{ profile.subDepartmentDisplay }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.siteDisplay">
-            <label>Site</label>
-            <span>{{ profile.siteDisplay }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.locationDisplay">
-            <label>Location</label>
-            <span>{{ profile.locationDisplay }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.roleIdDisplay">
-            <label>Role</label>
-            <span>{{ profile.roleIdDisplay === 'General' ? 'Admin' : profile.roleIdDisplay }}</span>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Date Information Card -->
-    <mat-card class="info-card" [@cardAnimation]>
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>event</mat-icon>
-          Important Dates
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="info-grid">
-          <div class="info-item" *ngIf="profile.dateOfBirth">
-            <label>Date of Birth</label>
-            <span>{{ profile.dateOfBirth | date:'mediumDate' }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.joiningDate">
-            <label>Joining Date</label>
-            <span>{{ profile.joiningDate | date:'mediumDate' }}</span>
-          </div>
-          <div class="info-item" *ngIf="profile.leavingDate">
-            <label>Leaving Date</label>
-            <span>{{ profile.leavingDate | date:'mediumDate' }}</span>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
+  <!-- Empty State -->
+  @if (!isLoading() && !profileDetails()) {
+  <mat-card class="empty-state" [@fadeIn]>
+    <mat-icon class="empty-icon">person_off</mat-icon>
+    <h2>Profile Not Found</h2>
+    <p>Unable to load your profile information. Please try refreshing the page.</p>
+    <button mat-raised-button color="primary" (click)="loadProfileDetails()">
+      <mat-icon>refresh</mat-icon>
+      Retry
+    </button>
+  </mat-card>
+  }
 </div>

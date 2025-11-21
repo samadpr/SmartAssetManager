@@ -1,0 +1,18 @@
+<app-page-header [title]="'Cities'" [breadcrumbs]="[
+    { label: 'Cities' }
+  ]">
+</app-page-header>
+
+<div class="cities-page">
+  <app-list-widget 
+  [config]="listConfig" 
+  [data]="Cities()" 
+  [loading]="loading()"
+  (actionClick)="onActionClick($event)" 
+  (addClick)="onAddCities()" 
+  (refreshClick)="onRefresh()"
+  (selectionChange)="onSelectionChange($event)"
+  (selectionAction)="onSelectionAction($event)"
+  (rowClick)="onRowClick($event)">
+  </app-list-widget>
+</div>

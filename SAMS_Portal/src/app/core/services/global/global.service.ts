@@ -12,7 +12,7 @@ export class GlobalService {
 
   constructor() { }
 
-  public showSnackbar(message: string, type: 'success' | 'error' | 'info'): void {
+  public showSnackbar(message: string, type: 'success' | 'error' | 'info' | 'warning'): void {
     this.snackBar.open(message, 'Close', {
       duration: 3000,
       panelClass: [type === 'success' ? 'snackbar-success' : 'snackbar-error'],

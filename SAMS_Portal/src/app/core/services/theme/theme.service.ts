@@ -26,7 +26,7 @@ export class ThemeService {
     },
     {
       name: 'System',
-      icon: 'desktop_windows'
+      icon: 'brightness_6'
     }
   ]
 

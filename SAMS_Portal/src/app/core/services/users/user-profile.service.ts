@@ -9,9 +9,9 @@ import { LoginAccessRequest, UpdateLoginAccessRequest, UserProfileRequest } from
   providedIn: 'root'
 })
 export class UserProfileService {
-private baseUrl = `${environment.apiUrl}/user-profile`;
+  private baseUrl = `${environment.apiUrl}/user-profile`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // ✅ Create User Profile
   createUserProfile(payload: UserProfileRequest): Observable<ApiResponse> {

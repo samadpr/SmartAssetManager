@@ -22,7 +22,7 @@
     mat-list-item class="menu-item" 
     [class.indented]="!collapsed()"
     [routerLink]="item().route + '/' + subItem.route"
-        routerLinkActive #rla="routerLinkActive" [activated]="rla.isActive">
+        routerLinkActive="selected-sub-menu-item" #rla="routerLinkActive" [activated]="rla.isActive">
         <mat-icon [fontSet]="rla.isActive ? 'material-icons' : 'material-icons-outlined'"
             matListItemIcon>{{subItem.icon}}</mat-icon>
         @if (!collapsed()) {

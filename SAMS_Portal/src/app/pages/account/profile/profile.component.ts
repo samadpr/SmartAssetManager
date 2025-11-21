@@ -20,13 +20,17 @@ import { MatSelectModule } from '@angular/material/select';
 import { profileAnimations } from '../../../shared/animations/profile.animations';
 import { DesignationService } from '../../../core/services/Designation/designation.service';
 import { GlobalService } from '../../../core/services/global/global.service';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 
 @Component({
   selector: 'app-profile',
+  standalone: true,
   imports: [
     CommonModule,
-    MatProgressBar,
+    MatProgressSpinnerModule,
     MatIconModule,
     MatCardModule,
     MatButtonModule,
@@ -38,6 +42,8 @@ import { GlobalService } from '../../../core/services/global/global.service';
     MatNativeDateModule,
     MatSelectModule,
     MatOptionModule,
+    MatChipsModule,
+    MatTooltipModule,
     PageHeaderComponent
   ],
   templateUrl: './profile.component.html',
@@ -49,16 +55,13 @@ export class ProfileComponent implements OnInit {
   private profileService = inject(ProfileService);
   private dialog = inject(MatDialog);
   private countryService = inject(CountryService);
-  private designationServiece = inject(DesignationService);
+  private designationService = inject(DesignationService);
   private globalService = inject(GlobalService);
-
 
   isLoading = signal(false);
   isEditing = signal(false);
   isSaving = signal(false);
   profileDetails = signal<UserProfileDetails | null>(null);
-  selectedImage = signal<File | null>(null);
-  imagePreview = signal<string | null>(null);
 
   profileForm: FormGroup;
   countries: Country[] = [];
@@ -67,14 +70,14 @@ export class ProfileComponent implements OnInit {
 
   fullName = computed(() => {
     const profile = this.profileDetails();
-    if (!profile) return 'User Profiles';
+    if (!profile) return 'User Profile';
     return `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User Profile';
   });
 
   profilePictureUrl = computed(() => {
     const profile = this.profileDetails();
     return profile?.profilePicture || '/assets/images/ProfilePic.png';
-  })
+  });
 
   constructor() {
     this.profileForm = this.fb.group({
@@ -87,43 +90,31 @@ export class ProfileComponent implements OnInit {
       dateOfBirth: [''],
       joiningDate: [''],
       leavingDate: [''],
-      designation: [''] 
-    })
+      designation: ['']
+    });
   }
 
   ngOnInit(): void {
-    // 1) Load countries first so trigger can resolve immediately
     this.countries = this.countryService.getAllCountries();
     this.filteredCountries = [...this.countries];
-
-
     this.loadProfileDetails();
     this.loadDesignations();
   }
 
-  private async loadProfileDetails(): Promise<void> {
+  loadProfileDetails(): void {
     this.isLoading.set(true);
-
-    try {
-      this.profileService.getProfileDetails().subscribe({
-        next: (profile: UserProfileDetails) => {
-          this.profileDetails.set(profile);
-          this.populateForm(profile);
-          console.log('Profile details loaded:', profile);
-          this.isLoading.set(false);
-        },
-        error: (error) => {
-          console.error('Error loading profile details:', error);
-          this.globalService.showSnackbar('Failed to load profile details', 'error');
-          this.isLoading.set(false);
-        }
-      });
-    }
-    catch (error) {
-      console.error('Unexpected error loading profile details:', error);
-      this.globalService.showToastr('Failed to load profile details', 'error');
-      this.isLoading.set(false);
-    }
+    this.profileService.getProfileDetails().subscribe({
+      next: (profile: UserProfileDetails) => {
+        this.profileDetails.set(profile);
+        this.populateForm(profile);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading profile details:', error);
+        this.globalService.showToastr('Failed to load profile details', 'error');
+        this.isLoading.set(false);
+      }
+    });
   }
 
   private populateForm(profile: UserProfileDetails): void {
@@ -134,7 +125,6 @@ export class ProfileComponent implements OnInit {
       phoneNumber: profile.phoneNumber || '',
       address: profile.address || '',
       country: profile.country || '',
-      profilePicture: profile.profilePicture || '',
       designation: profile.designation || null,
       dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth) : null,
       joiningDate: profile.joiningDate ? new Date(profile.joiningDate) : null,
@@ -142,17 +132,17 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  loadDesignations() {
-  this.designationServiece.getDesignations().subscribe({
-    next: (res) => {
-      this.designations = res.data || [];
-    },
-    error: (err) => {
-      console.log('Failed to load designations', err);
-      this.globalService.showToastr('Failed to load designations. Please try again later.', 'error');
-    }
-  });
-}
+  loadDesignations(): void {
+    this.designationService.getDesignations().subscribe({
+      next: (res) => {
+        this.designations = res.data || [];
+      },
+      error: (err) => {
+        console.error('Failed to load designations', err);
+        this.globalService.showToastr('Failed to load designations', 'error');
+      }
+    });
+  }
 
   toggleEdit(): void {
     if (this.isEditing()) {
@@ -164,13 +154,13 @@ export class ProfileComponent implements OnInit {
 
   cancelEdit(): void {
     this.isEditing.set(false);
-    const porfile = this.profileDetails();
-    if (porfile) {
-      this.populateForm(porfile);
+    const profile = this.profileDetails();
+    if (profile) {
+      this.populateForm(profile);
     }
   }
 
-  openProfilePictureDialog() {
+  openProfilePictureDialog(): void {
     const dialogRef = this.dialog.open(ProfilePictureUploadComponent, {
       width: '500px',
       data: { currentPicture: this.profilePictureUrl() }
@@ -178,28 +168,22 @@ export class ProfileComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        debugger;
         const currentProfile = this.profileDetails();
         if (currentProfile) {
           this.profileDetails.set({
             ...currentProfile,
             profilePicture: result
           });
-
-          this.globalService.showSnackbar('Profile picture updated successfully', 'success');
+          this.globalService.showToastr('Profile picture updated successfully', 'success');
         }
       }
     });
   }
 
-  // triggerFileInput(): void {
-  //   const fileInput = document.getElementById('file-input') as HTMLInputElement;
-  //   fileInput.click();
-  // }
-
   async saveProfile(): Promise<void> {
     if (this.profileForm.invalid) {
       this.markFormGroupTouched();
+      this.globalService.showToastr('Please fill in all required fields', 'error');
       return;
     }
 
@@ -208,12 +192,11 @@ export class ProfileComponent implements OnInit {
     try {
       const currentProfile = this.profileDetails();
       if (!currentProfile) {
-        this.globalService.showSnackbar('Profile data not found', 'error');
+        this.globalService.showToastr('Profile data not found', 'error');
         this.isSaving.set(false);
         return;
       }
 
-      // Prepare profile data
       const formValue = this.profileForm.value;
       const profileRequest: UserProfileRequest = {
         userProfileId: currentProfile.userProfileId,
@@ -227,56 +210,46 @@ export class ProfileComponent implements OnInit {
         joiningDate: formValue.joiningDate,
         leavingDate: formValue.leavingDate,
         profilePicture: currentProfile.profilePicture,
-        designation: formValue.designation ,  // These should come from dropdowns in a real app
-        department: 0,
-        subDepartment: 0,
-        site: 0,
-        location: 0,
+        designation: formValue.designation,
+        department: currentProfile.department || 0,
+        subDepartment: currentProfile.subDepartment || 0,
+        // site: currentProfile.site || 0,
+        // location: currentProfile.location || 0,
       };
 
-      // Update profile
       this.profileService.updateProfileData(profileRequest).subscribe({
-        next: (response) => {
-          // if(!response.Success){
-          //   this.showSnackbar(response.message || 'Failed to update profile', 'error');
-          //   this.isSaving.set(false);
-          //   return;
-          // }
-          this.globalService.showSnackbar('Profile updated successfully', 'success');
+        next: () => {
+          this.globalService.showToastr('Profile updated successfully', 'success');
           this.isEditing.set(false);
-          this.selectedImage.set(null);
-          this.imagePreview.set(null);
-          this.loadProfileDetails(); // Reload to get updated data
+          this.loadProfileDetails();
           this.isSaving.set(false);
         },
         error: (error) => {
           console.error('Error updating profile:', error);
-          this.globalService.showSnackbar('Failed to update profile', 'error');
+          this.globalService.showToastr('Failed to update profile', 'error');
           this.isSaving.set(false);
         }
       });
     } catch (error) {
       console.error('Error saving profile:', error);
-      this.globalService.showSnackbar('Failed to save profile', 'error');
+      this.globalService.showToastr('Failed to save profile', 'error');
       this.isSaving.set(false);
     }
   }
 
   private markFormGroupTouched(): void {
     Object.keys(this.profileForm.controls).forEach(key => {
-      const control = this.profileForm.get(key);
-      control?.markAsTouched();
+      this.profileForm.get(key)?.markAsTouched();
     });
   }
 
-  // Helper methods for template
   getErrorMessage(fieldName: string): string {
     const control = this.profileForm.get(fieldName);
     if (control?.hasError('required')) {
       return `${this.getFieldDisplayName(fieldName)} is required`;
     }
     if (control?.hasError('email')) {
-      return `Please enter a valid email address`;
+      return 'Please enter a valid email address';
     }
     if (control?.hasError('minlength')) {
       const minLength = control.getError('minlength').requiredLength;
@@ -300,9 +273,6 @@ export class ProfileComponent implements OnInit {
     return displayNames[fieldName] || fieldName;
   }
 
-
-  // --- helpers for the template ---
-
   getSelectedCountry(): Country | undefined {
     const name = this.profileForm.get('country')?.value as string;
     return this.countries.find(c => c.name === name);
@@ -312,8 +282,7 @@ export class ProfileComponent implements OnInit {
     return code ? this.countryService.getFlagUrl(code) : '';
   }
 
-  // If you add a text filter UI later, this is ready to use
-  filterCountries(value: string) {
+  filterCountries(value: string): void {
     const v = (value || '').toLowerCase();
     this.filteredCountries = this.countries.filter(c => c.name.toLowerCase().includes(v));
   }
