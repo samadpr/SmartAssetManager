@@ -25,7 +25,7 @@ public class UserProfile : EntityBase
 
     public long? Site { get; set; }
 
-    public long? Location { get; set; }
+    public long? Area { get; set; }
 
     public DateTime? JoiningDate { get; set; }
 
@@ -71,7 +71,7 @@ public class UserProfile : EntityBase
 
     public virtual Designation? DesignationNavigation { get; set; }
 
-    public virtual AssetLocation? LocationNavigation { get; set; }
+    public virtual AssetArea? AreaNavigation { get; set; }
 
     public virtual ManageUserRole? Role { get; set; }
 

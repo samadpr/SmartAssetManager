@@ -1,0 +1,18 @@
+<app-page-header [title]="'Areas'" [breadcrumbs]="[
+    { label: 'Areas' }
+  ]">
+</app-page-header>
+
+<div class="areas-page">
+  <app-list-widget 
+    [config]="listConfig" 
+    [data]="areas()" 
+    [loading]="loading()"
+    (actionClick)="onActionClick($event)" 
+    (addClick)="onAddArea()" 
+    (refreshClick)="onRefresh()"
+    (selectionChange)="onSelectionChange($event)"
+    (selectionAction)="onSelectionAction($event)"
+    (rowClick)="onRowClick($event)">
+  </app-list-widget>
+</div>

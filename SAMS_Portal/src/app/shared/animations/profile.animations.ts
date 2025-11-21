@@ -47,14 +47,20 @@ export const profileAnimations = [
     ])
   ]),
 
-  // Fade in animation
-  trigger('fadeInAnimation', [
+  trigger('fadeIn', [   // ✅ renamed from fadeInAnimation
     transition(':enter', [
       style({ opacity: 0 }),
       animate('300ms ease-out', style({ opacity: 1 }))
     ]),
     transition(':leave', [
       animate('200ms ease-in', style({ opacity: 0 }))
+    ])
+  ]),
+
+  trigger('slideIn', [   // ✅ new unified name
+    transition(':enter', [
+      style({ opacity: 0, transform: 'translateY(20px)' }),
+      animate('400ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
     ])
   ]),
 
@@ -141,31 +147,31 @@ export const profileAnimations = [
     transition('saving => normal', animate('300ms ease-in'))
   ]),
 
-    // Card entrance animation with stagger effect
+  // Card entrance animation with stagger effect
   trigger('cardAnimation', [
     transition(':enter', [
-      style({ 
-        opacity: 0, 
-        transform: 'translateY(20px) scale(0.95)' 
+      style({
+        opacity: 0,
+        transform: 'translateY(20px) scale(0.95)'
       }),
-      animate('400ms cubic-bezier(0.4, 0.0, 0.2, 1)', 
-        style({ 
-          opacity: 1, 
-          transform: 'translateY(0) scale(1)' 
+      animate('400ms cubic-bezier(0.4, 0.0, 0.2, 1)',
+        style({
+          opacity: 1,
+          transform: 'translateY(0) scale(1)'
         })
       )
     ]),
     transition(':leave', [
-      animate('300ms cubic-bezier(0.4, 0.0, 0.2, 1)', 
-        style({ 
-          opacity: 0, 
-          transform: 'translateY(-10px) scale(0.95)' 
+      animate('300ms cubic-bezier(0.4, 0.0, 0.2, 1)',
+        style({
+          opacity: 0,
+          transform: 'translateY(-10px) scale(0.95)'
         })
       )
     ])
   ]),
 
-    // Staggered list animation for form fields
+  // Staggered list animation for form fields
   trigger('staggeredFormAnimation', [
     transition(':enter', [
       query('.form-field', [

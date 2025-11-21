@@ -115,7 +115,7 @@ public class Asset : EntityBase
 
     public virtual Department? DepartmentNavigation { get; set; }
 
-    public virtual AssetLocation? LocationNavigation { get; set; }
+    public virtual AssetArea? AreaNavigation { get; set; }
 
     public virtual AssetSite? Site { get; set; }
 

@@ -1,0 +1,18 @@
+<app-page-header [title]="'Asset Categories'" [breadcrumbs]="[
+    { label: 'Asset Categories' }
+  ]">
+</app-page-header>
+
+<div class="asset-categories-page">
+  <app-list-widget 
+    [config]="listConfig" 
+    [data]="categories()" 
+    [loading]="loading()"
+    (actionClick)="onActionClick($event)" 
+    (addClick)="onAddCategory()" 
+    (refreshClick)="onRefresh()"
+    (selectionChange)="onSelectionChange($event)"
+    (selectionAction)="onSelectionAction($event)"
+    (rowClick)="onRowClick($event)">
+  </app-list-widget>
+</div>

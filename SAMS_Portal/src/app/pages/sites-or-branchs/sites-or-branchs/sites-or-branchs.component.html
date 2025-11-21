@@ -1,0 +1,18 @@
+<app-page-header [title]="'Sites/Branchs'" [breadcrumbs]="[
+    { label: 'Sites/Branchs' }
+  ]">
+</app-page-header>
+
+<div class="sites-branches-page">
+  <app-list-widget 
+    [config]="listConfig" 
+    [data]="sites()" 
+    [loading]="loading()"
+    (actionClick)="onActionClick($event)" 
+    (addClick)="onAddSite()" 
+    (refreshClick)="onRefresh()"
+    (selectionChange)="onSelectionChange($event)"
+    (selectionAction)="onSelectionAction($event)"
+    (rowClick)="onRowClick($event)">
+  </app-list-widget>
+</div>

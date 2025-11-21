@@ -282,7 +282,7 @@
                       {{ getFieldError(field.key) }}
                     </mat-error>
                     
-                    <mat-hint *ngIf="field.cascadeFrom && form?.get(field.cascadeFrom)?.disabled">
+                    <mat-hint *ngIf="field.cascadeFrom && form.get(field.cascadeFrom)?.disabled">
                       Select {{ field.cascadeFrom }} first
                     </mat-hint>
                   </mat-form-field>
@@ -372,7 +372,7 @@
               <div class="user-info">
                 <h2 class="user-name">{{ getUserFullName() }}</h2>
                 <p class="user-subtitle">{{ config.subtitle }}</p>
-                <div class="user-badges" *ngIf="data?.data">
+                <div class="user-badges" *ngIf="data.data">
                   <mat-chip *ngIf="data.data.designationDisplay" class="designation-chip">
                     <mat-icon matChipAvatar>work</mat-icon>
                     {{ data.data.designationDisplay }}

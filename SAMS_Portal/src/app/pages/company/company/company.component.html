@@ -2,3 +2,333 @@
     { label: 'Company' }
   ]">
 </app-page-header>
+
+<div class="company-container" [@fadeIn]>
+  <!-- Loading State -->
+  @if (isLoading()) {
+  <div class="loading-container">
+    <mat-progress-spinner [diameter]="60" mode="indeterminate" color="primary"></mat-progress-spinner>
+    <p class="loading-text">Loading company information...</p>
+  </div>
+  }
+
+  <!-- Company Profile -->
+  @if (!isLoading() && companyData()) {
+  <div class="company-profile">
+    <!-- Hero Section -->
+    <mat-card class="hero-card" [@slideIn]>
+      <div class="hero-content">
+        <div class="company-logo-section">
+          <div class="logo-container">
+            <img [src]="companyLogo()" alt="Company Logo" (error)="onLogoError($event)" class="company-logo" />
+          </div>
+        </div>
+
+        <div class="company-header-info">
+          <h1 class="company-name">{{ companyData()?.name || 'Company Name' }}</h1>
+          <p class="company-industry">
+            <mat-icon>business_center</mat-icon>
+            <span>{{ industryName() }}</span>
+          </p>
+
+          <div class="company-meta">
+            @if (companyData()?.city || companyData()?.country) {
+            <div class="meta-item">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ companyData()?.city }}{{ companyData()?.city && companyData()?.country ? ', ' : '' }}{{
+                companyData()?.country }}</span>
+            </div>
+            }
+            @if (companyData()?.website) {
+            <div class="meta-item">
+              <mat-icon>language</mat-icon>
+              <a [href]="companyData()?.website" target="_blank" rel="noopener">{{ companyData()?.website }}</a>
+            </div>
+            }
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          @if (!isEditMode()) {
+          <button mat-raised-button color="primary" (click)="toggleEditMode()" class="edit-button">
+            <mat-icon>edit</mat-icon>
+            Edit Profile
+          </button>
+          } @else {
+          <button mat-button (click)="toggleEditMode()" class="cancel-button">
+            <mat-icon>close</mat-icon>
+            Cancel
+          </button>
+          <button mat-raised-button color="primary" (click)="saveCompany()" [disabled]="isSaving()"
+            class="save-button">
+            @if (isSaving()) {
+            <mat-progress-spinner [diameter]="20" mode="indeterminate"></mat-progress-spinner>
+            } @else {
+            <mat-icon>save</mat-icon>
+            }
+            <span>{{ isSaving() ? 'Saving...' : 'Save Changes' }}</span>
+          </button>
+          }
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Main Content -->
+    <div class="content-grid">
+      <!-- Left Column: Details -->
+      <div class="left-column">
+        <!-- About Section -->
+        <mat-card class="info-card" [@slideIn]>
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>info</mat-icon>
+              About
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (!isEditMode()) {
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Company Name</span>
+                <span class="info-value">{{ companyData()?.name || 'Not specified' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Industry</span>
+                <span class="info-value">{{ industryName() }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Email</span>
+                <span class="info-value">
+                  <a [href]="'mailto:' + companyData()?.email">{{ companyData()?.email || 'Not specified' }}</a>
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Phone</span>
+                <span class="info-value">{{ companyData()?.phone || 'Not specified' }}</span>
+              </div>
+              @if (companyData()?.fax) {
+              <div class="info-item">
+                <span class="info-label">Fax</span>
+                <span class="info-value">{{ companyData()?.fax }}</span>
+              </div>
+              }
+              @if (companyData()?.currency) {
+              <div class="info-item">
+                <span class="info-label">Currency</span>
+                <span class="info-value">{{ companyData()?.currency }}</span>
+              </div>
+              }
+            </div>
+            } @else {
+            <form [formGroup]="companyForm" class="edit-form">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Company Name</mat-label>
+                <input matInput formControlName="name" placeholder="Enter company name">
+                <mat-icon matSuffix>business</mat-icon>
+                <mat-error *ngIf="companyForm.get('name')?.hasError('required')">
+                  Name is required
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Industry</mat-label>
+                <mat-select formControlName="industriesId">
+                  @for (industry of industries(); track industry.id) {
+                  <mat-option [value]="industry.id">{{ industry.name }}</mat-option>
+                  }
+                </mat-select>
+                <mat-icon matSuffix>business_center</mat-icon>
+                <mat-error *ngIf="companyForm.get('industriesId')?.hasError('required')">
+                  Industry is required
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Email</mat-label>
+                <input matInput type="email" formControlName="email" placeholder="company@example.com">
+                <mat-icon matSuffix>email</mat-icon>
+                <mat-error *ngIf="companyForm.get('email')?.hasError('required')">
+                  Email is required
+                </mat-error>
+                <mat-error *ngIf="companyForm.get('email')?.hasError('email')">
+                  Invalid email format
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Phone</mat-label>
+                <input matInput type="tel" formControlName="phone" placeholder="+1234567890">
+                <mat-icon matSuffix>phone</mat-icon>
+                <mat-error *ngIf="companyForm.get('phone')?.hasError('pattern')">
+                  Invalid phone format
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Fax</mat-label>
+                <input matInput formControlName="fax" placeholder="Fax number">
+                <mat-icon matSuffix>print</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Currency</mat-label>
+                <input matInput formControlName="currency" placeholder="USD, EUR, etc.">
+                <mat-icon matSuffix>attach_money</mat-icon>
+              </mat-form-field>
+            </form>
+            }
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Location Section -->
+        <mat-card class="info-card" [@slideIn]>
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>location_on</mat-icon>
+              Location
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (!isEditMode()) {
+            <div class="info-grid">
+              <div class="info-item full-width">
+                <span class="info-label">Address</span>
+                <span class="info-value">{{ companyData()?.address || 'Not specified' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">City</span>
+                <span class="info-value">{{ companyData()?.city || 'Not specified' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Country</span>
+                <span class="info-value">{{ companyData()?.country || 'Not specified' }}</span>
+              </div>
+            </div>
+            } @else {
+            <form [formGroup]="companyForm" class="edit-form">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Address</mat-label>
+                <textarea matInput formControlName="address" placeholder="Street address" rows="2"></textarea>
+                <mat-icon matSuffix>home</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>City</mat-label>
+                <input matInput formControlName="city" placeholder="City">
+                <mat-icon matSuffix>location_city</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Country</mat-label>
+                <mat-select formControlName="country">
+                  @for (country of countries(); track country.code) {
+                  <mat-option [value]="country.name">
+                    <img [src]="getFlagUrl(country.code)" width="24" height="16"
+                      style="margin-right: 8px; vertical-align: middle;" />
+                    {{ country.name }}
+                  </mat-option>
+                  }
+                </mat-select>
+                <mat-icon matSuffix>public</mat-icon>
+              </mat-form-field>
+            </form>
+            }
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Right Column: Additional Info -->
+      <div class="right-column">
+        <!-- Online Presence -->
+        <mat-card class="info-card" [@slideIn]>
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>language</mat-icon>
+              Online Presence
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (!isEditMode()) {
+            <div class="info-grid">
+              <div class="info-item full-width">
+                <span class="info-label">Website</span>
+                @if (companyData()?.website) {
+                <a [href]="companyData()?.website" target="_blank" rel="noopener" class="info-value link">
+                  {{ companyData()?.website }}
+                  <mat-icon>open_in_new</mat-icon>
+                </a>
+                } @else {
+                <span class="info-value">Not specified</span>
+                }
+              </div>
+            </div>
+            } @else {
+            <form [formGroup]="companyForm" class="edit-form">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Website URL</mat-label>
+                <input matInput formControlName="website" placeholder="https://www.example.com">
+                <mat-icon matSuffix>link</mat-icon>
+                <mat-error *ngIf="companyForm.get('website')?.hasError('pattern')">
+                  Invalid URL format
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Logo URL</mat-label>
+                <input matInput formControlName="logo" placeholder="https://example.com/logo.png">
+                <mat-icon matSuffix>image</mat-icon>
+              </mat-form-field>
+            </form>
+            }
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Quick Stats -->
+        <mat-card class="stats-card" [@slideIn]>
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>insights</mat-icon>
+              Quick Stats
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-icon">
+                  <mat-icon>calendar_today</mat-icon>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-label">Created</span>
+                  <span class="stat-value">{{ companyData()?.createdDate | date:'mediumDate' }}</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon">
+                  <mat-icon>update</mat-icon>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-label">Last Updated</span>
+                  <span class="stat-value">{{ companyData()?.modifiedDate | date:'mediumDate' }}</span>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Empty State -->
+  @if (!isLoading() && !companyData()) {
+  <mat-card class="empty-state" [@fadeIn]>
+    <mat-icon class="empty-icon">domain</mat-icon>
+    <h2>No Company Information</h2>
+    <p>Complete the company onboarding to set up your company profile.</p>
+    <button mat-raised-button color="primary" routerLink="/company-onboarding">
+      <mat-icon>add</mat-icon>
+      Setup Company
+    </button>
+  </mat-card>
+  }
+</div>

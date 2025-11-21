@@ -96,6 +96,35 @@ export class SidebarComponent implements OnInit {
       route: '/manage-assets',
     },
     {
+      icon: 'category',
+      label: 'Asset Category',
+      route: '/asset-category',
+      subItems: [
+        {
+          icon: 'subdirectory_arrow_right',
+          label: 'Asset Sub Category',
+          route: 'asset-sub-category'
+        }
+      ]
+    },
+    {
+      icon: 'location_city',
+      label: 'Sites/Branchs',
+      route: '/sites-branchs',
+      subItems: [
+        {
+          icon: 'edit_location_alt',
+          label: 'Cities',
+          route: 'cities'
+        },
+        {
+          icon: 'map',
+          label: 'Areas',
+          route: 'areas',
+        },
+      ]
+    },
+    {
       icon: 'group',
       label: 'Manage Users',
       route: '/manage-users',
@@ -111,19 +140,19 @@ export class SidebarComponent implements OnInit {
           route: 'user-profile'
         },
         {
-          icon: 'work',
+          icon: 'cases',
           label: 'Designations',
           route: 'designations'
         },
       ]
     },
     {
-      icon: 'domain',
+      icon: 'account_tree',
       label: 'Departments',
       route: '/department',
       subItems: [
         {
-          icon: 'layers',
+          icon: 'subdirectory_arrow_right',
           label: 'Sub Departments',
           route: 'sub-department'
         },
@@ -151,21 +180,21 @@ export class SidebarComponent implements OnInit {
       label: 'Manage Roles',
       route: '/manage-roles'
     },
-    {
-      icon: 'account_circle',
-      label: 'Profile',
-      route: '/profile'
-    },
     // {
-    //   icon: 'assignment',
-    //   label: 'Reports',
-    //   route: '/reports'
+    //   icon: 'account_circle',
+    //   label: 'Profile',
+    //   route: '/profile'
     // },
     {
-      icon: 'settings',
-      label: 'Settings',
-      route: '/settings'
-    }
+      icon: 'assignment',
+      label: 'Reports',
+      route: '/reports'
+    },
+    // {
+    //   icon: 'settings',
+    //   label: 'Settings',
+    //   route: '/settings'
+    // }
   ])
 
   profilePicSize = computed(() => this.sideNavCollapsed() ? '32' : '100');

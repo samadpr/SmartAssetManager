@@ -31,7 +31,13 @@ namespace SAMS.Data
                 optionsBuilder.UseSqlServer(connString);
             }
 
-            return new ApplicationDbContext(optionsBuilder.Options);
+            return new ApplicationDbContext(optionsBuilder.Options, new DesignTimeCompanyContext());
         }
+    }
+
+    // Used only at design time (migrations)
+    public class DesignTimeCompanyContext : ICompanyContext
+    {
+        public Guid OrganizationId => Guid.Empty;
     }
 }

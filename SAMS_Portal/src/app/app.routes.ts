@@ -17,6 +17,11 @@ import { SubDepartmentComponent } from './pages/department-subdepartment/sub-dep
 import { UserEmailVerificationComponent } from './pages/users/user-email-verification/user-email-verification.component';
 import { CompanyComponent } from './pages/company/company/company.component';
 import { CompanyOnboardingComponent } from './pages/company/company-onboarding/company-onboarding.component';
+import { SitesOrBranchsComponent } from './pages/sites-or-branchs/sites-or-branchs/sites-or-branchs.component';
+import { AreasComponent } from './pages/sites-or-branchs/areas/areas.component';
+import { CitiesComponent } from './pages/sites-or-branchs/cities/cities.component';
+import { AssetCategoryComponent } from './pages/assets/asset-category/asset-category/asset-category.component';
+import { AssetSubCategoryComponent } from './pages/assets/asset-category/asset-sub-category/asset-sub-category.component';
 
 export const routes: Routes = [
     {
@@ -57,6 +62,26 @@ export const routes: Routes = [
             {
                 path: 'manage-assets',
                 component: ManageAssetsComponent
+            },
+            {
+                path: 'asset-category',
+                component: AssetCategoryComponent
+            },
+            {
+                path: 'asset-category/asset-sub-category',
+                component: AssetSubCategoryComponent
+            },
+            {
+                path: 'sites-branchs',
+                component: SitesOrBranchsComponent
+            },
+            {
+                path: 'sites-branchs/cities',
+                component: CitiesComponent
+            },
+            {
+                path: 'sites-branchs/areas',
+                component: AreasComponent
             },
             {
                 path: 'manage-users',

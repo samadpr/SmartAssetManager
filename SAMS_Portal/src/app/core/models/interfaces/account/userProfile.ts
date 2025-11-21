@@ -26,7 +26,7 @@ export interface UserProfileData extends EntityBase{
   level3Approval: boolean;
 }
 
-export interface UserProfileDetails {
+export interface UserProfileDetails extends EntityBase {
   userProfileId: number;
   applicationUserId?: string;
   employeeId?: string;
