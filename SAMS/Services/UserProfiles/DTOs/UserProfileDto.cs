@@ -25,7 +25,7 @@ namespace SAMS.Services.UserProfiles.DTOs
 
         public long? Site { get; set; }
 
-        public long? Location { get; set; }
+        public long? Area { get; set; }
 
         public long? RoleId { get; set; }
 

@@ -667,11 +667,14 @@ namespace SAMS.Services.Account
             {
                 var user = await _userManager.FindByEmailAsync(loginRequestDto.Email);
                 var roles = await _userManager.GetRolesAsync(user!);
+                var userDetails = await _accountRepository.GetUserProfileByApplicationUserId(user!.Id);
+                var orgId = userDetails?.OrganizationId ?? Guid.Empty;
 
                 var authClaims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, loginRequestDto.Email),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                    new Claim("OrganizationId", orgId.ToString())
                 };
 
                 foreach (var userRole in roles)

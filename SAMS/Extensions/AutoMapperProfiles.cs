@@ -1,5 +1,10 @@
 ﻿using AutoMapper;
 using SAMS.API.Account.RequestObject;
+using SAMS.API.AssetAreaAPIs.RequestObject;
+using SAMS.API.AssetCategoriesAPIs.RequestObject;
+using SAMS.API.AssetCitiesAPIs.RequestObject;
+using SAMS.API.AssetSitesOrBranchAPIs.RequestObject;
+using SAMS.API.AssetSubCategoriesAPIs.RequestObject;
 using SAMS.API.CompanyAPIs.RequestObject;
 using SAMS.API.DepartmentAPIs.RequstObject;
 using SAMS.API.DesignationAPIs.RequestObject;
@@ -8,6 +13,11 @@ using SAMS.API.SubDepartmentAPIs.RequestObject;
 using SAMS.API.UserProfileAPIs.RequestObject;
 using SAMS.Models;
 using SAMS.Services.Account.DTOs;
+using SAMS.Services.AssetAreas.DTOs;
+using SAMS.Services.AssetCategory.DTOs;
+using SAMS.Services.AssetSitesOrBranches.DTOs;
+using SAMS.Services.AssetSubCategory.DTOs;
+using SAMS.Services.Cities.DTOs;
 using SAMS.Services.Departments.DTOs;
 using SAMS.Services.DesignationServices.DTOs;
 using SAMS.Services.ManageUserRoles.DTOs;
@@ -52,6 +62,25 @@ namespace SAMS.Extensions
 
             CreateMap<CompanyRequestObject, CompanyInfo>().ReverseMap();
 
+            CreateMap<AssetCity, AssetCityDto>().ReverseMap();
+
+            CreateMap<AssetCitiesRequestObject, AssetCityDto>().ReverseMap();
+
+            CreateMap<AssetSOBRequestObject, AssetSiteDto>().ReverseMap();
+
+            CreateMap<AssetSite, AssetSiteDto>().ReverseMap();
+
+            CreateMap<AssetAreaRequestObject, AssetAreaDto>().ReverseMap();
+
+            CreateMap<AssetArea, AssetAreaDto>().ReverseMap();
+
+            CreateMap<AssetCategoriesRequestObject, AssetCategoryDto>().ReverseMap();
+
+            CreateMap<AssetCategoryDto, AssetCategorie>().ReverseMap();
+
+            CreateMap<AssetSubCategoriesRequestObject, AssetSubCategoryDto>().ReverseMap();
+
+            CreateMap<AssetSubCategoryDto, AssetSubCategorie>().ReverseMap();
         }
     }
 }

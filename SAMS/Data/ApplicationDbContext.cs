@@ -1,39 +1,102 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection.Emit;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using SAMS.Helpers;
 using SAMS.Models;
 using SAMS.Models.CommonModels;
+using SAMS.Models.CommonModels.Interface;
+using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace SAMS.Data;
 
 public partial class ApplicationDbContext : AuditableIdentityContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    private readonly ICompanyContext _companyContext;
+
+    public Guid CurrentOrganizationId => _companyContext?.OrganizationId ?? Guid.Empty;
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICompanyContext companyContext)
         : base(options)
     {
+        _companyContext = companyContext;
     }
-    //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    //{
-    //    optionsBuilder.UseSqlServer("Data Source=DESKTOP-9CU5AV4\\SQLEXPRESS;Initial Catalog=SAMS_DB;Integrated Security=True;Trust Server Certificate=True");
-    //}
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
         builder.Entity<ItemDropdownListModel>().HasNoKey();
 
         builder.Entity<AssetRequest>()
-        .HasOne(ar => ar.ApprovedByEmployee)
-        .WithMany(up => up.AssetRequestApprovedByEmployees)
-        .HasForeignKey(ar => ar.ApprovedByEmployeeId)
-        .OnDelete(DeleteBehavior.Restrict); // Avoid cascade issues
+            .HasOne(ar => ar.ApprovedByEmployee)
+            .WithMany(up => up.AssetRequestApprovedByEmployees)
+            .HasForeignKey(ar => ar.ApprovedByEmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Entity<AssetRequest>()
             .HasOne(ar => ar.RequestedEmployee)
             .WithMany(up => up.AssetRequestRequestedEmployees)
             .HasForeignKey(ar => ar.RequestedEmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Global tenant filter
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            if (typeof(IHasOrganization).IsAssignableFrom(entityType.ClrType))
+            {
+                var method = typeof(ApplicationDbContext)
+                    .GetMethod(nameof(GetOrganizationId), BindingFlags.Instance | BindingFlags.NonPublic);
+
+                var param = Expression.Parameter(entityType.ClrType, "e");
+
+                var orgProperty = Expression.Property(param, nameof(IHasOrganization.OrganizationId));
+
+                var currentOrg = Expression.Call(Expression.Constant(this), method!);
+
+                var body = Expression.Equal(orgProperty, currentOrg);
+
+                var lambda = Expression.Lambda(body, param);
+
+                builder.Entity(entityType.ClrType).HasQueryFilter(lambda);
+            }
+        }
+    }
+
+    private Guid GetOrganizationId()
+    {
+        return _companyContext.OrganizationId;
+    }
+
+    // ✅ FIX #1 – override NO-ARG version (base class version)
+    public override async Task<int> SaveChangesAsync()
+    {
+        SetOrganizationForAddedEntities();
+        return await base.SaveChangesAsync();
+    }
+
+    // ✅ FIX #2 – override CancellationToken version
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        SetOrganizationForAddedEntities();
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void SetOrganizationForAddedEntities()
+    {
+        var orgId = _companyContext?.OrganizationId ?? Guid.Empty;
+        if (orgId == Guid.Empty) return;
+
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added && e.Entity is IHasOrganization)
+            .Select(e => e.Entity as IHasOrganization);
+
+        foreach (var entity in entries)
+        {
+            if (entity.OrganizationId == Guid.Empty)
+                entity.OrganizationId = orgId;
+        }
     }
 
     public DbSet<ApplicationUser> ApplicationUsers { get; set; }
@@ -49,7 +112,7 @@ public partial class ApplicationDbContext : AuditableIdentityContext
     public DbSet<LoginHistory> LoginHistory { get; set; }
 
 
-    //AMS
+    //SAMS
     public DbSet<Asset> Asset { get; set; }
 
     public DbSet<AssetAssigned> AssetAssigned { get; set; }
@@ -66,7 +129,7 @@ public partial class ApplicationDbContext : AuditableIdentityContext
 
     public DbSet<AssetSite> AssetSite { get; set; }
 
-    public DbSet<AssetLocation> AssetLocation { get; set; }
+    public DbSet<AssetArea> AssetArea { get; set; }
 
     public DbSet<AssetCity> AssetCities { get; set; }
 

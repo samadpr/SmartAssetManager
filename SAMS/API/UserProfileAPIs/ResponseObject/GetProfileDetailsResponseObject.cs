@@ -30,7 +30,9 @@
 
         public string? SiteDisplay { get; set; }
 
-        public long? Location { get; set; }
+        public long? Area { get; set; }
+
+        public string? AreaDisplay { get; set; }
 
         public long? RoleId { get; set; }
 

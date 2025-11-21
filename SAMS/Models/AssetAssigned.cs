@@ -53,7 +53,7 @@ public class AssetAssigned : EntityBase
 
     public virtual UserProfile Employee { get; set; } = null!;
 
-    public virtual AssetLocation? Location { get; set; }
+    public virtual AssetArea? Area { get; set; }
 
     public virtual AssetSite? Site { get; set; }
 }

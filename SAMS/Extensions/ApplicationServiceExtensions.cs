@@ -2,10 +2,21 @@
 using Microsoft.EntityFrameworkCore;
 using SAMS.Data;
 using SAMS.Helpers;
+using SAMS.Models;
 using SAMS.Models.CommonModels;
 using SAMS.Models.EmailServiceModels;
 using SAMS.Services.Account;
 using SAMS.Services.Account.Interface;
+using SAMS.Services.AssetAreas;
+using SAMS.Services.AssetAreas.Interface;
+using SAMS.Services.AssetCategory;
+using SAMS.Services.AssetCategory.Interface;
+using SAMS.Services.AssetSitesOrBranches;
+using SAMS.Services.AssetSitesOrBranches.Interface;
+using SAMS.Services.AssetSubCategory;
+using SAMS.Services.AssetSubCategory.Interface;
+using SAMS.Services.Cities;
+using SAMS.Services.Cities.Interface;
 using SAMS.Services.Common;
 using SAMS.Services.Common.Interface;
 using SAMS.Services.Company;
@@ -37,7 +48,7 @@ namespace SAMS.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
         {
             //services.Configure<EmailSettings>(config.GetSection("EmailSettings"));
-            services.AddScoped<ApplicationDbContext>();
+            //services.AddScoped<ApplicationDbContext>();
             var _ApplicationInfo = config.GetSection("ApplicationInfo").Get<ApplicationInfo>();
             string _GetConnStringName = ControllerExtensions.GetConnectionString(config);
             if (_ApplicationInfo.DBConnectionStringName == ConnectionStrings.connMySQL)
@@ -54,6 +65,10 @@ namespace SAMS.Extensions
             }
 
             services.AddAutoMapper(typeof(AutoMapperProfiles).Assembly);
+
+            services.AddHttpContextAccessor();
+
+            services.AddScoped<ICompanyContext, CompanyContext>();
 
             services.AddTransient<IEmailService, EmailService>();
 
@@ -90,6 +105,20 @@ namespace SAMS.Extensions
             services.AddScoped<IIndustriesService, IndustriesService>();
             services.AddScoped<IIndustriesRepository, IndustriesRepository>();
 
+            services.AddScoped<ICitiesService, CitiesService>();
+            services.AddScoped<ICitiesRepository, CitiesRepository>();
+
+            services.AddScoped<IAssetSitesOrBranchesService, AssetSitesOrBranchesService>();
+            services.AddScoped<IAssetSitesOrBranchesRepository, AssetSitesOrBranchesRepository>();
+
+            services.AddScoped<IAssetAreaService, AssetAreaService>();
+            services.AddScoped<IAssetAreaRepository, AssetAreaRepository>();
+
+            services.AddScoped<IAssetCategoriesService, AssetCategoriesService>();
+            services.AddScoped<IAssetCategoriesRepository, AssetCategoriesRepository>();
+
+            services.AddScoped<IAssetSubCategoriesService, AssetSubCategoriesService>();
+            services.AddScoped<IAssetSubCategoriesRepository, AssetSubCategoriesRepository>();
 
             return services;
         }

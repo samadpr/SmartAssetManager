@@ -116,7 +116,7 @@ public class UserProfileService : IUserProfileService
             user.Designation = request.Designation;
             user.Department = request.Department;
             user.SubDepartment = request.SubDepartment;
-            user.Location = request.Location;
+            user.Area = request.Area;
             user.Site = request.Site;
             user.ProfilePicture = request.ProfilePicture;
             user.ModifiedDate = DateTime.Now;
@@ -628,7 +628,7 @@ public class UserProfileService : IUserProfileService
             getUserProfile.user.Department = userProfileDto.Department;
             getUserProfile.user.SubDepartment = userProfileDto.SubDepartment;
             getUserProfile.user.Site = userProfileDto.Site;
-            getUserProfile.user.Location = userProfileDto.Location;
+            getUserProfile.user.Area = userProfileDto.Area;
             getUserProfile.user.RoleId = userProfileDto.RoleId;
             getUserProfile.user.JoiningDate = userProfileDto.JoiningDate;
             getUserProfile.user.LeavingDate = userProfileDto.LeavingDate;

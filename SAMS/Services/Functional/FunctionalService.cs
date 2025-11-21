@@ -102,7 +102,7 @@ namespace SAMS.Services.Functional
                         Country = "India",
                         ProfilePicture = "",
                         RoleId = 1,
-                        Location = null,
+                        Area = null,
                         Site = null,
                         IsApprover = 1,
                         EmployeeId = "SA-" + StaticData.RandomDigits(6),
