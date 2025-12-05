@@ -1,4 +1,3 @@
-<!-- Enhanced popup-widget.component.html - WITH EMAIL VERIFICATION & COLSPAN FIX -->
 <div class="enhanced-popup-container" [@fadeInOut] [ngClass]="{
   'form-type': isFormType,
   'view-type': isViewType,
@@ -8,7 +7,7 @@
   'one-column': isFormType() && formConfig?.columns === 1
 }">
   
-  <!-- FORM POPUP -->
+  <!-- ==================== FORM POPUP ==================== -->
   <ng-container *ngIf="isFormType">
     <ng-container *ngIf="formConfig as config">
       <div *ngIf="form" class="form-popup">
@@ -47,7 +46,7 @@
         <div class="popup-content" [@slideInOut]>
           <form [formGroup]="form" (ngSubmit)="onSubmit()" class="popup-form">
             
-            <!-- Profile Image Upload -->
+            <!-- Profile Image Upload (User-specific) -->
             <div class="profile-image-section" *ngIf="config.title.includes('User')">
               <div class="image-upload-container">
                 <div class="current-image">
@@ -66,7 +65,7 @@
                     </button>
                     <button type="button" mat-icon-button 
                             class="remove-btn"
-                            *ngIf="(imagePreview() !== '/assets/images/ProfilePic.png' || (form && form.get('profilePicture')?.value)) && getUserProfileImage() !== '/assets/images/ProfilePic.png' && !imageUploading()"
+                            *ngIf="(imagePreview() !== '/assets/images/ProfilePic.png' || form.get('profilePicture')?.value) && getUserProfileImage() !== '/assets/images/ProfilePic.png' && !imageUploading()"
                             (click)="onImageRemove()"
                             matTooltip="Remove Photo">
                       <mat-icon>delete</mat-icon>
@@ -94,7 +93,6 @@
             }">
               
               <ng-container *ngFor="let field of config.fields; trackBy: trackByField">
-                <!-- 🔥 FIX: Proper grid item wrapper with colSpan classes -->
                 <div class="field-wrapper" 
                      [ngClass]="{
                        'span-1': field.colSpan === 1 || !field.colSpan,
@@ -106,8 +104,7 @@
                      *ngIf="shouldShowField(field)">
 
                   <!-- TEXT -->
-                  <mat-form-field *ngIf="field.type === 'text'"
-                                  appearance="outline" class="form-field">
+                  <mat-form-field *ngIf="field.type === 'text'" appearance="outline" class="form-field">
                     <mat-label>{{ field.label }}</mat-label>
                     <input matInput
                            [formControlName]="field.key"
@@ -133,18 +130,34 @@
                              type="email"
                              [placeholder]="field.placeholder || ''"
                              [attr.maxLength]="field.maxLength ?? null"
-                             [matTooltip]="field.tooltip || ''"
-                             [matTooltipDisabled]="!field.tooltip">
-                      
-                      <mat-icon *ngIf="field.icon" matPrefix class="field-icon">{{ field.icon }}</mat-icon>
-                      <mat-icon *ngIf="!field.icon" matSuffix>email</mat-icon>
-                      
-                      <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
-                    </mat-form-field>
+                             [matTooltip]="isEmailFieldDisabled(field) ? getDisabledEmailTooltip(field) : (field.tooltip || '')"
+                             [matTooltipDisabled]="!isEmailFieldDisabled(field) && !field.tooltip">
 
-                    <!-- 🆕 EMAIL VERIFICATION TOGGLE -->
+                      <mat-icon *ngIf="field.icon" matPrefix class="field-icon">{{ field.icon }}</mat-icon>
+
+                      <!-- 🆕 Show verified icon in email field if already verified -->
+                      <mat-icon *ngIf="isEmailAlreadyVerified(field)" 
+                                matSuffix 
+                                class="verified-suffix-icon"
+                                matTooltip="Email verified">
+                        verified
+                      </mat-icon>
+                      <mat-icon *ngIf="!isEmailAlreadyVerified(field) && !field.icon" matSuffix>email</mat-icon>
+
+                      <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
+
+                      <!-- 🆕 Show hint for verification requirement -->
+                      <mat-hint *ngIf="!isEmailAlreadyVerified(field)">
+                        Enter a valid email to enable verification option
+                      </mat-hint>
+                    </mat-form-field>
+                  
+                    <!-- 🔥 UPDATED: Email Verification Toggle -->
                     <div *ngIf="field.showEmailVerification && getEmailVerificationControl(field) as verifyControl" 
-                         class="email-verification-toggle">
+                         class="email-verification-toggle"
+                         [class.verified-disabled]="isEmailAlreadyVerified(field)"
+                         [class.toggle-disabled]="isEmailVerificationDisabled(field) && !isEmailAlreadyVerified(field)">
+
                       <mat-slide-toggle [formControl]="verifyControl"
                                         color="primary"
                                         class="verification-toggle">
@@ -152,8 +165,23 @@
                           {{ field.emailVerificationLabel || 'Send Verification Email' }}
                         </span>
                       </mat-slide-toggle>
-                      
+
+                      <!-- 🔥 UPDATED: Show "Verified" badge ONLY when backend confirmed -->
+                      <div *ngIf="isEmailAlreadyVerified(field)" class="verification-status-badge">
+                        <mat-icon class="verified-icon">verified</mat-icon>
+                        <span class="verified-text">Verified</span>
+                      </div>
+
+                      <!-- 🆕 Show "Invalid Email" message when toggle is disabled due to invalid email -->
+                      <div *ngIf="!isEmailAlreadyVerified(field) && isEmailVerificationDisabled(field)" 
+                           class="verification-disabled-hint">
+                        <mat-icon class="hint-icon">info_outline</mat-icon>
+                        <span class="hint-text">Enter valid email first</span>
+                      </div>
+
+                      <!-- Info button (only show when NOT verified) -->
                       <button type="button" 
+                              *ngIf="!isEmailAlreadyVerified(field) && !isEmailVerificationDisabled(field)"
                               mat-icon-button 
                               class="info-button"
                               [matTooltip]="getEmailVerificationTooltip(field)"
@@ -165,8 +193,7 @@
                   </ng-container>
 
                   <!-- PASSWORD -->
-                  <mat-form-field *ngIf="field.type === 'password'"
-                                  appearance="outline" class="form-field">
+                  <mat-form-field *ngIf="field.type === 'password'" appearance="outline" class="form-field">
                     <mat-label>{{ field.label }}</mat-label>
                     <input matInput
                            [formControlName]="field.key"
@@ -217,75 +244,228 @@
                     <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
                   </mat-form-field>
 
-                  <!-- SELECT with cascading support -->
-                  <mat-form-field *ngIf="field.type === 'select'" appearance="outline" class="form-field">
-                    <mat-label>{{ field.label }}</mat-label>
+                  <!-- FILE UPLOAD -->
+                  <div *ngIf="field.type === 'file'" class="file-field">
+                    <div class="file-upload-container">
+                      
+                      <!-- Label Section -->
+                      <div class="file-label-section">
+                        <mat-icon class="file-icon">{{ field.icon || 'upload_file' }}</mat-icon>
+                        <label class="file-label">{{ field.label }}</label>
+                        <span *ngIf="field.required" class="required-indicator">*</span>
+                      </div>
                     
-                    <mat-select [formControlName]="field.key"
-                                [matTooltip]="field.tooltip || ''"
-                                [matTooltipDisabled]="!field.tooltip"
-                                [placeholder]="field.placeholder || 'Select ' + field.label"
-                                [disabled]="isFieldLoading(field.key)">
+                      <!-- Upload Area with Preview -->
+                      <div class="file-upload-area" 
+                           [class.has-file]="getFilePreview(field.key)"
+                           [class.drag-over]="isFileDragOver(field.key)"
+                           (dragover)="onFileDragOver($event, field.key)"
+                           (dragleave)="onFileDragLeave($event, field.key)"
+                           (drop)="onFileDrop($event, field.key)">
                       
-                      <mat-option *ngIf="isFieldLoading(field.key)" disabled>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                          <mat-spinner diameter="20"></mat-spinner>
-                          <span>Loading options...</span>
+                        <!-- No File State -->
+                        <div *ngIf="!getFilePreview(field.key)" class="upload-prompt">
+                          <mat-icon class="upload-icon">cloud_upload</mat-icon>
+                          <p class="upload-text">
+                            Drag & drop file here or 
+                            <button type="button" 
+                                    mat-button 
+                                    color="primary"
+                                    class="browse-button"
+                                    (click)="openFilePicker(field.key)">
+                              Browse
+                            </button>
+                          </p>
+                          <p *ngIf="field.helperText" class="upload-hint">{{ field.helperText }}</p>
+                          <p *ngIf="!field.helperText && field.acceptedFileTypes" class="upload-hint">
+                            Accepted: {{ field.acceptedFileTypes }}
+                            <span *ngIf="field.maxFileSize"> (Max {{ field.maxFileSize }}MB)</span>
+                          </p>
                         </div>
-                      </mat-option>
                       
-                      <ng-container *ngIf="field.key === 'country' && countriesLoaded() && !isFieldLoading(field.key); else regularOptions">
-                        <mat-option *ngFor="let country of countries()" 
-                                    [value]="country.name"
-                                    class="country-option">
-                          <div class="country-option-content">
-                            <img [src]="getCountryFlagUrl(country.code)" 
-                                 [alt]="country.name + ' flag'"
-                                 class="country-flag"
-                                 loading="lazy"
-                                 onerror="this.style.display='none'">
-                            <span class="country-name">{{ country.name }}</span>
-                            <span class="country-code">({{ country.code }})</span>
+                        <!-- File Preview State -->
+                        <div *ngIf="getFilePreview(field.key)" class="file-preview">
+                          <div class="preview-content">
+                            
+                            <!-- Image Preview -->
+                            <div *ngIf="isImageFile(getFieldFileUrl(field.key)!)" class="image-preview-wrapper">
+                              <img [src]="getFieldFileUrl(field.key)" 
+                                   alt="Preview"
+                                   [style.width]="field.previewWidth || '100%'"
+                                   [style.max-width]="'400px'"
+                                   [style.height]="field.previewHeight || 'auto'"
+                                   [style.max-height]="'300px'"
+                                   class="image-preview">
+                            </div>
+                          
+                            <!-- Document Preview -->
+                            <div *ngIf="!isImageFile(getFieldFileUrl(field.key)!)" class="document-preview">
+                              <div class="doc-icon-wrapper">
+                                <mat-icon class="doc-icon">{{ getFileIcon(getFieldFileUrl(field.key)!) }}</mat-icon>
+                              </div>
+                              <div class="doc-details">
+                                <span class="doc-name">{{ getFileName(getFieldFileUrl(field.key)!) }}</span>
+                                <span class="doc-size" *ngIf="getFileObjectSize(field.key)">
+                                  {{ getFileObjectSize(field.key) }}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        
+                          <!-- Action Buttons -->
+                          <div class="file-actions">
+                            <button type="button" 
+                                    mat-icon-button 
+                                    color="primary"
+                                    class="change-file-btn"
+                                    (click)="openFilePicker(field.key)"
+                                    matTooltip="Change file">
+                              <mat-icon>edit</mat-icon>
+                            </button>
+                            <button type="button" 
+                                    mat-icon-button 
+                                    color="warn"
+                                    class="remove-file-btn"
+                                    (click)="removeFile(field.key)"
+                                    matTooltip="Remove file">
+                              <mat-icon>delete</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      
+                        <!-- Hidden File Input -->
+                        <input type="file"
+                               [id]="'file-input-' + field.key"
+                               [accept]="field.acceptedFileTypes || '*'"
+                               (change)="onFileSelected($event, field.key)"
+                               style="display: none;">
+                      </div>
+                    
+                      <!-- Error Message -->
+                      <div *ngIf="isFieldInvalid(field.key)" class="file-error">
+                        <mat-icon class="error-icon">error</mat-icon>
+                        <span>{{ getFieldError(field.key) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- SELECT with cascading support AND QUICK ADD -->
+                  <div *ngIf="field.type === 'select'" class="select-field-wrapper">
+                    <mat-form-field appearance="outline" class="form-field select-form-field">
+                      <mat-label>{{ field.label }}</mat-label>
+
+                      <mat-select [formControlName]="field.key"
+                                  [matTooltip]="field.tooltip || ''"
+                                  [matTooltipDisabled]="!field.tooltip"
+                                  [placeholder]="field.placeholder || 'Select ' + field.label"
+                                  [disabled]="isFieldLoading(field.key)">
+
+                        <!-- Loading State -->
+                        <mat-option *ngIf="isFieldLoading(field.key)" disabled>
+                          <div class="loading-option">
+                            <mat-spinner diameter="20"></mat-spinner>
+                            <span>Loading options...</span>
                           </div>
                         </mat-option>
-                      </ng-container>
-                      
-                      <ng-template #regularOptions>
-                        <ng-container *ngIf="!isFieldLoading(field.key)">
-                          <mat-option *ngFor="let opt of (field.cascadeFrom ? getFieldOptions(field.key) : field.options)" 
-                                      [value]="opt.value" 
-                                      [disabled]="opt.disabled">
-                            {{ opt.label }}
-                          </mat-option>
-                          
-                          <mat-option *ngIf="field.cascadeFrom && getFieldOptions(field.key).length === 0" disabled>
-                            <span style="color: var(--mat-sys-on-surface-variant); font-style: italic;">
-                              {{ field.placeholder || 'No options available' }}
-                            </span>
+
+                        <!-- Country Options (Special Case) -->
+                        <ng-container *ngIf="field.key === 'country' && countriesLoaded() && !isFieldLoading(field.key); else regularOptions">
+                          <mat-option *ngFor="let country of countries()" 
+                                      [value]="country.name"
+                                      class="country-option">
+                            <div class="country-option-content">
+                              <img [src]="getCountryFlagUrl(country.code)" 
+                                   [alt]="country.name + ' flag'"
+                                   class="country-flag"
+                                   loading="lazy"
+                                   onerror="this.style.display='none'">
+                              <span class="country-name">{{ country.name }}</span>
+                              <span class="country-code">({{ country.code }})</span>
+                            </div>
                           </mat-option>
                         </ng-container>
-                      </ng-template>
-                      
-                    </mat-select>
-                    
-                    <mat-icon *ngIf="field.icon && !isFieldLoading(field.key)" matPrefix class="field-icon">
-                      {{ field.icon }}
-                    </mat-icon>
-                    
-                    <mat-spinner *ngIf="isFieldLoading(field.key)" 
-                                 matPrefix 
-                                 diameter="20" 
-                                 style="margin-right: 8px;">
-                    </mat-spinner>
-                    
-                    <mat-error *ngIf="isFieldInvalid(field.key)">
-                      {{ getFieldError(field.key) }}
-                    </mat-error>
-                    
-                    <mat-hint *ngIf="field.cascadeFrom && form.get(field.cascadeFrom)?.disabled">
-                      Select {{ field.cascadeFrom }} first
-                    </mat-hint>
-                  </mat-form-field>
+
+                        <!-- Regular Options -->
+                        <ng-template #regularOptions>
+                          <ng-container *ngIf="!isFieldLoading(field.key)">
+                            <mat-option *ngFor="let opt of (field.cascadeFrom ? getFieldOptions(field.key) : field.options)" 
+                                        [value]="opt.value" 
+                                        [disabled]="opt.disabled"
+                                        class="custom-option">
+                              <div class="option-content">
+                                <span class="option-label">{{ opt.label }}</span>
+                              </div>
+                            </mat-option>
+
+                            <!-- Empty State for Cascading -->
+                            <mat-option *ngIf="field.cascadeFrom && getFieldOptions(field.key).length === 0" disabled>
+                              <div class="empty-option">
+                                <mat-icon class="empty-icon">info_outline</mat-icon>
+                                <span>{{ field.placeholder || 'No options available' }}</span>
+                              </div>
+                            </mat-option>
+                          </ng-container>
+                        </ng-template>
+
+                      </mat-select>
+
+                      <!-- Prefix Icon -->
+                      <mat-icon *ngIf="field.icon && !isFieldLoading(field.key)" matPrefix class="field-icon">
+                        {{ field.icon }}
+                      </mat-icon>
+
+                      <!-- Loading Spinner -->
+                      <mat-spinner *ngIf="isFieldLoading(field.key)" 
+                                   matPrefix 
+                                   diameter="20" 
+                                   class="field-loading-spinner">
+                      </mat-spinner>
+
+                      <!-- Quick Add Button -->
+                      <div *ngIf="field.quickAdd?.enabled && !isFieldLoading(field.key)" 
+                           matSuffix
+                           class="quick-add-wrapper">
+                        <button type="button"
+                                mat-icon-button 
+                                class="quick-add-button"
+                                [class.loading]="isQuickAddLoading(field.key)"
+                                [class.success]="isQuickAddSuccess(field.key)"
+                                [matTooltip]="field.quickAdd?.buttonLabel || 'Add New ' + field.label"
+                                [disabled]="isQuickAddLoading(field.key)"
+                                (click)="onQuickAddClick(field, $event)"
+                                [@successPulse]="isQuickAddSuccess(field.key) ? 'success' : 'idle'">
+
+                          <mat-spinner *ngIf="isQuickAddLoading(field.key)" 
+                                       diameter="20"
+                                       class="button-spinner"></mat-spinner>
+
+                          <mat-icon *ngIf="isQuickAddSuccess(field.key)" class="success-icon">
+                            check_circle
+                          </mat-icon>
+
+                          <mat-icon *ngIf="!isQuickAddLoading(field.key) && !isQuickAddSuccess(field.key)" class="add-icon">
+                            {{ field.quickAdd?.buttonIcon || 'add_circle_outline' }}
+                          </mat-icon>
+                        </button>
+
+                        <span class="quick-add-hint">Quick add</span>
+                      </div>
+
+                      <mat-error *ngIf="isFieldInvalid(field.key)">
+                        {{ getFieldError(field.key) }}
+                      </mat-error>
+
+                      <mat-hint *ngIf="field.cascadeFrom && form.get(field.cascadeFrom)?.disabled" class="cascade-hint">
+                        <mat-icon class="hint-icon">arrow_upward</mat-icon>
+                        Select {{ field.cascadeFrom }} first
+                      </mat-hint>
+                    </mat-form-field>
+
+                    <div *ngIf="isQuickAddSuccess(field.key)" class="success-notification" [@fadeInOut]>
+                      <mat-icon>check_circle</mat-icon>
+                      <span>Added successfully!</span>
+                    </div>
+                  </div>
 
                   <!-- DATE -->
                   <mat-form-field *ngIf="field.type === 'date'" appearance="outline" class="form-field">
@@ -330,6 +510,54 @@
                       </mat-radio-button>
                     </mat-radio-group>
                     <div *ngIf="isFieldInvalid(field.key)" class="field-error">{{ getFieldError(field.key) }}</div>
+                  </div>
+
+                  <!-- INFO FIELD -->
+                  <div *ngIf="field.type === 'info'" class="info-field">
+                    <mat-card class="info-card" [ngClass]="'info-' + (field.color || 'primary')">
+                      <mat-card-content>
+                        <div class="info-content">
+                          <mat-icon *ngIf="field.icon" class="info-icon">{{ field.icon }}</mat-icon>
+                          <div class="info-text">
+                            <div class="info-label" *ngIf="field.label">{{ field.label }}</div>
+                            <div class="info-value">{{ field.value }}</div>
+                            <div class="info-helper" *ngIf="field.helperText">{{ field.helperText }}</div>
+                          </div>
+                        </div>
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+
+                  <!-- TOGGLE FIELD -->
+                  <div *ngIf="field.type === 'toggle'" class="toggle-field">
+                    <div class="toggle-wrapper">
+                      <mat-slide-toggle 
+                        [formControlName]="field.key"
+                        [color]="field.color || 'primary'"
+                        [matTooltip]="field.tooltip || ''"
+                        [matTooltipDisabled]="!field.tooltip"
+                        class="custom-toggle">
+                        <span class="toggle-label-text">
+                          <mat-icon *ngIf="field.icon" class="toggle-icon">{{ field.icon }}</mat-icon>
+                          {{ field.label }}
+                        </span>
+                      </mat-slide-toggle>
+                      
+                      <div *ngIf="field.helperText" class="toggle-helper-text">
+                        <mat-icon class="helper-icon">info_outline</mat-icon>
+                        <span>{{ field.helperText }}</span>
+                      </div>
+                    </div>
+                    
+                    <div *ngIf="isFieldInvalid(field.key)" class="field-error">
+                      {{ getFieldError(field.key) }}
+                    </div>
+                  </div>
+
+                  <!-- DIVIDER FIELD -->
+                  <div *ngIf="field.type === 'divider'" class="divider-field">
+                    <mat-divider></mat-divider>
+                    <span *ngIf="field.label" class="divider-label">{{ field.label }}</span>
                   </div>
 
                 </div>
@@ -420,71 +648,154 @@
             <ng-container *ngFor="let field of config.fields; trackBy: trackByField">
               <div class="view-field" 
                    [ngClass]="{
-                     'span-1': field.colSpan === 1 || !field.colSpan,
-                     'span-2': field.colSpan === 2,
-                     'break-after': field.breakAfter
+                     'span-1': (field.colSpan === 1 || !field.colSpan) && field.type !== 'file',
+                     'span-2': field.colSpan === 2 || field.type === 'file',
+                     'break-after': field.breakAfter,
+                     'file-field-view': field.type === 'file'
                    }"
                    [@fadeInOut]
                    *ngIf="shouldShowField(field)">
-
+                  
                 <div class="field-display">
                   <div class="field-header">
                     <mat-icon *ngIf="field.icon" class="field-icon">{{ field.icon }}</mat-icon>
                     <label class="field-label">{{ field.label }}</label>
                   </div>
                   
-                  <div class="field-value" [ngClass]="{
-                    'value-text': field.type === 'text',
-                    'value-textarea': field.type === 'textarea',
-                    'value-date': field.type === 'date',
-                    'value-select': field.type === 'select',
-                    'value-checkbox': field.type === 'checkbox',
-                    'value-country': field.key === 'country'
-                  }">
-                    <div *ngIf="field.key === 'country' && getDisplayValue(field)" class="country-display-value">
-                      <img [src]="getCountryFlagUrl(getCountryCodeFromName(getDisplayValue(field)))" 
-                           [alt]="getDisplayValue(field) + ' flag'"
-                           class="country-flag-inline"
-                           loading="lazy"
-                           onerror="this.style.display='none'">
-                      <span class="country-name">{{ getDisplayValue(field) }}</span>
-                    </div>
+                  <!-- 🔥 FILE FIELD (PRIORITY CHECK) -->
+                  <ng-container *ngIf="field.type === 'file'; else nonFileField">
+                    <div class="field-value file-field-value">
+                      
+                      <!-- File Exists -->
+                      <ng-container *ngIf="getFieldFileUrl(field.key) as fileUrl; else noFileInView">
+                        <div class="file-view-container">
+                        
+                          <!-- Image Preview -->
+                          <div *ngIf="isImageFile(fileUrl)" class="file-image-preview">
+                            <img [src]="fileUrl" 
+                                 [alt]="field.label"
+                                 [style.width]="field.previewWidth || '100%'"
+                                 [style.max-width]="'500px'"
+                                 [style.height]="field.previewHeight || 'auto'"
+                                 [style.max-height]="'400px'"
+                                 class="preview-image"
+                                 loading="lazy"
+                                 (error)="onImageError($event)">
+                          </div>
+                        
+                          <!-- Document Preview -->
+                          <div *ngIf="!isImageFile(fileUrl)" class="file-document-preview">
+                            <div class="document-icon-wrapper">
+                              <mat-icon class="document-icon">{{ getFileIcon(fileUrl) }}</mat-icon>
+                            </div>
+                            <div class="document-info">
+                              <span class="document-name" *ngIf="field.showFileName !== false">
+                                {{ getFileName(fileUrl) }}
+                              </span>
+                              <span class="document-type" *ngIf="getFileExtension(fileUrl)">
+                                {{ getFileExtension(fileUrl).toUpperCase() }} File
+                              </span>
+                            </div>
+                          </div>
+                        
+                          <!-- Action Buttons -->
+                          <div class="file-view-actions">
+                            <button type="button" 
+                                    mat-raised-button 
+                                    color="primary"
+                                    class="preview-btn"
+                                    (click)="onFilePreview(fileUrl, getFileName(fileUrl))"
+                                    matTooltip="Preview File">
+                              <mat-icon>visibility</mat-icon>
+                              <span>Preview</span>
+                            </button>
+                          
+                            <button type="button" 
+                                    mat-raised-button 
+                                    *ngIf="field.downloadEnabled !== false"
+                                    class="download-btn"
+                                    (click)="onFileDownload(fileUrl, getFileName(fileUrl))"
+                                    matTooltip="Download File">
+                              <mat-icon>download</mat-icon>
+                              <span>Download</span>
+                            </button>
+                          </div>
+                        </div>
+                      </ng-container>
                     
-                    <span class="formatted-value" *ngIf="field.type !== 'checkbox' && field.key !== 'country' && field.type !== 'email'">
-                      {{ formatDisplayValue(field, getDisplayValue(field)) }}
-                    </span>
-
-                    <!-- 🆕 EMAIL WITH VERIFICATION STATUS -->
-                    <ng-container *ngIf="field.type === 'email'">
-                      <span class="formatted-value">
+                      <!-- No File Template -->
+                      <ng-template #noFileInView>
+                        <div class="no-file-view">
+                          <mat-icon class="no-file-icon">insert_drive_file</mat-icon>
+                          <span class="no-file-text">No file uploaded</span>
+                        </div>
+                      </ng-template>
+                    
+                    </div>
+                  </ng-container>
+                
+                  <!-- 🔥 NON-FILE FIELDS -->
+                  <ng-template #nonFileField>
+                    <div class="field-value" 
+                         [ngClass]="{
+                           'value-text': field.type === 'text',
+                           'value-textarea': field.type === 'textarea',
+                           'value-date': field.type === 'date',
+                           'value-select': field.type === 'select',
+                           'value-checkbox': field.type === 'checkbox',
+                           'value-country': field.key === 'country'
+                         }">
+                      
+                      <!-- Country Display -->
+                      <div *ngIf="field.key === 'country' && getDisplayValue(field)" class="country-display-value">
+                        <img [src]="getCountryFlagUrl(getCountryCodeFromName(getDisplayValue(field)))" 
+                             [alt]="getDisplayValue(field) + ' flag'"
+                             class="country-flag-inline"
+                             loading="lazy"
+                             onerror="this.style.display='none'">
+                        <span class="country-name">{{ getDisplayValue(field) }}</span>
+                      </div>
+                      
+                      <!-- Regular Text/Number/Date -->
+                      <span class="formatted-value" 
+                            *ngIf="field.type !== 'checkbox' && field.key !== 'country' && field.type !== 'email'">
                         {{ formatDisplayValue(field, getDisplayValue(field)) }}
                       </span>
-                      
-                      <div *ngIf="field.showEmailVerification" class="email-verification-status">
-                        <mat-icon class="status-icon" 
-                                  [ngClass]="data.data[field.emailVerificationKey || 'isEmailVerified'] ? 'verified' : 'not-verified'">
-                          {{ data.data[field.emailVerificationKey || 'isEmailVerified'] ? 'verified' : 'pending' }}
-                        </mat-icon>
-                        <span class="status-text" 
-                              [ngClass]="data.data[field.emailVerificationKey || 'isEmailVerified'] ? 'verified' : ''">
-                          {{ data.data[field.emailVerificationKey || 'isEmailVerified'] ? 'Email Verified' : 'Email Not Verified' }}
+                    
+                      <!-- Email with Verification -->
+                      <ng-container *ngIf="field.type === 'email'">
+                        <span class="formatted-value">
+                          {{ formatDisplayValue(field, getDisplayValue(field)) }}
                         </span>
+                        
+                        <div *ngIf="field.showEmailVerification" class="email-verification-status">
+                          <mat-icon class="status-icon" 
+                                    [ngClass]="data.data[field.emailVerificationKey || 'isEmailVerified'] ? 'verified' : 'not-verified'">
+                            {{ data.data[field.emailVerificationKey || 'isEmailVerified'] ? 'verified' : 'pending' }}
+                          </mat-icon>
+                          <span class="status-text" 
+                                [ngClass]="data.data[field.emailVerificationKey || 'isEmailVerified'] ? 'verified' : ''">
+                            {{ data.data[field.emailVerificationKey || 'isEmailVerified'] ? 'Email Verified' : 'Email Not Verified' }}
+                          </span>
+                        </div>
+                      </ng-container>
+                      
+                      <!-- Checkbox -->
+                      <div *ngIf="field.type === 'checkbox'" class="checkbox-value">
+                        <mat-icon class="status-icon" [class.active]="getDisplayValue(field)">
+                          {{ getDisplayValue(field) ? 'check_circle' : 'radio_button_unchecked' }}
+                        </mat-icon>
+                        <span>{{ getDisplayValue(field) ? 'Yes' : 'No' }}</span>
                       </div>
-                    </ng-container>
-                    
-                    <div *ngIf="field.type === 'checkbox'" class="checkbox-value">
-                      <mat-icon class="status-icon" [class.active]="getDisplayValue(field)">
-                        {{ getDisplayValue(field) ? 'check_circle' : 'radio_button_unchecked' }}
-                      </mat-icon>
-                      <span>{{ getDisplayValue(field) ? 'Yes' : 'No' }}</span>
+                      
+                      <!-- Country Not Specified -->
+                      <span *ngIf="field.key === 'country' && !getDisplayValue(field)" class="formatted-value">
+                        Not specified
+                      </span>
                     </div>
-                    
-                    <span *ngIf="field.key === 'country' && !getDisplayValue(field)" class="formatted-value">
-                      Not specified
-                    </span>
-                  </div>
+                  </ng-template>
+                
                 </div>
-
               </div>
             </ng-container>
           </div>

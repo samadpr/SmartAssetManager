@@ -39,6 +39,8 @@ using SAMS.Services.Roles;
 using SAMS.Services.Roles.Interface;
 using SAMS.Services.SubDepartments;
 using SAMS.Services.SubDepartments.Interface;
+using SAMS.Services.Suppliers;
+using SAMS.Services.Suppliers.Interface;
 using static SAMS.Helpers.StaticData;
 
 namespace SAMS.Extensions
@@ -119,6 +121,9 @@ namespace SAMS.Extensions
 
             services.AddScoped<IAssetSubCategoriesService, AssetSubCategoriesService>();
             services.AddScoped<IAssetSubCategoriesRepository, AssetSubCategoriesRepository>();
+
+            services.AddScoped<ISuppliersService, SuppliersService>();
+            services.AddScoped<ISuppliersRepository, SuppliersRepository>();
 
             return services;
         }

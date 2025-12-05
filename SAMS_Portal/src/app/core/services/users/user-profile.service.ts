@@ -50,9 +50,15 @@ export class UserProfileService {
   }
 
   // ✅ Revoke Login Access (Admin Only)
-  revokeLoginAccessForCreatedUserProfile(id: number): Observable<ApiResponse> {
-    const params = new HttpParams().set('id', id);
-    return this.http.delete<ApiResponse>(`${this.baseUrl}/revoke-login-access-for-created-user-profile`, { params });
+  revokeLoginAccessForCreatedUserProfile(params: { id: number; sendEmail: boolean; message: string }): Observable<ApiResponse> {
+    return this.http.delete<ApiResponse>(
+      `${this.baseUrl}/revoke-login-access-for-created-user-profile`,
+      { params }
+    );
+  }
+
+  passwordSetup(payload: { email: string; token: string; password: string; confirmPassword: string }) {
+    return this.http.post<ApiResponse>(`${this.baseUrl}/password-setup`, payload);
   }
 
   // ✅ Get User Profiles used in a specific Role

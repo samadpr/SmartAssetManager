@@ -17,12 +17,16 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import * as XLSX from 'xlsx';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { CountryService } from '../../../../core/services/account/country/country.service';
+import { MatDialog } from '@angular/material/dialog';
+import { FilePreviewComponent } from './file-preview/file-preview.component';
+import { GlobalService } from '../../../../core/services/global/global.service';
+import { PopupWidgetService } from '../../../../core/services/popup-widget/popup-widget.service';
 
 export interface ListColumn {
   key: string;
   label: string;
   sortable?: boolean;
-  type?: 'text' | 'number' | 'date' | 'currency' | 'boolean' | 'avatar' | 'phone' | 'email' | 'address' | 'country';
+  type?: 'text' | 'number' | 'date' | 'currency' | 'boolean' | 'avatar' | 'phone' | 'email' | 'address' | 'country' | 'file';
   format?: string;
   visible?: boolean;
   width?: string;
@@ -31,6 +35,13 @@ export interface ListColumn {
   tooltip?: string;
   showIcon?: boolean;
   ellipsis?: boolean;
+
+  // 🆕 File column specific properties
+  filePreviewEnabled?: boolean; // Show preview button
+  fileDownloadEnabled?: boolean; // Show download button
+  fileTypeIcon?: boolean; // Show file type icon
+  fileNameDisplay?: boolean; // Show file name
+
   avatarField?: string;
   nameField?: string;
   countryCodeField?: string;
@@ -173,6 +184,9 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
   @Output() rowClick = new EventEmitter<{ action: string, item: any }>();
 
   private countryService = inject(CountryService);
+  private dialog = inject(MatDialog);
+  private globalService = inject(GlobalService);
+  private popupService = inject(PopupWidgetService);
 
   dataSource = new MatTableDataSource<any>([]);
   selection = new SelectionModel<any>(true, []);
@@ -181,7 +195,7 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
   visibleColumns = signal<ListColumn[]>([]);
   hasSelection = signal(false);
   selectedCount = signal(0);
-  
+
   // 🆕 NEW: Computed signal for table scrolling
   shouldScroll = computed(() => {
     const pageSize = this.paginator?.pageSize || this.config?.pageSize || 10;
@@ -195,11 +209,11 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     const pageSize = this.paginator?.pageSize || this.config?.pageSize || 10;
     const rowHeight = this.config?.compactMode ? 52 : 64; // Approximate row heights
     const headerHeight = 48;
-    
+
     if (pageSize <= maxRows) {
       return 'none'; // No max height, show all rows
     }
-    
+
     // Calculate height for max visible rows + header
     return `${(maxRows * rowHeight) + headerHeight}px`;
   });
@@ -211,7 +225,7 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     if (this.config?.columns) {
       this.visibleColumns.set(this.config.columns.filter(col => col.visible !== false));
     }
-    
+
     this.initializeComponent();
     this.setupSearch();
     this.setupSelectionTracking();
@@ -223,13 +237,13 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     }
     if (this.paginator) {
       this.dataSource.paginator = this.paginator;
-      
+
       // 🆕 Listen to page changes to update height
       this.paginator.page.subscribe(() => {
         this.updateTableHeight();
       });
     }
-    
+
     // 🔧 Detect changes after view initialization
     this.cdr.detectChanges();
   }
@@ -243,6 +257,129 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
     }
   }
 
+  // 🆕 File handling methods
+
+  getFileExtension(filePath: string): string {
+    if (!filePath) return '';
+    const parts = filePath.split('.');
+    return parts[parts.length - 1].toLowerCase();
+  }
+
+  getFileName(filePath: string): string {
+    if (!filePath) return '';
+    const parts = filePath.split('/');
+    return parts[parts.length - 1];
+  }
+  getTruncatedFileName(filePath: string, maxLength: number = 20): string {
+    if (!filePath) return '';
+
+    const fileName = this.getFileName(filePath);
+    const extension = this.getFileExtension(filePath);
+
+    if (fileName.length <= maxLength) {
+      return fileName;
+    }
+
+    // Remove extension for truncation
+    const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+    const truncateLength = maxLength - extension.length - 4; // -4 for "..." and "."
+
+    if (truncateLength > 0) {
+      return `${nameWithoutExt.substring(0, truncateLength)}...${extension}`;
+    }
+
+    return `${fileName.substring(0, maxLength - 3)}...`;
+  }
+
+  getFileTypeIcon(extension: string): string {
+    const ext = extension.toLowerCase();
+
+    // Images
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext)) {
+      return 'image';
+    }
+
+    // PDFs
+    if (ext === 'pdf') {
+      return 'picture_as_pdf';
+    }
+
+    // Documents
+    if (['doc', 'docx'].includes(ext)) {
+      return 'description';
+    }
+
+    // Spreadsheets
+    if (['xls', 'xlsx', 'csv'].includes(ext)) {
+      return 'table_chart';
+    }
+
+    // Archives
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+      return 'folder_zip';
+    }
+
+    return 'insert_drive_file';
+  }
+
+  isPreviewable(extension: string): boolean {
+    const ext = extension.toLowerCase();
+    const previewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+    return previewableTypes.includes(ext);
+  }
+
+  onFilePreview(filePath: string, event: Event): void {
+    event.stopPropagation();
+
+    const fileName = this.getFileName(filePath);
+    const fileExtension = this.getFileExtension(filePath);
+
+    this.dialog.open(FilePreviewComponent, {
+      data: {
+        fileUrl: filePath,
+        fileName: fileName,
+        fileType: fileExtension
+      },
+      width: '90vw',
+      maxWidth: '1200px',
+      height: '90vh',
+      panelClass: 'file-preview-dialog',
+      autoFocus: false
+    });
+  }
+
+  onFileDownload(filePath: string, fileName: string, event: Event): void {
+    event.stopPropagation();
+
+    this.popupService.openGenericConfirmation(
+      'Download File',
+      `Do you want to download "${fileName}"?`,
+      {
+        confirmButtonText: 'Download',
+        confirmButtonIcon: 'download',
+        icon: 'download',
+        iconColor: 'primary'
+      }
+    ).subscribe(result => {
+      if (result && result.action === 'confirm') {
+        this.downloadFile(filePath, fileName);
+      }
+    });
+  }
+
+  private downloadFile(url: string, fileName: string): void {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    this.globalService.showSnackbar('Download started', 'success');
+  }
+
+
   // 🆕 NEW: Method to update table height (removed detectChanges to prevent errors)
   private updateTableHeight() {
     // Height is updated via computed signal automatically
@@ -255,7 +392,7 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
       console.warn('ListWidget: No columns configured');
       return;
     }
-    
+
     this.dataSource.data = this.data;
 
     this.dataSource.filterPredicate = (data: any, filter: string) => {
@@ -533,7 +670,7 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
 
   onEmailClick(email: string, row: any, column: ListColumn, event: Event): void {
     event.stopPropagation();
-    
+
     if (column.showEmailVerification && column.emailVerificationKey && column.disableUnverifiedClick) {
       const isVerified = row[column.emailVerificationKey];
       if (!isVerified) {
@@ -541,7 +678,7 @@ export class ListWidgetComponent implements OnInit, AfterViewInit {
         return;
       }
     }
-    
+
     if (email) {
       window.open(`mailto:${email}`, '_self');
     }

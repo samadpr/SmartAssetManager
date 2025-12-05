@@ -109,6 +109,7 @@ namespace SAMS.Services.ManageUserRoles
                 {
                     Id = ur.Id,
                     Name = ur.Name,
+                    OrganizationId = ur.OrganizationId,
                     Description = ur.Description,
                     CreatedBy = ur.CreatedBy,
                     CreatedDate = ur.CreatedDate,
@@ -121,6 +122,7 @@ namespace SAMS.Services.ManageUserRoles
                         RoleId = rp.RoleId,
                         RoleName = rp.RoleName,
                         IsAllowed = rp.IsAllowed,
+                        OrganizationId = rp.OrganizationId,
                         CreatedBy = rp.CreatedBy,
                         CreatedDate = rp.CreatedDate,
                         ModifiedBy = rp.ModifiedBy,
@@ -132,6 +134,39 @@ namespace SAMS.Services.ManageUserRoles
                 return null!;
             return userRole;
         }
+
+        //public async Task<ManageUserRolesDto?> GetUserRoleByRoleIdInDetailsAsync( long roleId, Guid? organizationId)
+        //{
+        //    return await _context.ManageUserRoles
+        //        .Where(ur => !ur.Cancelled && ur.OrganizationId == organizationId)
+        //        .Include(ur => ur.ManageUserRolesDetails)
+        //        .Where(ur => ur.ManageUserRolesDetails.Any(d => d.RoleId == roleId.ToString()))
+        //        .Select(ur => new ManageUserRolesDto
+        //        {
+        //            Id = ur.Id,
+        //            Name = ur.Name,
+        //            Description = ur.Description,
+        //            OrganizationId = ur.OrganizationId,
+        //            CreatedBy = ur.CreatedBy,
+        //            CreatedDate = ur.CreatedDate,
+        //            ModifiedBy = ur.ModifiedBy,
+        //            ModifiedDate = ur.ModifiedDate,
+        //            RolePermissions = ur.ManageUserRolesDetails.Select(d => new ManageUserRolesDetailsDto
+        //            {
+        //                Id = d.Id,
+        //                ManageRoleId = d.ManageRoleId,
+        //                RoleId = d.RoleId,
+        //                RoleName = d.RoleName,
+        //                IsAllowed = d.IsAllowed,
+        //                OrganizationId = d.OrganizationId,
+        //                CreatedBy = d.CreatedBy,
+        //                CreatedDate = d.CreatedDate,
+        //                ModifiedBy = d.ModifiedBy,
+        //                ModifiedDate = d.ModifiedDate
+        //            }).ToList()
+        //        })
+        //        .FirstOrDefaultAsync();
+        //}
 
 
         public Task<ManageUserRolesDetail> GetUserRoleDetailsByIdAsync(long id, List<string> emails)
@@ -159,6 +194,7 @@ namespace SAMS.Services.ManageUserRoles
                     Id = ur.Id,
                     Name = ur.Name,
                     Description = ur.Description,
+                    OrganizationId = ur.OrganizationId,
                     CreatedBy = ur.CreatedBy,
                     CreatedDate = ur.CreatedDate,
                     ModifiedBy = ur.ModifiedBy,
@@ -170,6 +206,7 @@ namespace SAMS.Services.ManageUserRoles
                         RoleId = rp.RoleId,
                         RoleName = rp.RoleName,
                         IsAllowed = rp.IsAllowed,
+                        OrganizationId = rp.OrganizationId,
                         CreatedBy = rp.CreatedBy,
                         CreatedDate = rp.CreatedDate,
                         ModifiedBy = rp.ModifiedBy,
@@ -209,6 +246,14 @@ namespace SAMS.Services.ManageUserRoles
         {
             // RoleManager exposes IQueryable<IdentityRole>
             return await Task.FromResult(_roleManager.Roles.ToList());
+        }
+
+        public async Task<ManageUserRole> GetUserRoleByIdWithOrgIdAsync(long id, Guid orgId)
+        {
+            var userRole = await _context.ManageUserRoles
+                .Where(ur => !ur.Cancelled && ur.Id == id && ur.OrganizationId == orgId)
+                .FirstOrDefaultAsync();
+            return userRole!;
         }
     }
 }

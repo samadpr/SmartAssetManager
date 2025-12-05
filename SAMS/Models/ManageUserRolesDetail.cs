@@ -1,9 +1,10 @@
-﻿using System;
+﻿using SAMS.Models.CommonModels.Abstract;
+using System;
 using System.Collections.Generic;
 
 namespace SAMS.Models;
 
-public class ManageUserRolesDetail : EntityBase
+public class ManageUserRolesDetail : TenantEntityBase
 {
     public long Id { get; set; }
 

@@ -53,5 +53,7 @@
         public string? Country { get; set; }
 
         public string? ProfilePicture { get; set; }
+
+        public bool? IsAllowLoginAccess { get; set; }
     }
 }

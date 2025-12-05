@@ -119,7 +119,7 @@ export class CitiesComponent implements OnInit {
         type: 'text',
         required: true,
         colSpan: 2,
-        icon: 'domain',
+        icon: 'edit_location_alt',
         placeholder: 'Enter City name',
         validators: [Validators.minLength(2), Validators.maxLength(100)]
       },
@@ -397,7 +397,7 @@ ngOnInit() {
   onAddCities() {
     const fields = this.getCitiesFields();
     this.popupService.openAddPopup('Add New City', fields, {
-      subtitle: 'Enter city information below', icon: 'domain_add', columns: 1, maxWidth: '800px', compactMode: false
+      subtitle: 'Enter city information below', icon: 'edit_location_alt', columns: 1, maxWidth: '800px', compactMode: false
     }).subscribe(result => {
       if (result?.action === 'submit') this.handleAddCities(result.data);
     });

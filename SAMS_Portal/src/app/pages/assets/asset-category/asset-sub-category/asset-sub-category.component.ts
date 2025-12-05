@@ -6,8 +6,9 @@ import { AssetCategoriesService } from '../../../../core/services/asset-categori
 import { PopupWidgetService } from '../../../../core/services/popup-widget/popup-widget.service';
 import { GlobalService } from '../../../../core/services/global/global.service';
 import { AssetSubCategory, AssetSubCategoryRequest } from '../../../../core/models/interfaces/asset-category/asset-sub-category.interface';
-import { PopupField } from '../../../../core/models/interfaces/popup-widget.interface';
+import { PopupField, QuickAddConfig } from '../../../../core/models/interfaces/popup-widget.interface';
 import { Validators } from '@angular/forms';
+import { map, tap } from 'rxjs';
 
 interface DropdownOption {
   value: any;
@@ -28,7 +29,7 @@ interface DropdownData {
   styleUrl: './asset-sub-category.component.scss'
 })
 export class AssetSubCategoryComponent implements OnInit {
-    private subCategoriesService = inject(AssetSubCategoriesService);
+  private subCategoriesService = inject(AssetSubCategoriesService);
   private categoriesService = inject(AssetCategoriesService);
   private popupService = inject(PopupWidgetService);
   private globalService = inject(GlobalService);
@@ -129,8 +130,8 @@ export class AssetSubCategoryComponent implements OnInit {
     this.loadSubCategories();
   }
 
+  // 🔥 FIXED: Load dropdown data
   private loadDropdownData() {
-    // Load categories from AssetCategoriesService
     this.categoriesService.getCategoriesByOrg().subscribe({
       next: (response) => {
         if (response.success && response.data) {
@@ -143,13 +144,97 @@ export class AssetSubCategoryComponent implements OnInit {
             ...current,
             categories: categoryOptions
           }));
+
+          console.log('✅ Categories loaded:', categoryOptions.length);
         }
       },
       error: (error) => {
-        console.error('Error loading categories:', error);
+        console.error('❌ Error loading categories:', error);
         this.globalService.showToastr('Failed to load categories', 'error');
       }
     });
+  }
+
+  // 🆕 NEW: Get Quick Add configuration for Category field
+  private getCategoryQuickAddConfig(): QuickAddConfig {
+    return {
+      enabled: true,
+      buttonLabel: 'Add New Category',
+      buttonIcon: 'add_circle',
+      popupTitle: 'Add New Asset Category',
+      popupIcon: 'category',
+
+      // Fields for the quick add category popup
+      fields: [
+        {
+          key: 'name',
+          label: 'Category Name',
+          type: 'text',
+          required: true,
+          colSpan: 2,
+          icon: 'category',
+          placeholder: 'Enter category name',
+          validators: [Validators.minLength(2), Validators.maxLength(100)]
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          required: false,
+          colSpan: 2,
+          icon: 'description',
+          placeholder: 'Enter category description',
+          rows: 3,
+          validators: [Validators.maxLength(500)]
+        }
+      ],
+
+      // Handler to save the new category
+      onAdd: (categoryData) => {
+        console.log('💾 Saving new category:', categoryData);
+        return this.categoriesService.createCategory(categoryData).pipe(
+          tap(response => {
+            console.log('✅ Category created:', response);
+          })
+        );
+      },
+
+      // Refresh dropdown options after successful add
+      // 🔥 FIXED: Refresh handler - This is the KEY fix
+      refreshOptions: (response) => {
+        console.log('🔄 Refreshing options after category add:', response);
+        
+        // Show success message
+        const categoryName = response?.data?.name || response?.name || 'Category';
+        this.globalService.showSnackbar(`"${categoryName}" added successfully!`, 'success');
+        
+        // 🔥 CRITICAL: Fetch fresh data from API
+        return this.categoriesService.getCategoriesByOrg().pipe(
+          map(apiResponse => {
+            if (apiResponse.success && apiResponse.data) {
+              const newOptions = apiResponse.data.map(cat => ({
+                value: cat.id,
+                label: cat.name
+              }));
+              
+              console.log('✅ Fresh options loaded:', newOptions.length);
+              
+              // 🔥 CRITICAL: Update the component's dropdown data
+              this.dropdownData.update(current => ({
+                ...current,
+                categories: newOptions
+              }));
+              
+              return newOptions;
+            }
+            return [];
+          }),
+          tap(newOptions => {
+            console.log('🎯 Options ready for dropdown:', newOptions);
+          })
+        );
+      }
+    };
   }
 
   private getSubCategoryFields(): PopupField[] {
@@ -164,7 +249,9 @@ export class AssetSubCategoryComponent implements OnInit {
         icon: 'category',
         placeholder: 'Select category',
         options: dropdowns.categories,
-        validators: [Validators.required]
+        validators: [Validators.required],
+        // 🆕 NEW: Enable Quick Add
+        quickAdd: this.getCategoryQuickAddConfig()
       },
       {
         key: 'name',
@@ -183,7 +270,7 @@ export class AssetSubCategoryComponent implements OnInit {
         required: false,
         colSpan: 2,
         icon: 'description',
-        placeholder: 'Enter sub category description',
+        placeholder: 'Enter sub category description (optional)',
         rows: 4,
         validators: [Validators.maxLength(500)]
       }
@@ -192,7 +279,7 @@ export class AssetSubCategoryComponent implements OnInit {
 
   private loadSubCategories() {
     this.loading.set(true);
-    
+
     this.subCategoriesService.getSubCategoriesByOrg().subscribe({
       next: (response) => {
         if (!response.success) {
@@ -318,7 +405,7 @@ export class AssetSubCategoryComponent implements OnInit {
 
   handleAddSubCategory(subCategoryData: AssetSubCategoryRequest) {
     this.loading.set(true);
-    
+
     this.subCategoriesService.createSubCategory(subCategoryData).subscribe({
       next: (response) => {
         if (response.success && response.data) {
@@ -339,12 +426,12 @@ export class AssetSubCategoryComponent implements OnInit {
 
   viewSubCategory(subCategory: AssetSubCategory) {
     const fields = this.getSubCategoryFields();
-    
+
     const viewData = {
       ...subCategory,
       assetCategorieId: subCategory.assetCategorieId
     };
-    
+
     this.popupService.openViewPopup2('Sub Category Details', fields, viewData, {
       subtitle: `Sub Category ID: ${subCategory.id}`,
       icon: 'label',
@@ -388,7 +475,7 @@ export class AssetSubCategoryComponent implements OnInit {
 
   private handleEditSubCategory(id: number, formData: AssetSubCategoryRequest) {
     this.loading.set(true);
-    
+
     this.subCategoriesService.updateSubCategory(formData).subscribe({
       next: (response) => {
         if (response.success && response.data) {

@@ -7,7 +7,7 @@ namespace SAMS.Services.Roles.Interface
     {
         Task GenerateRolesFromPageListAsync();
 
-        Task AddToRolesAsync(ApplicationUser user);
+        Task<bool> AddToRolesAsync(ApplicationUser user);
 
         Task<(bool isSuccess, string message)> UpdateUserRoles(ManageUserRolesDto updatedRoles);
 

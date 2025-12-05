@@ -220,6 +220,53 @@
             </span>
           </div>
 
+          <!-- File Column -->
+          <div *ngIf="column.type === 'file'" class="file-cell">
+            <ng-container *ngIf="row[column.key]">
+              <!-- File Info with Thumbnail -->
+              <div class="file-info">
+                <!-- File Type Icon with Background -->
+                <div class="file-icon-wrapper" [class]="'file-type-' + getFileExtension(row[column.key])">
+                  <mat-icon class="file-type-icon">
+                    {{ getFileTypeIcon(getFileExtension(row[column.key])) }}
+                  </mat-icon>
+                </div>
+              
+                <!-- File Name (Truncated) -->
+                <span class="file-name" [matTooltip]="getFileName(row[column.key])">
+                  {{ getTruncatedFileName(row[column.key], 20) }}
+                </span>
+              </div>
+            
+              <!-- File Actions -->
+              <div class="file-actions">
+                <!-- Preview Button -->
+                <button *ngIf="column.filePreviewEnabled !== false && isPreviewable(getFileExtension(row[column.key]))"
+                        mat-icon-button
+                        class="file-action-btn preview-btn"
+                        (click)="onFilePreview(row[column.key], $event)"
+                        matTooltip="Preview">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+              
+                <!-- Download Button -->
+                <button *ngIf="column.fileDownloadEnabled !== false"
+                        mat-icon-button
+                        class="file-action-btn download-btn"
+                        (click)="onFileDownload(row[column.key], getFileName(row[column.key]), $event)"
+                        matTooltip="Download">
+                  <mat-icon>download</mat-icon>
+                </button>
+              </div>
+            </ng-container>
+          
+            <!-- No file indicator -->
+            <div *ngIf="!row[column.key]" class="no-file">
+              <mat-icon class="no-file-icon">remove_circle_outline</mat-icon>
+              <span class="no-file-text">No file</span>
+            </div>
+          </div>
+
           <!-- Country Column -->
           <div *ngIf="column.type === 'country'" class="country-cell">
             <img [src]="getCountryFlagUrl(row[column.key])" 

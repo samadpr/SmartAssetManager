@@ -12,7 +12,6 @@ namespace SAMS.API.UserProfileAPIs.RequestObject
         
         public bool IsPasswordCreated { get; set; }
 
-        [Required]
         [DataType(DataType.Password)]
         public string? Password { get; set; }
 
@@ -21,5 +20,11 @@ namespace SAMS.API.UserProfileAPIs.RequestObject
         public string? ConfirmPassword { get; set; }
 
         public long RoleId { get; set; } 
+
+        public bool IsPasswordSendInMail { get; set; }
+
+        public string? sendMessage { get; set; }
+
+
     }
 }

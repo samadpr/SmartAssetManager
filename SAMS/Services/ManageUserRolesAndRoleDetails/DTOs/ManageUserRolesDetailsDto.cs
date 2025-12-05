@@ -1,8 +1,9 @@
 ﻿using SAMS.Models;
+using SAMS.Models.CommonModels.Abstract;
 
 namespace SAMS.Services.ManageUserRoles.DTOs
 {
-    public class ManageUserRolesDetailsDto : EntityBase
+    public class ManageUserRolesDetailsDto : TenantEntityBase
     {
         public long Id { get; set; }
         public long ManageRoleId { get; set; }

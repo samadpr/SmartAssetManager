@@ -32,22 +32,26 @@ namespace SAMS.Services.Roles
             }
         }
 
-        public async Task AddToRolesAsync(ApplicationUser user)
+        public async Task<bool> AddToRolesAsync(ApplicationUser user)
         {
-            if (user != null)
-            {
-                var roleNames = await _rolesRepository.GetAllRoleNamesAsync();
+            if (user == null)
+                return false;
 
-                if(user.Email == "admin@gmail.com")
-                {
-                    await _userManager.AddToRolesAsync(user, roleNames);
-                }
-                else
-                {
-                    var rolesToAssign = roleNames.Where(r => !string.Equals(r, "Super Admin", StringComparison.OrdinalIgnoreCase)).ToList();
-                    await _userManager.AddToRolesAsync(user, rolesToAssign);
-                }
+            var roleNames = await _rolesRepository.GetAllRoleNamesAsync();
+
+            IdentityResult result;
+
+            if (user.Email == "admin@gmail.com")
+            {
+                result = await _userManager.AddToRolesAsync(user, roleNames);
             }
+            else
+            {
+                var rolesToAssign = roleNames.Where(r => !string.Equals(r, "Super Admin", StringComparison.OrdinalIgnoreCase)).ToList();
+
+                result = await _userManager.AddToRolesAsync(user, rolesToAssign);
+            }
+            return result.Succeeded;
         }
 
         public async Task<(bool isSuccess, string message)> UpdateUserRoles(ManageUserRolesDto updatedRoles)

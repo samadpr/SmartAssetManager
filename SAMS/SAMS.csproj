@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="API\AssetAPIs\RequestObject\" />
     <Folder Include="Services\Company\DTOs\" />
     <Folder Include="Services\Industrie\DTOs\" />
     <Folder Include="wwwroot\uploads\profile\" />

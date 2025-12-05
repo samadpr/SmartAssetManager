@@ -26,39 +26,14 @@ interface VerificationState {
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatDividerModule,
-    MatTooltipModule
+    MatProgressSpinnerModule
   ],
   templateUrl: './user-email-verification.component.html',
-  styleUrl: './user-email-verification.component.scss',
-  animations: [
-    trigger('fadeIn', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'translateY(20px)' }),
-        animate('400ms 300ms cubic-bezier(0.25, 0.8, 0.25, 1)', 
-          style({ opacity: 1, transform: 'translateY(0)' })
-        )
-      ])
-    ]),
-    trigger('slideIn', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'translateX(-30px)' }),
-        animate('300ms ease-out', 
-          style({ opacity: 1, transform: 'translateX(0)' })
-        )
-      ])
-    ]),
-    trigger('spin', [
-      transition('* => active', [
-        animate('600ms linear')
-      ])
-    ])
-  ]
+  styleUrl: './user-email-verification.component.scss'
 })
 export class UserEmailVerificationComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
-  private readonly redirectDelay = 2000;
+  private readonly redirectDelay = 3000;
   private redirectTimeout: any;
 
   verificationState: VerificationState = {
@@ -70,9 +45,9 @@ export class UserEmailVerificationComponent implements OnInit, OnDestroy {
 
   readonly icons = {
     success: 'check_circle',
-    error: 'error',
+    error: 'cancel',
     loading: 'hourglass_empty',
-    redirect: 'login'
+    email: 'mark_email_read'
   };
 
   readonly messages = {
@@ -173,20 +148,5 @@ export class UserEmailVerificationComponent implements OnInit, OnDestroy {
   navigateToLogin(): void {
     this.clearRedirectTimeout();
     this.router.navigate(['/login']);
-  }
-
-  navigateToHome(): void {
-    this.clearRedirectTimeout();
-    this.router.navigate(['/dashboard']);
-  }
-
-  getStatusIcon(): string {
-    if (this.verificationState.loading) return this.icons.loading;
-    return this.verificationState.success ? this.icons.success : this.icons.error;
-  }
-
-  getStatusClass(): string {
-    if (this.verificationState.loading) return 'status-loading';
-    return this.verificationState.success ? 'status-success' : 'status-error';
   }
 }

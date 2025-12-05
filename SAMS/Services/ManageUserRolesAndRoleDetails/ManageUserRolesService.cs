@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using SAMS.Helpers;
 using SAMS.Models;
 using SAMS.Services.Common.Interface;
 using SAMS.Services.ManageUserRoles.DTOs;
@@ -17,6 +18,7 @@ namespace SAMS.Services.ManageUserRoles
         //private readonly IUserProfileService _userProfileService;
         private readonly IRolesService _rolesService;
         private readonly ICommonService _commonService;
+        private readonly ICompanyContext _companyContext;
 
         public ManageUserRolesService(
             IManageUserRolesRepository manageUserRolesRepository,
@@ -24,7 +26,8 @@ namespace SAMS.Services.ManageUserRoles
             ILogger<ManageUserRolesService> logger,
             //IUserProfileService userProfileService,
             IRolesService roles,
-            ICommonService commonService)
+            ICommonService commonService,
+            ICompanyContext companyContext)
         {
             _manageUserRolesRepository = manageUserRolesRepository;
             _mapper = mapper;
@@ -32,6 +35,7 @@ namespace SAMS.Services.ManageUserRoles
             //_userProfileService = userProfileService;
             _rolesService = roles;
             _commonService = commonService;
+            _companyContext = companyContext;
         }
 
         public async Task<ManageUserRolesDto> CreateRoleWithRoleDetailsAsync(ManageUserRolesDto request, string createdBy)
@@ -194,14 +198,12 @@ namespace SAMS.Services.ManageUserRoles
             }
         }
 
-        public Task<ManageUserRolesDto> GetUserRoleByIdWithRoleDetailsAsync(long id)
+        public async Task<ManageUserRolesDto> GetUserRoleByIdWithRoleDetailsAsync(long id)
         {
             try
             {
-                var result = _manageUserRolesRepository.GetUserRoleByIdWithRoleDetailsAsync(id);
-                if (result == null)
-                    return null!;
-                return result!;
+                var result = await _manageUserRolesRepository.GetUserRoleByIdWithRoleDetailsAsync(id);
+                return result; // can be null if not found
             }
             catch (Exception ex)
             {
@@ -209,6 +211,21 @@ namespace SAMS.Services.ManageUserRoles
                 throw new Exception("An error occurred while getting user role by id with role details.", ex);
             }
         }
+
+        //public async Task<ManageUserRolesDto?> GetUserRoleByRoleIdInDetailsAsync( long roleId, Guid? organizationId)
+        //{
+        //    try
+        //    {
+        //        if (organizationId == null)
+        //            return null!;
+        //        return await _manageUserRolesRepository.GetUserRoleByRoleIdInDetailsAsync(roleId, organizationId);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error fetching managed role by identity roleId: {RoleId}", roleId);
+        //        throw;
+        //    }
+        //}
 
         public async Task<ManageUserRolesDetail> GetUserRoleDetailsByIdAsync(int id, string user)
         {
@@ -267,6 +284,8 @@ namespace SAMS.Services.ManageUserRoles
         {
             try
             {
+                //var orgId = _companyContext.OrganizationId;
+
                 var emails = await _commonService.GetEmailsUnderAdminAsync(modifiedBy);
                 ManageUserRole manageUserRole = new();
                 if (request.Id > 0)
@@ -277,11 +296,12 @@ namespace SAMS.Services.ManageUserRoles
                         _logger.LogError("User does not have permission to update this role.");
                         return (false, "User does not have permission to update this role.");
                     }
+
                     request.ModifiedBy = modifiedBy;
                     request.ModifiedDate = DateTime.UtcNow;
                     request.CreatedBy = manageUserRole.CreatedBy;
                     request.CreatedDate = manageUserRole.CreatedDate;
-
+                    request.OrganizationId = manageUserRole.OrganizationId;
                     var result = await _manageUserRolesRepository.UpdateUserRoleWithRoleDetailsAsync(manageUserRole, request);
                     if (!result)
                     {
@@ -437,6 +457,23 @@ namespace SAMS.Services.ManageUserRoles
             }
 
 
+        }
+
+        public async Task<ManageUserRole> GetUserRoleByIdWithOrgIdAsync(long id, Guid orgId)
+        {
+            try
+            {
+                var result = await _manageUserRolesRepository.GetUserRoleByIdWithOrgIdAsync(id, orgId);
+                if (result == null)
+                    return null!;
+                _logger.LogInformation("User role found.");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while getting user role by id.");
+                throw new Exception("An error occurred while getting user role by id.", ex);
+            }
         }
     }
 }

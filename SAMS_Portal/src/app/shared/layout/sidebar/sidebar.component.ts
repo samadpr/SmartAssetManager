@@ -93,7 +93,14 @@ export class SidebarComponent implements OnInit {
     {
       icon: 'inventory_2',
       label: 'Assets',
-      route: '/manage-assets',
+      route: '/assets',
+      subItems: [
+        {
+          icon: 'local_shipping',
+          label: 'Suppliers',
+          route: 'suppliers'
+        }
+      ]
     },
     {
       icon: 'category',
@@ -129,11 +136,11 @@ export class SidebarComponent implements OnInit {
       label: 'Manage Users',
       route: '/manage-users',
       subItems: [
-        // {
-        //   icon: 'person_add',
-        //   label: 'Add User',
-        //   route: ''
-        // },
+        {
+          icon: 'lock_open',
+          label: 'Login Access',
+          route: 'login-access'
+        },
         {
           icon: 'assignment_ind',
           label: 'User Profiles',

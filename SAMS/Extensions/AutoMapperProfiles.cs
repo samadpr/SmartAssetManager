@@ -10,6 +10,7 @@ using SAMS.API.DepartmentAPIs.RequstObject;
 using SAMS.API.DesignationAPIs.RequestObject;
 using SAMS.API.ManageUserRolesAPIs.RequestObject;
 using SAMS.API.SubDepartmentAPIs.RequestObject;
+using SAMS.API.SupplierAPIs.RequestObject;
 using SAMS.API.UserProfileAPIs.RequestObject;
 using SAMS.Models;
 using SAMS.Services.Account.DTOs;
@@ -22,6 +23,7 @@ using SAMS.Services.Departments.DTOs;
 using SAMS.Services.DesignationServices.DTOs;
 using SAMS.Services.ManageUserRoles.DTOs;
 using SAMS.Services.SubDepartments.DTOs;
+using SAMS.Services.Suppliers.DTOs;
 using SAMS.Services.UserProfiles.DTOs;
 
 namespace SAMS.Extensions
@@ -81,6 +83,10 @@ namespace SAMS.Extensions
             CreateMap<AssetSubCategoriesRequestObject, AssetSubCategoryDto>().ReverseMap();
 
             CreateMap<AssetSubCategoryDto, AssetSubCategorie>().ReverseMap();
+
+            CreateMap<SuppliersRequestObject, SupplierDto>().ReverseMap();
+
+            CreateMap<SupplierDto, Supplier>().ReverseMap();
         }
     }
 }

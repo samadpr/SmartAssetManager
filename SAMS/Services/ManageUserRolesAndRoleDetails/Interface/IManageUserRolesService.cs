@@ -22,6 +22,8 @@ namespace SAMS.Services.ManageUserRoles.Interface
 
         Task<ManageUserRole> GetUserRoleByIdAsync(int id, string user);
 
+        Task<ManageUserRole> GetUserRoleByIdWithOrgIdAsync(long id, Guid orgId);
+
         Task<ManageUserRolesDetail> GetUserRoleDetailsByIdAsync(int id, string user);
 
         Task<IEnumerable<ManageUserRolesDetail>> GetRoleDetailsByManagedRoleIdAsync(long roleId, string user);
@@ -29,6 +31,8 @@ namespace SAMS.Services.ManageUserRoles.Interface
         Task<(bool isSuccess, string message)> UpdateUserRolesWithRoleDetailsAsync(ManageUserRolesDto request, string modifiedBy);
 
         Task<ManageUserRolesDto> GetUserRoleByIdWithRoleDetailsAsync(long id);
+
+        //Task<ManageUserRolesDto?> GetUserRoleByRoleIdInDetailsAsync(long roleId, Guid? organizationId);
 
         Task<(bool isSuccess, string message)> DeleteUserRoleWithRoleDetailsAsync(long id, string modifiedBy);
 

@@ -1,0 +1,19 @@
+<app-page-header [title]="'Supplier'" [breadcrumbs]="[
+    { label: 'Asset', url: '/assets' },
+    { label: 'Supplier' }
+  ]">
+</app-page-header>
+
+<div class="suppliers-page">
+  <app-list-widget 
+    [config]="listConfig" 
+    [data]="suppliers()" 
+    [loading]="loading()"
+    (actionClick)="onActionClick($event)" 
+    (addClick)="onAddSupplier()" 
+    (refreshClick)="onRefresh()"
+    (selectionChange)="onSelectionChange($event)"
+    (selectionAction)="onSelectionAction($event)"
+    (rowClick)="onRowClick($event)">
+  </app-list-widget>
+</div>
