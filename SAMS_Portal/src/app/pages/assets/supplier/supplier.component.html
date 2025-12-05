@@ -1,16 +1,16 @@
-<app-page-header [title]="'Asset Sub Categories'" [breadcrumbs]="[
-    { label: 'Asset Categories', url: '/asset-category' },
-    { label: 'Asset Sub Categories' }
+<app-page-header [title]="'Supplier'" [breadcrumbs]="[
+    { label: 'Asset', url: '/assets' },
+    { label: 'Supplier' }
   ]">
 </app-page-header>
 
-<div class="asset-subcategories-page">
+<div class="suppliers-page">
   <app-list-widget 
     [config]="listConfig" 
-    [data]="subCategories()" 
+    [data]="suppliers()" 
     [loading]="loading()"
     (actionClick)="onActionClick($event)" 
-    (addClick)="onAddSubCategory()" 
+    (addClick)="onAddSupplier()" 
     (refreshClick)="onRefresh()"
     (selectionChange)="onSelectionChange($event)"
     (selectionAction)="onSelectionAction($event)"

@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -21,6 +21,10 @@ import { MatChipsModule } from '@angular/material/chips';
 import { FilesUploadService } from '../../../../core/services/common/files-upload.service';
 import { Country, CountryService } from '../../../../core/services/account/country/country.service';
 import { Subject, takeUntil } from 'rxjs';
+import { MatDividerModule } from '@angular/material/divider';
+import { GlobalService } from '../../../../core/services/global/global.service';
+import { FilePreviewComponent } from '../list-widget/file-preview/file-preview.component';
+import { PopupWidgetService } from '../../../../core/services/popup-widget/popup-widget.service';
 
 @Component({
   selector: 'app-popup-widget',
@@ -42,7 +46,8 @@ import { Subject, takeUntil } from 'rxjs';
     MatTooltipModule,
     MatCardModule,
     MatChipsModule,
-    MatSlideToggleModule
+    MatSlideToggleModule,
+    MatDividerModule
   ],
   providers: [provideNativeDateAdapter()],
   templateUrl: './popup-widget.component.html',
@@ -69,6 +74,14 @@ import { Subject, takeUntil } from 'rxjs';
       transition(':leave', [
         animate('150ms ease-out', style({ opacity: 0 }))
       ])
+    ]),
+    // 🆕 New animation for success feedback
+    trigger('successPulse', [
+      transition('* => success', [
+        style({ transform: 'scale(1)' }),
+        animate('150ms ease-out', style({ transform: 'scale(1.1)' })),
+        animate('150ms ease-in', style({ transform: 'scale(1)' }))
+      ])
     ])
   ],
   host: {
@@ -77,10 +90,13 @@ import { Subject, takeUntil } from 'rxjs';
 })
 export class PopupWidgetComponent implements OnInit, OnDestroy {
   private dialogRef = inject(MatDialogRef<PopupWidgetComponent>);
+  private dialog = inject(MatDialog);
   private fb = inject(FormBuilder);
   private filesUploadService = inject(FilesUploadService);
   private countryService = inject(CountryService);
   public data: PopupData = inject(MAT_DIALOG_DATA);
+  private globalService = inject(GlobalService);
+  private popupService = inject(PopupWidgetService);
 
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
 
@@ -96,6 +112,10 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   fieldOptionsMap = signal<Map<string, any[]>>(new Map());
   fieldLoadingMap = signal<Map<string, boolean>>(new Map());
+  quickAddLoadingMap = signal<Map<string, boolean>>(new Map());
+
+  // 🆕 Track success state for animations
+  quickAddSuccessMap = signal<Map<string, boolean>>(new Map());
 
   isFormType = computed(() => this.data?.type === 'form');
   isViewType = computed(() => this.data?.type === 'view');
@@ -122,6 +142,7 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     if (this.isFormType()) {
       this.initializeForm();
       this.setupCascadingDropdowns();
+      this.setupConditionalDisplay();
     }
     if (this.data?.data?.profilePicture) {
       this.imagePreview.set(this.data.data.profilePicture);
@@ -172,6 +193,15 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
       if (this.data?.data && this.data.data[field.key] !== undefined) {
         value = this.data.data[field.key];
+
+        // Handle existing file URLs for file fields
+        if (field.type === 'file' && value && typeof value === 'string') {
+          this.filePreviewMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(field.key, value);
+            return newMap;
+          });
+        }
       }
 
       if (field.type === 'checkbox') {
@@ -199,16 +229,41 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         });
       }
 
+      // 🔥 UPDATED: Email field - disable if already verified from backend
+      let fieldDisabled = isDisabled;
+      if (field.type === 'email' && field.showEmailVerification) {
+        const verificationKey = field.emailVerificationKey || 'isEmailVerified';
+        const isAlreadyVerified = this.data?.data?.[verificationKey] === true;
+
+        // If email is already verified from backend, disable the email field
+        if (isAlreadyVerified) {
+          fieldDisabled = true;
+        }
+      }
+
       controls[field.key] = new FormControl(
         { value, disabled: isDisabled },
         validators.length ? validators : null
       );
 
-      // 🆕 Add email verification control if enabled
+      // 🔥 UPDATED: Email verification toggle control
       if (field.type === 'email' && field.showEmailVerification) {
         const verificationKey = field.emailVerificationKey || 'isEmailVerified';
-        const verificationValue = this.data?.data?.[verificationKey] ?? false;
-        controls[verificationKey] = new FormControl(verificationValue);
+        const isAlreadyVerified = this.data?.data?.[verificationKey] === true;
+
+        // Create verification control
+        const verificationControl = new FormControl({
+          value: isAlreadyVerified,
+          disabled: isAlreadyVerified // Disable only if already verified from backend
+        });
+
+        controls[verificationKey] = verificationControl;
+
+        // 🆕 Setup reactive validation: toggle enabled only when email is valid
+        if (!isAlreadyVerified) {
+          // Initially disable the toggle
+          verificationControl.disable();
+        }
       }
     });
 
@@ -218,11 +273,8 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
     this.form = new FormGroup(controls);
 
-    console.log('Popup form initialized:', {
-      type: this.data.type,
-      formValid: this.form.valid,
-      controls: Object.keys(this.form.controls)
-    });
+    // 🆕 Setup email validation listeners AFTER form creation
+    this.setupEmailVerificationValidation();
   }
 
   private setupCascadingDropdowns() {
@@ -232,7 +284,7 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
     cascadingFields.forEach(childField => {
       const parentControl = this.form!.get(childField.cascadeFrom!);
-      
+
       if (parentControl) {
         parentControl.valueChanges
           .pipe(takeUntil(this.destroy$))
@@ -254,13 +306,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     const childControl = this.form!.get(childField.key);
     if (!childControl) return;
 
-    console.log(`Cascading: ${childField.cascadeFrom} → ${childField.key}`, {
-      parentValue,
-      isInitial,
-      currentChildValue: childControl.value
-    });
-
-    // Clear child value if configured (skip on initial load to preserve edit values)
     if (!isInitial && childField.clearOnParentChange !== false) {
       childControl.setValue(null);
     }
@@ -291,21 +336,31 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
           }
         });
     } else if (childField.options && childField.cascadeProperty) {
-      const filteredOptions = childField.options.filter(opt => 
+      const filteredOptions = childField.options.filter(opt =>
         opt[childField.cascadeProperty!] === parentValue
       );
-      
+
       this.updateFieldOptions(childField.key, filteredOptions);
       childControl.enable();
     }
   }
 
+  // 🔥 FIXED: Properly update field options AND the original field config
   private updateFieldOptions(fieldKey: string, options: any[]) {
+    // Update the signal map
     this.fieldOptionsMap.update(map => {
       const newMap = new Map(map);
       newMap.set(fieldKey, options);
       return newMap;
     });
+
+    // 🔥 CRITICAL FIX: Also update the original field config
+    if (this.formConfig) {
+      const field = this.formConfig.fields.find(f => f.key === fieldKey);
+      if (field && field.type === 'select') {
+        field.options = options;
+      }
+    }
   }
 
   private setFieldLoading(fieldKey: string, loading: boolean) {
@@ -316,12 +371,175 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     });
   }
 
+  private setQuickAddLoading(fieldKey: string, loading: boolean) {
+    this.quickAddLoadingMap.update(map => {
+      const newMap = new Map(map);
+      newMap.set(fieldKey, loading);
+      return newMap;
+    });
+  }
+
+  // 🆕 Set success animation state
+  private setQuickAddSuccess(fieldKey: string, success: boolean) {
+    this.quickAddSuccessMap.update(map => {
+      const newMap = new Map(map);
+      newMap.set(fieldKey, success);
+      return newMap;
+    });
+
+    if (success) {
+      setTimeout(() => {
+        this.quickAddSuccessMap.update(map => {
+          const newMap = new Map(map);
+          newMap.set(fieldKey, false);
+          return newMap;
+        });
+      }, 600);
+    }
+  }
+
+  isQuickAddLoading(fieldKey: string): boolean {
+    return this.quickAddLoadingMap().get(fieldKey) || false;
+  }
+
+  isQuickAddSuccess(fieldKey: string): boolean {
+    return this.quickAddSuccessMap().get(fieldKey) || false;
+  }
+
   getFieldOptions(fieldKey: string): any[] {
     return this.fieldOptionsMap().get(fieldKey) || [];
   }
 
   isFieldLoading(fieldKey: string): boolean {
     return this.fieldLoadingMap().get(fieldKey) || false;
+  }
+
+  // 🆕 Enhanced Quick Add with better UX
+  onQuickAddClick(field: PopupField, event: Event) {
+    event.stopPropagation();
+
+    if (!field.quickAdd || this.isQuickAddLoading(field.key)) return;
+
+    const quickAddConfig = field.quickAdd;
+
+    const nestedPopupConfig: PopupFormConfig = {
+      title: quickAddConfig.popupTitle,
+      subtitle: `Add new ${field.label.toLowerCase()} and continue`,
+      icon: quickAddConfig.popupIcon || 'add_circle_outline',
+      fields: quickAddConfig.fields,
+      columns: 2,
+      maxWidth: '650px',
+      submitButtonText: 'Add & Select',
+      cancelButtonText: 'Cancel'
+    };
+
+    const nestedPopupData: PopupData = {
+      type: 'form',
+      config: nestedPopupConfig,
+      data: {}
+    };
+
+    const dialogRef = this.dialog.open(PopupWidgetComponent, {
+      data: nestedPopupData,
+      width: nestedPopupConfig.width || 'auto',
+      maxWidth: nestedPopupConfig.maxWidth || '650px',
+      disableClose: false,
+      hasBackdrop: true,
+      backdropClass: 'nested-popup-backdrop',
+      panelClass: ['popup-widget-panel', 'nested-popup'],
+      autoFocus: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.action === 'submit' && quickAddConfig.onAdd) {
+        this.handleQuickAddSubmit(field, result.data, quickAddConfig);
+      }
+    });
+  }
+
+  // 🔥 FIXED: Proper refresh and selection logic
+  private handleQuickAddSubmit(field: PopupField, newData: any, quickAddConfig: any) {
+    if (!quickAddConfig.onAdd) return;
+
+    this.setQuickAddLoading(field.key, true);
+
+    quickAddConfig.onAdd(newData).subscribe({
+      next: (response: any) => {
+        console.log('✅ Quick add success:', response);
+
+        if (quickAddConfig.refreshOptions) {
+          // Use the refresh function to get updated options
+          quickAddConfig.refreshOptions(response).subscribe({
+            next: (newOptions: any[]) => {
+              console.log('✅ Refreshed options:', newOptions);
+
+              // 🔥 CRITICAL: Update both the map AND the field config
+              this.updateFieldOptions(field.key, newOptions);
+
+              // Extract the newly created item's ID
+              const newItemId = response?.data?.id || response?.id;
+              const newItemName = response?.data?.name || response?.name || 'New Item';
+
+              console.log('🎯 Selecting new item:', { id: newItemId, name: newItemName });
+
+              // Auto-select the newly added item
+              if (newItemId && this.form) {
+                const control = this.form.get(field.key);
+                if (control) {
+                  // Small delay to ensure dropdown is fully updated
+                  setTimeout(() => {
+                    control.setValue(newItemId);
+                    control.markAsTouched();
+                    control.updateValueAndValidity();
+
+                    console.log('✅ Value set in form control:', control.value);
+                  }, 100);
+                }
+              }
+
+              this.setQuickAddLoading(field.key, false);
+              this.setQuickAddSuccess(field.key, true);
+            },
+            error: (err: any) => {
+              console.error('❌ Error refreshing options:', err);
+              this.setQuickAddLoading(field.key, false);
+            }
+          });
+        } else {
+          // Fallback: manually add to options if no refresh function
+          const currentOptions = this.getFieldOptions(field.key);
+          const newItemId = response?.data?.id || response?.id;
+          const newItemName = response?.data?.name || response?.name || 'New Item';
+
+          const newOption = {
+            value: newItemId,
+            label: newItemName
+          };
+
+          const updatedOptions = [...currentOptions, newOption];
+          this.updateFieldOptions(field.key, updatedOptions);
+
+          // Auto-select
+          if (this.form && newItemId) {
+            const control = this.form.get(field.key);
+            if (control) {
+              setTimeout(() => {
+                control.setValue(newItemId);
+                control.markAsTouched();
+                control.updateValueAndValidity();
+              }, 100);
+            }
+          }
+
+          this.setQuickAddLoading(field.key, false);
+          this.setQuickAddSuccess(field.key, true);
+        }
+      },
+      error: (error: any) => {
+        console.error('❌ Quick add error:', error);
+        this.setQuickAddLoading(field.key, false);
+      }
+    });
   }
 
   private getFieldValidators(field: PopupField) {
@@ -355,17 +573,118 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     return validators;
   }
 
-  // 🆕 Get email verification control
+  // 🆕 NEW: Setup reactive validation for email verification toggle
+  private setupEmailVerificationValidation() {
+    if (!this.form || !this.formConfig) return;
+
+    const emailFields = this.formConfig.fields.filter(
+      f => f.type === 'email' && f.showEmailVerification
+    );
+
+    emailFields.forEach(field => {
+      const emailControl = this.form!.get(field.key);
+      const verificationKey = field.emailVerificationKey || 'isEmailVerified';
+      const verificationControl = this.form!.get(verificationKey);
+
+      if (!emailControl || !verificationControl) return;
+
+      // Check if email is already verified from backend
+      const isAlreadyVerified = this.data?.data?.[verificationKey] === true;
+
+      // Only setup listeners if NOT already verified
+      if (!isAlreadyVerified) {
+        // Listen to email field changes
+        emailControl.valueChanges
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(() => {
+            // Enable/disable verification toggle based on email validity
+            if (emailControl.valid && emailControl.value) {
+              verificationControl.enable();
+            } else {
+              verificationControl.disable();
+              // Reset toggle to false when email becomes invalid
+              if (verificationControl.value) {
+                verificationControl.setValue(false, { emitEvent: false });
+              }
+            }
+          });
+
+        // Initial check
+        if (emailControl.valid && emailControl.value) {
+          verificationControl.enable();
+        } else {
+          verificationControl.disable();
+        }
+      }
+    });
+  }
+
   getEmailVerificationControl(field: PopupField): FormControl | null {
     if (!this.form || !field.showEmailVerification) return null;
     const key = field.emailVerificationKey || 'isEmailVerified';
     return this.form.get(key) as FormControl;
   }
 
-  // 🆕 Get default verification tooltip
   getEmailVerificationTooltip(field: PopupField): string {
-    return field.emailVerificationTooltip || 
-      'When enabled, a verification link will be automatically sent to this email address. The user must verify their email before accessing the system.';
+    return field.emailVerificationTooltip ||
+      'When enabled, a verification link will be automatically sent to this email address.';
+  }
+
+  // 🆕 NEW: Method to check if email verification toggle should be disabled
+  isEmailVerificationDisabled(field: PopupField): boolean {
+    if (!this.form || !field.showEmailVerification) {
+      return false;
+    }
+
+    const verificationKey = field.emailVerificationKey || 'isEmailVerified';
+    const verificationControl = this.form.get(verificationKey);
+
+    if (!verificationControl) {
+      return false;
+    }
+
+    // Check if control is disabled (either from backend verification or invalid email)
+    return verificationControl.disabled;
+  }
+
+  // 🔥 UPDATED: Get email verification status
+  getEmailVerificationStatus(field: PopupField): boolean {
+    if (!this.form || !field.showEmailVerification) {
+      return false;
+    }
+
+    const verificationKey = field.emailVerificationKey || 'isEmailVerified';
+    const verificationControl = this.form.get(verificationKey);
+
+    return verificationControl?.value === true;
+  }
+
+  // 🆕 NEW: Check if email is already verified from backend
+  isEmailAlreadyVerified(field: PopupField): boolean {
+    if (!field.showEmailVerification) {
+      return false;
+    }
+
+    const verificationKey = field.emailVerificationKey || 'isEmailVerified';
+    return this.data?.data?.[verificationKey] === true;
+  }
+
+  // 🆕 NEW: Check if email field should be disabled
+  isEmailFieldDisabled(field: PopupField): boolean {
+    if (!this.form || field.type !== 'email') {
+      return false;
+    }
+
+    const emailControl = this.form.get(field.key);
+    return emailControl?.disabled ?? false;
+  }
+
+  // 🆕 NEW: Get tooltip for disabled email field
+  getDisabledEmailTooltip(field: PopupField): string {
+    if (this.isEmailAlreadyVerified(field)) {
+      return 'This email has been verified and cannot be changed';
+    }
+    return '';
   }
 
   getCountryFlagUrl(countryCode: string): string {
@@ -458,15 +777,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     return !!(control && control.invalid && (control.dirty || control.touched || this.submitted()));
   }
 
-  getInputType(fieldType: string): string {
-    switch (fieldType) {
-      case 'password': return 'password';
-      case 'email': return 'email';
-      case 'number': return 'number';
-      default: return 'text';
-    }
-  }
-
   getDisplayValue(field: PopupField): any {
     if (!this.data?.data) return null;
     return this.data.data[field.key];
@@ -529,7 +839,25 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
   }
 
   private finalizeSubmit() {
-    const formValue = { ...this.form!.value };
+    // 🔥 IMPORTANT: Get raw value to include disabled controls
+    const formValue = { ...this.form!.getRawValue() };
+
+    // 🆕 Handle email verification: if toggle is disabled due to invalid email, set to false
+    if (this.formConfig) {
+      const emailFields = this.formConfig.fields.filter(
+        f => f.type === 'email' && f.showEmailVerification
+      );
+
+      emailFields.forEach(field => {
+        const verificationKey = field.emailVerificationKey || 'isEmailVerified';
+        const verificationControl = this.form!.get(verificationKey);
+
+        // If verification control is disabled and not from backend, ensure it's false
+        if (verificationControl?.disabled && !this.isEmailAlreadyVerified(field)) {
+          formValue[verificationKey] = false;
+        }
+      });
+    }
 
     const result: PopupResult = {
       action: 'submit',
@@ -561,14 +889,71 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
   }
 
   shouldShowField(field: PopupField): boolean {
-    if (field.dependsOn && this.data?.data) {
-      const dependentValue = this.data.data[field.dependsOn];
+    // Check old dependsOn logic (for backward compatibility)
+    if (field.dependsOn) {
+      const dependentValue = this.form?.get(field.dependsOn)?.value ?? this.data?.data?.[field.dependsOn];
+
       if (field.dependsOnValue !== undefined) {
         return dependentValue === field.dependsOnValue;
       }
       return !!dependentValue;
     }
+
+    // 🆕 Check new showIf logic (more flexible)
+    if (field.showIf) {
+      const conditionalField = field.showIf.field;
+      const conditionalValue = field.showIf.value;
+
+      // First try to get value from form control (for real-time updates)
+      let actualValue = this.form?.get(conditionalField)?.value;
+
+      // Fallback to data if form doesn't have the field
+      if (actualValue === undefined || actualValue === null) {
+        actualValue = this.data?.data?.[conditionalField];
+      }
+
+      // Compare values
+      if (typeof conditionalValue === 'boolean') {
+        return !!actualValue === conditionalValue;
+      }
+
+      return actualValue === conditionalValue;
+    }
+
     return true;
+  }
+
+  // Add this new method to set up reactive showIf listeners:
+  private setupConditionalDisplay() {
+    if (!this.form || !this.formConfig) return;
+
+    const fieldsWithShowIf = this.formConfig.fields.filter(f => f.showIf);
+
+    fieldsWithShowIf.forEach(field => {
+      if (!field.showIf) return;
+
+      const watchedField = field.showIf.field;
+      const watchedControl = this.form!.get(watchedField);
+
+      if (watchedControl) {
+        // Set up value change listener
+        watchedControl.valueChanges
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(() => {
+            // Force Angular to re-evaluate *ngIf by triggering change detection
+            // This happens automatically, but we can add logic here if needed
+
+            const childControl = this.form!.get(field.key);
+            if (childControl) {
+              // If field is now hidden and has a value, optionally clear it
+              if (!this.shouldShowField(field) && childControl.value) {
+                // Uncomment if you want to clear hidden fields:
+                // childControl.setValue(null);
+              }
+            }
+          });
+      }
+    });
   }
 
   trackByField(index: number, field: PopupField): string {
@@ -589,6 +974,11 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
   }
 
   formatDisplayValue(field: PopupField, value: any): string {
+    // 🔥 CRITICAL: Never format file fields here
+    if (field.type === 'file') {
+      return ''; // File fields are handled separately in template
+    }
+
     if (!value && value !== false) return 'Not specified';
 
     switch (field.type) {
@@ -620,5 +1010,419 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '($1)$2-$3');
     }
     return phone;
+  }
+
+  // File handling signals
+  fileMap = signal<Map<string, File>>(new Map());
+  filePreviewMap = signal<Map<string, string>>(new Map());
+  fileDragOverMap = signal<Map<string, boolean>>(new Map());
+
+  // File handling methods
+  openFilePicker(fieldKey: string) {
+    const input = document.getElementById(`file-input-${fieldKey}`) as HTMLInputElement;
+    if (input) {
+      input.click();
+    }
+  }
+
+  onFileSelected(event: Event, fieldKey: string) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.handleFileUpload(file, fieldKey);
+    }
+  }
+
+  onFileDragOver(event: DragEvent, fieldKey: string) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.setFileDragOver(fieldKey, true);
+  }
+
+  onFileDragLeave(event: DragEvent, fieldKey: string) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.setFileDragOver(fieldKey, false);
+  }
+
+  onFileDrop(event: DragEvent, fieldKey: string) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.setFileDragOver(fieldKey, false);
+
+    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      const file = event.dataTransfer.files[0];
+      this.handleFileUpload(file, fieldKey);
+    }
+  }
+
+  private handleFileUpload(file: File, fieldKey: string) {
+    // Get field config
+    const field = this.formConfig?.fields.find(f => f.key === fieldKey);
+    if (!field) return;
+
+    // Validate file type
+    if (field.acceptedFileTypes) {
+      const acceptedTypes = field.acceptedFileTypes.split(',').map(t => t.trim());
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+
+      if (!acceptedTypes.includes(fileExtension)) {
+        this.globalService.showToastr(
+          `Invalid file type. Accepted: ${field.acceptedFileTypes}`,
+          'error'
+        );
+        return;
+      }
+    }
+
+    // Validate file size
+    if (field.maxFileSize) {
+      const maxSizeInBytes = field.maxFileSize * 1024 * 1024; // Convert MB to bytes
+      if (file.size > maxSizeInBytes) {
+        this.globalService.showToastr(
+          `File size exceeds ${field.maxFileSize}MB limit`,
+          'error'
+        );
+        return;
+      }
+    }
+
+    // Store file
+    this.fileMap.update(map => {
+      const newMap = new Map(map);
+      newMap.set(fieldKey, file);
+      return newMap;
+    });
+
+    // Update form control
+    if (this.form) {
+      this.form.get(fieldKey)?.setValue(file);
+      this.form.get(fieldKey)?.markAsTouched();
+    }
+
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.filePreviewMap.update(map => {
+          const newMap = new Map(map);
+          newMap.set(fieldKey, e.target.result);
+          return newMap;
+        });
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // For non-images, store filename
+      this.filePreviewMap.update(map => {
+        const newMap = new Map(map);
+        newMap.set(fieldKey, file.name);
+        return newMap;
+      });
+    }
+  }
+
+  removeFile(fieldKey: string) {
+    // Clear file from map
+    this.fileMap.update(map => {
+      const newMap = new Map(map);
+      newMap.delete(fieldKey);
+      return newMap;
+    });
+
+    // Clear preview
+    this.filePreviewMap.update(map => {
+      const newMap = new Map(map);
+      newMap.delete(fieldKey);
+      return newMap;
+    });
+
+    // Clear form control
+    if (this.form) {
+      this.form.get(fieldKey)?.setValue(null);
+    }
+
+    // Clear file input
+    const input = document.getElementById(`file-input-${fieldKey}`) as HTMLInputElement;
+    if (input) {
+      input.value = '';
+    }
+  }
+
+  getFilePreview(fieldKey: string): string | null {
+    return this.filePreviewMap().get(fieldKey) || null;
+  }
+
+  // getFileName(fieldKey: string): string {
+  //   const file = this.fileMap().get(fieldKey);
+  //   return file ? file.name : this.filePreviewMap().get(fieldKey) || '';
+  // }
+
+  // isImageFile(fieldKey: string): boolean {
+  //   const preview = this.filePreviewMap().get(fieldKey);
+  //   return preview ? preview.startsWith('data:image/') : false;
+  // }
+
+  isFileDragOver(fieldKey: string): boolean {
+    return this.fileDragOverMap().get(fieldKey) || false;
+  }
+
+  private setFileDragOver(fieldKey: string, isDragOver: boolean) {
+    this.fileDragOverMap.update(map => {
+      const newMap = new Map(map);
+      newMap.set(fieldKey, isDragOver);
+      return newMap;
+    });
+  }
+  //-----------------------------------------
+
+  // 🆕 File handling methods for view mode
+  getFieldFileUrl(fieldKey: string): string | null {
+    // Priority 1: Check preview map (newly uploaded files)
+    const preview = this.filePreviewMap().get(fieldKey);
+    if (preview && preview.trim() !== '') {
+      console.log(`✅ Found preview for ${fieldKey}:`, preview);
+      return preview;
+    }
+
+    // Priority 2: Check data object (backend URLs)
+    const value = this.data?.data?.[fieldKey];
+
+    if (typeof value === 'string' && value.trim() !== '') {
+      console.log(`✅ Found backend URL for ${fieldKey}:`, value);
+      return value;
+    }
+
+    // Priority 3: Handle File objects (edge case)
+    if (value instanceof File) {
+      try {
+        const objectUrl = URL.createObjectURL(value);
+        console.log(`✅ Created object URL for ${fieldKey}:`, objectUrl);
+        return objectUrl;
+      } catch (error) {
+        console.error(`❌ Error creating object URL for ${fieldKey}:`, error);
+        return null;
+      }
+    }
+
+    console.warn(`⚠️ No file URL found for ${fieldKey}`);
+    return null;
+  }
+
+  isImageFile(fileUrlOrData: string | null | undefined): boolean {
+    if (!fileUrlOrData || fileUrlOrData.trim() === '') {
+      return false;
+    }
+
+    const url = fileUrlOrData.toLowerCase();
+
+    // Check data URL format
+    if (url.startsWith('data:image/')) {
+      return true;
+    }
+
+    // Check file extension
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico'];
+    const urlWithoutQuery = url.split('?')[0]; // Remove query parameters
+
+    return imageExtensions.some(ext => urlWithoutQuery.endsWith(ext));
+  }
+
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    console.error('❌ Image failed to load:', img.src);
+
+    // Optionally replace with placeholder
+    // img.src = '/assets/images/file-not-found.png';
+  }
+
+  getFileIcon(filePathOrUrl: string | null | undefined): string {
+    if (!filePathOrUrl) {
+      return 'insert_drive_file';
+    }
+
+    const ext = this.getFileExtension(filePathOrUrl).toLowerCase();
+
+    const iconMap: { [key: string]: string } = {
+      // Documents
+      'pdf': 'picture_as_pdf',
+      'doc': 'description',
+      'docx': 'description',
+      'txt': 'text_snippet',
+      'rtf': 'description',
+
+      // Spreadsheets
+      'xls': 'table_chart',
+      'xlsx': 'table_chart',
+      'csv': 'table_chart',
+
+      // Presentations
+      'ppt': 'slideshow',
+      'pptx': 'slideshow',
+
+      // Archives
+      'zip': 'folder_zip',
+      'rar': 'folder_zip',
+      '7z': 'folder_zip',
+      'tar': 'folder_zip',
+      'gz': 'folder_zip',
+
+      // Images
+      'jpg': 'image',
+      'jpeg': 'image',
+      'png': 'image',
+      'gif': 'image',
+      'svg': 'image',
+      'webp': 'image',
+      'bmp': 'image',
+
+      // Code files
+      'html': 'code',
+      'css': 'code',
+      'js': 'code',
+      'ts': 'code',
+      'json': 'data_object',
+      'xml': 'code',
+
+      // Other
+      'mp4': 'video_library',
+      'avi': 'video_library',
+      'mp3': 'audio_file',
+      'wav': 'audio_file'
+    };
+
+    return iconMap[ext] || 'insert_drive_file';
+  }
+
+
+  getFileExtension(filePathOrUrl: string | null | undefined): string {
+    if (!filePathOrUrl) {
+      return '';
+    }
+
+    // Remove query parameters
+    const cleanPath = filePathOrUrl.split('?')[0];
+
+    // Get last part after dot
+    const parts = cleanPath.split('.');
+
+    if (parts.length > 1) {
+      return parts[parts.length - 1].toLowerCase();
+    }
+
+    return '';
+  }
+
+  getFileName(filePathOrUrl: string | null | undefined): string {
+    if (!filePathOrUrl) {
+      return 'Unknown File';
+    }
+
+    // Remove query parameters
+    const cleanPath = filePathOrUrl.split('?')[0];
+
+    // Get last segment after slash
+    const segments = cleanPath.split('/');
+    const filename = segments[segments.length - 1];
+
+    // Decode URI component (handle encoded characters)
+    try {
+      return decodeURIComponent(filename);
+    } catch {
+      return filename;
+    }
+  }
+
+  getFileSize(filePath: string): string | null {
+    // For existing files, we don't have size info
+    // You could enhance this by storing file metadata
+    return null;
+  }
+
+  getFileObjectSize(fieldKey: string): string | null {
+    const file = this.fileMap().get(fieldKey);
+
+    if (!file || !(file instanceof File)) {
+      return null;
+    }
+
+    return this.formatFileSize(file.size);
+  }
+
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  }
+
+
+  onFilePreview(fileUrl: string, fileName: string): void {
+    console.log('📄 Preview file:', { fileUrl, fileName });
+
+    if (!fileUrl) {
+      this.globalService.showToastr('File URL not available', 'error');
+      return;
+    }
+
+    const extension = this.getFileExtension(fileUrl);
+
+    this.dialog.open(FilePreviewComponent, {
+      data: {
+        fileUrl: fileUrl,
+        fileName: fileName,
+        fileType: extension
+      },
+      width: '90vw',
+      maxWidth: '1200px',
+      height: '90vh',
+      panelClass: 'file-preview-dialog',
+      autoFocus: false,
+      hasBackdrop: true,
+      disableClose: false
+    });
+  }
+  onFileDownload(fileUrl: string, fileName: string): void {
+    console.log('💾 Download file:', { fileUrl, fileName });
+
+    if (!fileUrl) {
+      this.globalService.showToastr('File URL not available', 'error');
+      return;
+    }
+
+    this.popupService.openGenericConfirmation(
+      'Download File',
+      `Do you want to download "${fileName}"?`,
+      {
+        confirmButtonText: 'Download',
+        confirmButtonIcon: 'download',
+        icon: 'download',
+        iconColor: 'primary'
+      }
+    ).subscribe(result => {
+      if (result && result.action === 'confirm') {
+        this.downloadFile(fileUrl, fileName);
+      }
+    });
+  }
+  private downloadFile(url: string, fileName: string): void {
+    try {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      this.globalService.showSnackbar(`Downloading ${fileName}...`, 'success');
+    } catch (error) {
+      console.error('❌ Download error:', error);
+      this.globalService.showToastr('Failed to download file', 'error');
+    }
   }
 }

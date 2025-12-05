@@ -36,11 +36,13 @@ export interface UserProfileDetails extends EntityBase {
   designation: number;
   department: number;
   subDepartment: number;
+  site: number;
+  area: number;
   designationDisplay?: string;
   departmentDisplay?: string;
   subDepartmentDisplay?: string;
   siteDisplay?: string;
-  locationDisplay?: string;
+  areaDisplay?: string;
   roleIdDisplay?: string;
   roleId?: number;
   joiningDate?: string; // ISO Date string from API
@@ -71,7 +73,7 @@ export interface UserProfileRequest {
   subDepartment?: number;
   site?: number;
   roleId?: number;
-  location?: number;
+  area?: number;
   joiningDate?: Date;
   leavingDate?: Date;
   phoneNumber?: string;
@@ -85,9 +87,13 @@ export interface UserProfileRequest {
 export interface LoginAccessRequest {
   userProfileId: number;
   email: string;
+  isAllowLoginAccess: boolean;
+  isPasswordCreated: boolean;
   password: string;
   confirmPassword: string;
   roleId: number;
+  isPasswordSendInMail: boolean;
+  sendMessage: string;
 }
 
 export interface UpdateLoginAccessRequest {

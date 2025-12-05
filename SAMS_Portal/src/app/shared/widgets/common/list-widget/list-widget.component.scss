@@ -131,6 +131,7 @@
         }
 
         ::ng-deep {
+
           .mat-mdc-form-field-subscript-wrapper,
           mat-mdc-form-field-bottom-align {
             display: none;
@@ -162,10 +163,10 @@
           .mat-mdc-input-element {
             color: var(--mat-sys-on-surface);
           }
-          
+
           .mat-mdc-notch-piece {
-            border-top: 0px solid !important; 
-            border-bottom: 0px solid !important; 
+            border-top: 0px solid !important;
+            border-bottom: 0px solid !important;
           }
         }
       }
@@ -344,7 +345,7 @@
   &::-webkit-scrollbar-thumb {
     background-color: var(--mat-sys-outline-variant);
     border-radius: 4px;
-    
+
     &:hover {
       background-color: var(--mat-sys-outline);
     }
@@ -366,6 +367,7 @@
   background: var(--mat-sys-surface);
 
   &.compact {
+
     .data-header,
     .data-cell {
       padding: var(--compact-cell-padding);
@@ -382,12 +384,12 @@
     background: var(--mat-sys-surface-variant);
     border-bottom: 1px solid var(--mat-sys-outline);
     height: 48px; // 🆕 Fixed header height
-    
+
     // 🔧 Make entire header row sticky
     position: sticky;
     top: 0;
     z-index: 100;
-    
+
     // 🔧 Ensure all header cells stay in place
     .mat-mdc-header-cell {
       background: var(--mat-sys-surface-variant);
@@ -395,7 +397,7 @@
       top: 0;
       z-index: 10;
     }
-    
+
     // // 🔧 Prevent header from scrolling
     // &::after {
     //   content: '';
@@ -441,7 +443,7 @@
     }
   }
 
-    // 🔧 FIX: Select and Actions headers must also be sticky
+  // 🔧 FIX: Select and Actions headers must also be sticky
   // .select-header,
   // .actions-header {
   //   background: var(--mat-sys-surface-variant);
@@ -704,6 +706,264 @@
     }
   }
 
+  .file-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    margin: -6px -10px;
+    border-radius: var(--mat-sys-corner-small);
+    transition: var(--transition);
+    min-width: 0; // Allow flex shrinking
+
+    &:hover {
+      background: var(--mat-sys-surface-container-high);
+
+      .file-actions {
+        opacity: 1;
+      }
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0; // Critical for text truncation
+      overflow: hidden;
+
+      .file-icon-wrapper {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--mat-sys-corner-small);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+
+        .file-type-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+          color: inherit;
+        }
+
+        // File type colors with backgrounds
+        &.file-type-pdf {
+          background: color-mix(in srgb, #d32f2f 15%, transparent);
+          color: #d32f2f;
+          border: 1px solid color-mix(in srgb, #d32f2f 30%, transparent);
+        }
+
+        &.file-type-jpg,
+        &.file-type-jpeg,
+        &.file-type-png,
+        &.file-type-gif,
+        &.file-type-webp,
+        &.file-type-svg {
+          background: color-mix(in srgb, #1976d2 15%, transparent);
+          color: #1976d2;
+          border: 1px solid color-mix(in srgb, #1976d2 30%, transparent);
+        }
+
+        &.file-type-doc,
+        &.file-type-docx {
+          background: color-mix(in srgb, #1565c0 15%, transparent);
+          color: #1565c0;
+          border: 1px solid color-mix(in srgb, #1565c0 30%, transparent);
+        }
+
+        &.file-type-xls,
+        &.file-type-xlsx {
+          background: color-mix(in srgb, #2e7d32 15%, transparent);
+          color: #2e7d32;
+          border: 1px solid color-mix(in srgb, #2e7d32 30%, transparent);
+        }
+
+        &.file-type-zip,
+        &.file-type-rar {
+          background: color-mix(in srgb, #f57c00 15%, transparent);
+          color: #f57c00;
+          border: 1px solid color-mix(in srgb, #f57c00 30%, transparent);
+        }
+
+        // Default file type
+        &:not([class*="file-type-"]) {
+          background: color-mix(in srgb, var(--mat-sys-outline) 15%, transparent);
+          color: var(--mat-sys-on-surface-variant);
+          border: 1px solid var(--mat-sys-outline-variant);
+        }
+      }
+
+      .file-name {
+        flex: 1;
+        font: var(--mat-sys-body-medium);
+        color: var(--mat-sys-on-surface);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0; // Critical for ellipsis
+        font-size: 0.875rem;
+      }
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 2px;
+      opacity: 0.7;
+      transition: var(--transition);
+      flex-shrink: 0; // Prevent buttons from shrinking
+
+      .file-action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--mat-sys-corner-full);
+        transition: var(--transition);
+        flex-shrink: 0;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+
+        &.preview-btn {
+          color: var(--mat-sys-primary);
+
+          &:hover {
+            background: var(--mat-sys-primary-container);
+            transform: scale(1.1);
+          }
+        }
+
+        &.download-btn {
+          color: var(--mat-sys-tertiary);
+
+          &:hover {
+            background: var(--mat-sys-tertiary-container);
+            transform: scale(1.1);
+          }
+        }
+
+        &:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    .no-file {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font: var(--mat-sys-body-small);
+      color: var(--mat-sys-on-surface-variant);
+      font-style: italic;
+      padding: 4px 0;
+
+      .no-file-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        opacity: 0.5;
+        flex-shrink: 0;
+      }
+
+      .no-file-text {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+  }
+
+  // Responsive adjustments for file cells
+  @media (max-width: 1024px) {
+    .file-cell {
+      .file-info .file-name {
+        font-size: 0.8125rem;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .file-cell {
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px;
+      margin: -8px;
+
+      .file-info {
+        flex: 1 1 100%;
+        min-width: 0;
+
+        .file-icon-wrapper {
+          width: 32px;
+          height: 32px;
+
+          .file-type-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+          }
+        }
+
+        .file-name {
+          font-size: 0.8125rem;
+        }
+      }
+
+      .file-actions {
+        opacity: 1;
+        width: 100%;
+        justify-content: flex-end;
+        gap: 4px;
+
+        .file-action-btn {
+          width: 36px;
+          height: 36px;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .file-cell {
+      padding: 6px;
+
+      .file-info {
+        .file-icon-wrapper {
+          width: 28px;
+          height: 28px;
+
+          .file-type-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        .file-name {
+          font-size: 0.75rem;
+        }
+      }
+
+      .file-actions {
+        .file-action-btn {
+          width: 32px;
+          height: 32px;
+
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+        }
+      }
+    }
+  }
+
   // Country Cell
   .country-cell {
     display: flex;
@@ -780,10 +1040,13 @@
 
 // Verified Pulse Animation
 @keyframes verifiedPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.7;
     transform: scale(1.1);
@@ -885,6 +1148,7 @@
   }
 
   .enhanced-table {
+
     .data-header,
     .data-cell {
       padding: 12px 8px;
@@ -971,6 +1235,7 @@
   }
 
   .enhanced-table {
+
     .data-header,
     .data-cell {
       padding: 8px 6px;
@@ -1005,6 +1270,7 @@
 
 // Accessibility and Focus States
 .enhanced-table {
+
   .mat-mdc-header-cell,
   .mat-mdc-cell {
     &:focus {
@@ -1080,6 +1346,7 @@
 // Reduced motion support
 @media (prefers-reduced-motion: reduce) {
   .enhanced-table {
+
     .contact-cell,
     .profile-avatar,
     .country-flag-img,
@@ -1123,6 +1390,7 @@
     opacity: 0;
     transform: scale(0.8);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -1134,6 +1402,7 @@
     opacity: 0;
     transform: translateX(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -1145,6 +1414,7 @@
     opacity: 0;
     max-height: 0;
   }
+
   to {
     opacity: 1;
     max-height: 50px;

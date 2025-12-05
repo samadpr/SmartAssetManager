@@ -26,6 +26,227 @@ body {
   color: var(--mat-sys-on-surface);
 }
 
+// ==================== GLOBAL CUSTOM SCROLLBAR ====================
+
+// 🎨 For Webkit Browsers (Chrome, Edge, Safari, Opera)
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--mat-sys-surface-container-lowest);
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--mat-sys-outline-variant);
+  border-radius: 10px;
+  border: 2px solid var(--mat-sys-surface);
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: var(--mat-sys-outline);
+  }
+
+  &:active {
+    background: var(--mat-sys-primary);
+  }
+}
+
+// 🎨 Thin scrollbar for compact areas
+.compact-scroll,
+.mat-mdc-dialog-content,
+.mat-drawer-content {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    border: 1px solid var(--mat-sys-surface-container-lowest);
+  }
+}
+
+// 🎨 For Firefox
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mat-sys-outline-variant) var(--mat-sys-surface-container-lowest);
+}
+
+.compact-scroll,
+.mat-mdc-dialog-content,
+.mat-drawer-content {
+  scrollbar-width: thin;
+}
+
+// 🎨 Smooth scrolling
+html {
+  scroll-behavior: smooth;
+}
+
+// ==================== DIALOG SCROLLBAR ====================
+::ng-deep {
+  .mat-mdc-dialog-content {
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--mat-sys-outline-variant);
+      border-radius: 6px;
+      border: none;
+
+      &:hover {
+        background: var(--mat-sys-outline);
+      }
+    }
+  }
+}
+
+// ==================== SIDENAV SCROLLBAR ====================
+::ng-deep {
+  .mat-drawer-content,
+  .mat-sidenav-content {
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--mat-sys-surface-container);
+      border-left: 1px solid var(--mat-sys-outline-variant);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--mat-sys-outline-variant);
+      border-radius: 8px;
+      border: 2px solid var(--mat-sys-surface-container);
+
+      &:hover {
+        background: var(--mat-sys-primary);
+        border-color: var(--mat-sys-primary-container);
+      }
+    }
+  }
+}
+
+// ==================== SELECT DROPDOWN SCROLLBAR ====================
+::ng-deep {
+  .mat-mdc-select-panel {
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--mat-sys-surface-container-low);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--mat-sys-outline-variant);
+      border-radius: 6px;
+
+      &:hover {
+        background: var(--mat-sys-primary);
+      }
+    }
+  }
+}
+
+// ==================== AUTOCOMPLETE SCROLLBAR ====================
+::ng-deep {
+  .mat-mdc-autocomplete-panel {
+    &::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--mat-sys-outline-variant);
+      border-radius: 5px;
+
+      &:hover {
+        background: var(--mat-sys-primary);
+      }
+    }
+  }
+}
+
+// ==================== TABLE SCROLLBAR ====================
+::ng-deep {
+  .mat-mdc-table-container {
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--mat-sys-surface-container-low);
+      border-radius: 8px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--mat-sys-outline-variant);
+      border-radius: 8px;
+      border: 2px solid var(--mat-sys-surface-container-low);
+
+      &:hover {
+        background: var(--mat-sys-primary);
+      }
+    }
+
+    &::-webkit-scrollbar-corner {
+      background: var(--mat-sys-surface-container-low);
+    }
+  }
+}
+
+// ==================== DARK MODE SCROLLBAR ====================
+@media (prefers-color-scheme: dark) {
+  *::-webkit-scrollbar-thumb {
+    background: var(--mat-sys-outline);
+    
+    &:hover {
+      background: var(--mat-sys-primary);
+    }
+  }
+
+  * {
+    scrollbar-color: var(--mat-sys-outline) var(--mat-sys-surface-container);
+  }
+}
+
+// ==================== HIGH CONTRAST MODE ====================
+@media (prefers-contrast: high) {
+  *::-webkit-scrollbar-thumb {
+    border-width: 1px;
+    border-color: var(--mat-sys-outline);
+  }
+
+  * {
+    scrollbar-width: auto;
+  }
+}
+
+// ==================== REDUCED MOTION ====================
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    transition: none;
+  }
+}
+
+// ==================== ROLE DIALOG PANEL ====================
 .role-dialog-panel {
   .mat-mdc-dialog-container {
     border-radius: 16px !important;
@@ -38,4 +259,101 @@ body {
       max-height: none !important;
     }
   }
+}
+
+// ==================== UTILITY CLASSES ====================
+
+// Hide scrollbar but keep functionality
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// Overlay scrollbar (doesn't take up space)
+.overlay-scrollbar {
+  overflow: overlay;
+}
+
+// Custom scrollbar colors
+.primary-scrollbar {
+  &::-webkit-scrollbar-thumb {
+    background: var(--mat-sys-primary);
+    
+    &:hover {
+      background: var(--mat-sys-primary-container);
+    }
+  }
+  
+  scrollbar-color: var(--mat-sys-primary) var(--mat-sys-surface-container-lowest);
+}
+
+.tertiary-scrollbar {
+  &::-webkit-scrollbar-thumb {
+    background: var(--mat-sys-tertiary);
+    
+    &:hover {
+      background: var(--mat-sys-tertiary-container);
+    }
+  }
+  
+  scrollbar-color: var(--mat-sys-tertiary) var(--mat-sys-surface-container-lowest);
+}
+
+// File Preview Dialog - Glassmorphism
+.file-preview-dialog {
+  .mat-mdc-dialog-container {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    
+    .mat-mdc-dialog-surface {
+      background: transparent;
+      box-shadow: none;
+      border-radius: var(--mat-sys-corner-extra-large);
+      overflow: visible;
+    }
+  }
+}
+
+// File type color utilities
+.file-type-pdf { 
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+  color: white;
+}
+
+.file-type-jpg,
+.file-type-jpeg,
+.file-type-png,
+.file-type-gif { 
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+}
+
+.file-type-doc,
+.file-type-docx { 
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+  color: white;
+}
+
+.file-type-xls,
+.file-type-xlsx { 
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+  color: white;
+}
+
+.file-type-zip,
+.file-type-rar { 
+  background: linear-gradient(135deg, #f57c00 0%, #ef6c00 100%);
+  color: white;
+}
+
+// Glassmorphism utilities
+.glass-effect {
+  background: color-mix(in srgb, var(--mat-sys-surface-container-highest) 80%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }

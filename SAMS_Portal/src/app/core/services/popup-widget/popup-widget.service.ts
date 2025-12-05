@@ -8,7 +8,7 @@ import { PopupWidgetComponent } from '../../../shared/widgets/common/popup-widge
   providedIn: 'root'
 })
 export class PopupWidgetService {
-private dialog = inject(MatDialog);
+  private dialog = inject(MatDialog);
 
   /**
    * Open a form popup for Add/Edit operations
@@ -37,7 +37,7 @@ private dialog = inject(MatDialog);
     const dialogRef = this.openDialog(popupData, config);
     return dialogRef.afterClosed();
   }
-  
+
   /**
    * Open a confirmation popup for Delete operations
    */
@@ -55,8 +55,8 @@ private dialog = inject(MatDialog);
    * Quick Add popup - simplified method with 2-column layout support
    */
   openAddPopup(
-    title: string, 
-    fields: PopupField[], 
+    title: string,
+    fields: PopupField[],
     options?: Partial<PopupFormConfig>
   ): Observable<PopupResult> {
     const config: PopupFormConfig = {
@@ -77,9 +77,9 @@ private dialog = inject(MatDialog);
    * Quick Edit popup - simplified method with 2-column layout support
    */
   openEditPopup(
-    title: string, 
-    fields: PopupField[], 
-    data: any, 
+    title: string,
+    fields: PopupField[],
+    data: any,
     options?: Partial<PopupFormConfig>
   ): Observable<PopupResult> {
     const config: PopupFormConfig = {
@@ -100,9 +100,9 @@ private dialog = inject(MatDialog);
    * Quick View popup - simplified method with 2-column layout support
    */
   openViewPopup2(
-    title: string, 
-    fields: PopupField[], 
-    data: any, 
+    title: string,
+    fields: PopupField[],
+    data: any,
     options?: Partial<PopupViewConfig>
   ): Observable<PopupResult> {
     const config: PopupViewConfig = {
@@ -123,8 +123,8 @@ private dialog = inject(MatDialog);
    * Quick Delete confirmation popup
    */
   openDeleteConfirmation(
-    message: string, 
-    details?: string, 
+    message: string,
+    details?: string,
     options?: Partial<PopupConfirmConfig>
   ): Observable<PopupResult> {
     const config: PopupConfirmConfig = {
@@ -132,6 +132,27 @@ private dialog = inject(MatDialog);
       message,
       details,
       confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: 'warn',
+      icon: 'delete_forever',
+      iconColor: 'warn',
+      maxWidth: '500px',
+      ...options
+    };
+
+    return this.openConfirmPopup(config);
+  }
+
+  openRevokeConfirmation(
+    message: string,
+    details?: string,
+    options?: Partial<PopupConfirmConfig>
+  ): Observable<PopupResult> {
+    const config: PopupConfirmConfig = {
+      title: 'Confirm Revoke Access',
+      message,
+      details,
+      confirmButtonText: 'Revoke Access',
       cancelButtonText: 'Cancel',
       confirmButtonColor: 'warn',
       icon: 'delete_forever',
@@ -166,19 +187,29 @@ private dialog = inject(MatDialog);
   }
 
   private openDialog(
-    data: PopupData, 
+    data: PopupData,
     config: PopupFormConfig | PopupViewConfig | PopupConfirmConfig
   ): MatDialogRef<PopupWidgetComponent> {
     return this.dialog.open(PopupWidgetComponent, {
       data,
       width: config.width || 'auto',
       maxWidth: config.maxWidth || '90vw',
+      minWidth: config.minWidth,
       height: config.height || 'auto',
       maxHeight: config.maxHeight || '90vh',
+      minHeight: config.minHeight,
       disableClose: config.disableClose || false,
       hasBackdrop: config.hasBackdrop !== false,
       backdropClass: config.backdropClass,
-      panelClass: ['popup-widget-panel', ...(config.panelClass ? [config.panelClass] : [])],
+      panelClass: [
+        'popup-widget-panel',
+        ...(Array.isArray(config.panelClass)
+          ? config.panelClass
+          : config.panelClass
+            ? [config.panelClass]
+            : []
+        )
+      ],
       autoFocus: true,
       restoreFocus: true
     });

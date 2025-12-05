@@ -6,11 +6,11 @@ import { CitiesService } from '../../../core/services/sites-or-branchs/cities/ci
 import { GlobalService } from '../../../core/services/global/global.service';
 import { PopupWidgetService } from '../../../core/services/popup-widget/popup-widget.service';
 import { AssetSite, AssetSiteRequest, SiteOrBranch } from '../../../core/models/interfaces/sites-or-branchs/asset-site.interface';
-import { PopupField } from '../../../core/models/interfaces/popup-widget.interface';
+import { PopupField, QuickAddConfig } from '../../../core/models/interfaces/popup-widget.interface';
 import { Validators } from '@angular/forms';
 import { AssetAreaService } from '../../../core/services/sites-or-branchs/areas/asset-area.service';
 import { AssetArea } from '../../../core/models/interfaces/sites-or-branchs/asset-area.interface';
-import { catchError, forkJoin, map, of } from 'rxjs';
+import { catchError, forkJoin, map, of, tap } from 'rxjs';
 
 interface DropdownOption {
   value: any;
@@ -32,7 +32,7 @@ interface DropdownData {
   styleUrl: './sites-or-branchs.component.scss'
 })
 export class SitesOrBranchsComponent implements OnInit {
- private sitesService = inject(SitesOrBranchesService);
+  private sitesService = inject(SitesOrBranchesService);
   private citiesService = inject(CitiesService);
   private areasService = inject(AssetAreaService);
   private popupService = inject(PopupWidgetService);
@@ -175,12 +175,143 @@ export class SitesOrBranchsComponent implements OnInit {
   private getSiteFields(): PopupField[] {
     const dropdowns = this.dropdownData();
     return [
-      { key: 'name', label: 'Site/Branch Name', type: 'text', required: true, colSpan: 1, icon: 'location_city', placeholder: 'Enter site or branch name', validators: [Validators.minLength(2), Validators.maxLength(100)] },
-      { key: 'city', label: 'City', type: 'select', required: false, colSpan: 1, icon: 'edit_location_alt', placeholder: 'Select city', options: dropdowns.cities },
-      { key: 'type', label: 'Type', type: 'radio', required: true, colSpan: 2, icon: 'category', options: this.typeOptions, value: SiteOrBranch.Site, validators: [Validators.required] },
-      { key: 'address', label: 'Address', type: 'textarea', required: false, colSpan: 2, icon: 'location_on', placeholder: 'Enter full address', rows: 3, validators: [Validators.maxLength(500)] },
-      { key: 'description', label: 'Description', type: 'textarea', required: false, colSpan: 2, icon: 'description', placeholder: 'Enter description', rows: 4, validators: [Validators.maxLength(500)] }
+      {
+        key: 'name',
+        label: 'Site/Branch Name',
+        type: 'text',
+        required: true,
+        colSpan: 1,
+        icon: 'location_city',
+        placeholder: 'Enter site or branch name',
+        validators: [Validators.minLength(2), Validators.maxLength(100)]
+      },
+      {
+        key: 'city',
+        label: 'City',
+        type: 'select',
+        required: false,
+        colSpan: 1,
+        icon: 'edit_location_alt',
+        placeholder: 'Select city',
+        options: dropdowns.cities,
+        quickAdd: this.getCityQuickAddConfig()
+      },
+      {
+        key: 'type',
+        label: 'Type',
+        type: 'radio',
+        required: true,
+        colSpan: 2,
+        icon: 'category',
+        options: this.typeOptions,
+        value: SiteOrBranch.Site,
+        validators: [Validators.required]
+      },
+      {
+        key: 'address',
+        label: 'Address',
+        type: 'textarea',
+        required: false,
+        colSpan: 2,
+        icon: 'location_on',
+        placeholder: 'Enter full address',
+        rows: 3,
+        validators: [Validators.maxLength(500)]
+      },
+      {
+        key: 'description',
+        label: 'Description',
+        type: 'textarea',
+        required: false,
+        colSpan: 2,
+        icon: 'description',
+        placeholder: 'Enter description',
+        rows: 4,
+        validators: [Validators.maxLength(500)]
+      }
     ];
+  }
+
+  // 🆕 NEW: Get Quick Add configuration for city field
+  private getCityQuickAddConfig(): QuickAddConfig {
+    return {
+      enabled: true,
+      buttonLabel: 'Add New City',
+      buttonIcon: 'add_circle',
+      popupTitle: 'Add New City',
+      popupIcon: 'edit_location_alt',
+
+      // Fields for the quick add city popup
+      fields: [
+        {
+          key: 'name',
+          label: 'City Name',
+          type: 'text',
+          required: true,
+          colSpan: 2,
+          icon: 'edit_location_alt',
+          placeholder: 'Enter city name',
+          validators: [Validators.minLength(2), Validators.maxLength(100)]
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          required: false,
+          colSpan: 2,
+          icon: 'description',
+          placeholder: 'Enter city description',
+          rows: 3,
+          validators: [Validators.maxLength(500)]
+        }
+      ],
+
+      // Handler to save the new city
+      onAdd: (cityData) => {
+        console.log('💾 Saving new City:', cityData);
+        return this.citiesService.createCity(cityData).pipe(
+          tap(response => {
+            console.log('✅ City created:', response);
+          })
+        );
+      },
+
+      // Refresh dropdown options after successful add
+      // 🔥 FIXED: Refresh handler - This is the KEY fix
+      refreshOptions: (response) => {
+        console.log('🔄 Refreshing options after city add:', response);
+
+        // Show success message
+        const cityName = response?.data?.name || response?.name || 'City';
+        this.globalService.showSnackbar(`"${cityName}" added successfully!`, 'success');
+
+        // 🔥 CRITICAL: Fetch fresh data from API
+        return this.citiesService.getMyCities().pipe(
+          map(apiResponse => {
+            if (apiResponse.success && apiResponse.data) {
+              const newOptions = apiResponse.data.map(cat => ({
+                value: cat.id,
+                label: cat.name
+              }));
+
+              console.log('✅ Fresh options loaded:', newOptions.length);
+
+              // 🔥 CRITICAL: Update the component's dropdown data
+              this.dropdownData.update(current => ({
+                ...current,
+                cities: newOptions
+              }));
+
+              return newOptions;
+            }
+            return [];
+          }),
+          tap(newOptions => {
+            console.log('🎯 Options ready for dropdown:', newOptions);
+          })
+        );
+      }
+    };
   }
 
   private loadSites() {
@@ -347,7 +478,11 @@ export class SitesOrBranchsComponent implements OnInit {
   onAddSite() {
     const fields = this.getSiteFields();
     this.popupService.openAddPopup('Add New Site/Branch', fields, {
-      subtitle: 'Enter site or branch information below', icon: 'add_business', columns: 2, maxWidth: '800px', compactMode: false
+      subtitle: 'Enter site or branch information below', 
+      icon: 'location_city', 
+      columns: 2, 
+      maxWidth: '800px', 
+      compactMode: false
     }).subscribe(result => { if (result?.action === 'submit') this.handleAddSite(result.data); });
   }
 
@@ -392,7 +527,7 @@ export class SitesOrBranchsComponent implements OnInit {
       error: () => { this.globalService.showToastr('Failed to update site/branch', 'error'); this.loading.set(false); }
     });
   }
-  
+
   exportSelectedSites(selectedItems: AssetSite[]) {
     console.log(`Exporting ${selectedItems.length} selected sites/branches`);
     this.globalService.showSnackbar(`Exported ${selectedItems.length} sites/branches`, 'success');

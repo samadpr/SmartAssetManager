@@ -1,0 +1,133 @@
+<div class="file-preview-container" [@fadeIn]>
+  <!-- Glassmorphic Header -->
+  <div class="preview-header">
+    <div class="header-background"></div>
+    <div class="header-content">
+      <div class="header-info">
+        <div class="file-icon-large" [class]="'file-type-' + data.fileType.toLowerCase()">
+          <mat-icon>{{ getFileIcon() }}</mat-icon>
+        </div>
+        <div class="file-details">
+          <h2 class="file-name" [matTooltip]="data.fileName">
+            {{ data.fileName }}
+          </h2>
+          <div class="file-meta">
+            <span class="file-type">{{ data.fileType.toUpperCase() }}</span>
+            <span class="file-size" *ngIf="fileSize()">{{ fileSize() }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button mat-icon-button 
+                (click)="onDownload()"
+                [disabled]="loading()"
+                matTooltip="Download"
+                class="action-btn download-btn">
+          <mat-icon>download</mat-icon>
+        </button>
+        
+        <button mat-icon-button 
+                (click)="onClose()"
+                matTooltip="Close"
+                class="action-btn close-btn">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Area -->
+  <div class="preview-content">
+    <!-- Loading State -->
+    <div class="loading-container" *ngIf="loading()" [@fadeIn]>
+      <div class="loading-card">
+        <mat-spinner diameter="56" color="primary"></mat-spinner>
+        <p class="loading-text">Loading preview...</p>
+        <p class="loading-subtext">Please wait</p>
+      </div>
+    </div>
+
+    <!-- PDF Viewer -->
+    <div *ngIf="isPDF() && !loading()" class="pdf-container" [@fadeIn]>
+      <iframe [src]="safeUrl"
+              class="pdf-viewer"
+              (load)="onLoad()"
+              (error)="onLoadError()"
+              frameborder="0">
+      </iframe>
+    </div>
+
+    <!-- Image Viewer -->
+    <div *ngIf="isImage() && !loading()" class="image-container" [@fadeIn]>
+      <div class="image-wrapper">
+        <img [src]="data.fileUrl" 
+             [alt]="data.fileName"
+             (load)="onLoad()"
+             (error)="onLoadError()"
+             class="preview-image">
+      </div>
+    </div>
+
+    <!-- Unsupported File Type -->
+    <div *ngIf="!isPDF() && !isImage() && !loading()" class="unsupported-container" [@fadeIn]>
+      <div class="unsupported-card">
+        <div class="unsupported-icon-wrapper">
+          <mat-icon class="unsupported-icon">description</mat-icon>
+        </div>
+        <h3 class="unsupported-title">Preview Not Available</h3>
+        <p class="unsupported-message">
+          This file type cannot be previewed in the browser.
+        </p>
+        <button mat-raised-button 
+                color="primary" 
+                (click)="onDownload()"
+                class="download-button">
+          <mat-icon>download</mat-icon>
+          Download File
+        </button>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="hasError()" class="error-container" [@fadeIn]>
+      <div class="error-card">
+        <div class="error-icon-wrapper">
+          <mat-icon class="error-icon">error_outline</mat-icon>
+        </div>
+        <h3 class="error-title">Failed to Load</h3>
+        <p class="error-message">
+          There was an error loading this file.
+        </p>
+        <button mat-raised-button 
+                color="primary" 
+                (click)="onDownload()"
+                class="download-button">
+          <mat-icon>download</mat-icon>
+          Download Instead
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Glassmorphic Footer -->
+  <div class="preview-footer">
+    <div class="footer-background"></div>
+    <div class="footer-content">
+      <div class="file-path">
+        <mat-icon class="path-icon">link</mat-icon>
+        <span class="file-url" [matTooltip]="data.fileUrl">
+          {{ data.fileUrl }}
+        </span>
+      </div>
+      <button mat-raised-button 
+              color="primary" 
+              (click)="onDownload()"
+              [disabled]="loading()"
+              class="primary-download-btn">
+        <mat-icon>download</mat-icon>
+        Download
+      </button>
+    </div>
+  </div>
+</div>

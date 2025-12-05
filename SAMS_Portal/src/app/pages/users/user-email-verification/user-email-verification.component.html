@@ -1,102 +1,134 @@
-
 <div class="verification-container">
-  <!-- Loading State -->
-  <ng-container *ngIf="verificationState.loading">
-    <div class="verification-wrapper" @slideIn>
-      <mat-card class="verification-card loading-card">
-        <mat-card-header>
-          <div class="card-header-content">
-            <mat-icon class="header-icon loading-icon">{{ icons.loading }}</mat-icon>
-            <h1 class="header-title">Email Verification</h1>
-          </div>
-        </mat-card-header>
+  <!-- Multiple Background Blur Text -->
+  <div class="background-pattern">
+    <div class="background-text text-1">INFOASSET</div>
+    <div class="background-text text-2">INFOASSET</div>
+    <div class="background-text text-3">INFOASSET</div>
+    <div class="background-text text-4">INFOASSET</div>
+  </div>
 
+  <div class="content-wrapper">
+    <!-- Loading State -->
+    <ng-container *ngIf="verificationState.loading">
+      <mat-card class="verification-card loading-card">
         <mat-card-content>
+          <div class="header-section">
+            <div class="icon-wrapper loading">
+              <mat-icon class="status-icon">{{ icons.loading }}</mat-icon>
+            </div>
+            <h2 class="title">Email Verification</h2>
+            <p class="subtitle">{{ verificationState.message || messages.verifying }}</p>
+          </div>
+
           <div class="loading-content">
             <div class="spinner-wrapper">
               <mat-spinner diameter="60" strokeWidth="4"></mat-spinner>
             </div>
-            <p class="loading-message">{{ verificationState.message }}</p>
-            <p class="loading-subtitle">Please wait while we verify your email address</p>
+            <p class="loading-message">Please wait while we verify your email address</p>
           </div>
         </mat-card-content>
       </mat-card>
-    </div>
-  </ng-container>
+    </ng-container>
 
-  <!-- Success State -->
-  <ng-container *ngIf="!verificationState.loading && verificationState.success">
-    <div class="verification-wrapper" @fadeIn>
-      <mat-card class="verification-card success-card" [class.status-success]="true">
-        <mat-card-header>
-          <div class="card-header-content">
-            <mat-icon class="header-icon success-icon">{{ icons.success }}</mat-icon>
-            <h1 class="header-title">Success!</h1>
-          </div>
-        </mat-card-header>
-
-        <mat-divider></mat-divider>
-
+    <!-- Success State with Login Access -->
+    <ng-container *ngIf="!verificationState.loading && verificationState.success && verificationState.isLoginAccess">
+      <mat-card class="verification-card success-card">
         <mat-card-content>
+          <div class="header-section">
+            <div class="icon-wrapper success">
+              <mat-icon class="status-icon">{{ icons.success }}</mat-icon>
+            </div>
+            <h2 class="title">Email Verified!</h2>
+            <p class="subtitle">{{ verificationState.message }}</p>
+          </div>
+
           <div class="success-content">
-            <p class="main-message">{{ verificationState.message }}</p>
-            
             <div class="confirmation-details">
               <div class="detail-item">
-                <mat-icon class="detail-icon">email</mat-icon>
-                <span class="detail-text">Your email has been verified</span>
+                <mat-icon class="detail-icon">verified_user</mat-icon>
+                <span class="detail-text">Your email has been successfully verified</span>
               </div>
               <div class="detail-item">
                 <mat-icon class="detail-icon">shield</mat-icon>
-                <span class="detail-text">Your account is now secure</span>
+                <span class="detail-text">Your account is now secure and ready</span>
+              </div>
+              <div class="detail-item">
+                <mat-icon class="detail-icon">login</mat-icon>
+                <span class="detail-text">You can now access your account</span>
               </div>
             </div>
 
-            <p class="info-text" *ngIf="verificationState.isLoginAccess">
+            <div class="redirect-info">
               <mat-icon class="info-icon">info</mat-icon>
-              Redirecting to login in a few seconds...
-            </p>
+              <span>Redirecting to login page in a few seconds...</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button 
+              mat-raised-button 
+              color="primary" 
+              (click)="navigateToLogin()"
+              class="submit-btn">
+              <mat-icon class="btn-icon">login</mat-icon>
+              <span>Go to Login</span>
+            </button>
           </div>
         </mat-card-content>
-
-        <mat-card-actions>
-          <button mat-stroked-button 
-                  color="primary" 
-                  (click)="navigateToHome()"
-                  class="action-button">
-            <mat-icon>dashboard</mat-icon>
-            Go to Dashboard
-          </button>
-
-          <button mat-raised-button 
-                  color="primary" 
-                  (click)="navigateToLogin()"
-                  class="action-button">
-            <mat-icon>{{ icons.redirect }}</mat-icon>
-            Go to Login
-          </button>
-        </mat-card-actions>
       </mat-card>
-    </div>
-  </ng-container>
+    </ng-container>
 
-  <!-- Error State -->
-  <ng-container *ngIf="!verificationState.loading && !verificationState.success">
-    <div class="verification-wrapper" @fadeIn>
-      <mat-card class="verification-card error-card" [class.status-error]="true">
-        <mat-card-header>
-          <div class="card-header-content">
-            <mat-icon class="header-icon error-icon">{{ icons.error }}</mat-icon>
-            <h1 class="header-title">Verification Failed</h1>
-          </div>
-        </mat-card-header>
-
-        <mat-divider></mat-divider>
-
+    <!-- Success State without Login Access -->
+    <ng-container *ngIf="!verificationState.loading && verificationState.success && !verificationState.isLoginAccess">
+      <mat-card class="verification-card success-card">
         <mat-card-content>
+          <div class="header-section">
+            <div class="icon-wrapper success">
+              <mat-icon class="status-icon">{{ icons.email }}</mat-icon>
+            </div>
+            <h2 class="title">Email Verified!</h2>
+            <p class="subtitle">{{ verificationState.message }}</p>
+          </div>
+
+          <div class="success-content">
+            <div class="thank-you-message">
+              <mat-icon class="thank-you-icon">celebration</mat-icon>
+              <h3>Thank You for Verifying Your Email!</h3>
+              <p>Your email address has been successfully confirmed. You'll receive further instructions from the administrator.</p>
+            </div>
+
+            <div class="confirmation-details">
+              <div class="detail-item">
+                <mat-icon class="detail-icon">check_circle</mat-icon>
+                <span class="detail-text">Email verification complete</span>
+              </div>
+              <div class="detail-item">
+                <mat-icon class="detail-icon">pending</mat-icon>
+                <span class="detail-text">Awaiting administrator approval</span>
+              </div>
+              <div class="detail-item">
+                <mat-icon class="detail-icon">notifications_active</mat-icon>
+                <span class="detail-text">You'll be notified when access is granted</span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </ng-container>
+
+    <!-- Error State -->
+    <ng-container *ngIf="!verificationState.loading && !verificationState.success">
+      <mat-card class="verification-card error-card">
+        <mat-card-content>
+          <div class="header-section">
+            <div class="icon-wrapper error">
+              <mat-icon class="status-icon">{{ icons.error }}</mat-icon>
+            </div>
+            <h2 class="title">Verification Failed</h2>
+            <p class="subtitle">{{ verificationState.message }}</p>
+          </div>
+
           <div class="error-content">
-            <p class="main-message">{{ verificationState.message }}</p>
-            
             <div class="error-details">
               <div class="detail-item">
                 <mat-icon class="detail-icon">warning</mat-icon>
@@ -106,32 +138,29 @@
                 <mat-icon class="detail-icon">link_off</mat-icon>
                 <span class="detail-text">Please request a new verification email</span>
               </div>
+              <div class="detail-item">
+                <mat-icon class="detail-icon">support_agent</mat-icon>
+                <span class="detail-text">Contact support if the issue persists</span>
+              </div>
             </div>
 
-            <p class="help-text">
-              If you continue to experience issues, please contact our support team.
-            </p>
+            <div class="help-text">
+              If you continue to experience issues, please contact our support team for assistance.
+            </div>
+          </div>
+
+          <div class="actions">
+            <button 
+              mat-raised-button 
+              color="primary" 
+              (click)="navigateToLogin()"
+              class="submit-btn">
+              <mat-icon class="btn-icon">login</mat-icon>
+              <span>Go to Login</span>
+            </button>
           </div>
         </mat-card-content>
-
-        <mat-card-actions>
-          <button mat-stroked-button 
-                  (click)="navigateToHome()"
-                  class="action-button">
-            <mat-icon>home</mat-icon>
-            Back to Home
-          </button>
-
-          <button mat-raised-button 
-                  color="warn" 
-                  (click)="navigateToLogin()"
-                  class="action-button">
-            <mat-icon>login</mat-icon>
-            Go to Login
-          </button>
-        </mat-card-actions>
       </mat-card>
-    </div>
-  </ng-container>
+    </ng-container>
+  </div>
 </div>
-

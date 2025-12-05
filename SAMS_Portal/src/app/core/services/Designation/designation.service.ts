@@ -17,7 +17,7 @@ export interface DesignationRequest {
 export class DesignationService {
   private baseUrl = `${environment.apiUrl}/designation`; // Example: 'https://localhost:5001/api/'
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // ➕ Create Designation
   createDesignation(request: DesignationRequest): Observable<any> {
@@ -36,7 +36,7 @@ export class DesignationService {
 
   // ❌ Delete Designation
   deleteDesignation(id: number): Observable<any> {
-  return this.http.delete(`${this.baseUrl}/delete-designation?id=${id}`, { responseType: 'text' });
-}
+    return this.http.delete(`${this.baseUrl}/delete-designation?id=${id}`, { responseType: 'text' });
+  }
 
 }

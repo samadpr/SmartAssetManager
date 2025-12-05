@@ -16,6 +16,8 @@ import { ManageRolesService } from '../../../core/services/roles-manager/manage-
 import { CountryService } from '../../../core/services/account/country/country.service';
 import { DepartmentService } from '../../../core/services/department/department.service';
 import { SubDepartmentService } from '../../../core/services/department/sub-department/sub-department.service';
+import { SitesOrBranchesService } from '../../../core/services/sites-or-branchs/sites-or-branches.service';
+import { AssetAreaService } from '../../../core/services/sites-or-branchs/areas/asset-area.service';
 
 export interface UserProfile {
   userProfileId: number;
@@ -28,11 +30,13 @@ export interface UserProfile {
   designation: number;
   department: number;
   subDepartment: number;
+  site: number;
+  area: number;
   designationDisplay?: string;
   departmentDisplay?: string;
   subDepartmentDisplay?: string;
   siteDisplay?: string;
-  locationDisplay?: string;
+  areaDisplay?: string;
   roleIdDisplay?: string;
   roleId?: number;
   joiningDate?: Date; // ISO Date string from API
@@ -59,7 +63,7 @@ interface DropdownData {
   departments: DropdownOption[];
   allSubDepartments: DropdownOption[];
   sites: DropdownOption[];
-  locations: DropdownOption[];
+  allAreas: DropdownOption[];
   roles: DropdownOption[];
   countries: DropdownOption[];
 }
@@ -81,6 +85,8 @@ export class ManageUserComponent implements OnInit {
   private designationService = inject(DesignationService);
   private departmentService = inject(DepartmentService);
   private subDepartmentService = inject(SubDepartmentService);
+  private siteOrBaranchService = inject(SitesOrBranchesService);
+  private areaService = inject(AssetAreaService);
   private rolesService = inject(ManageRolesService);
   private countryService = inject(CountryService);
 
@@ -92,7 +98,7 @@ export class ManageUserComponent implements OnInit {
     departments: [],
     allSubDepartments: [],
     sites: [],
-    locations: [],
+    allAreas: [],
     roles: [],
     countries: []
   });
@@ -222,6 +228,26 @@ export class ManageUserComponent implements OnInit {
         disableUnverifiedClick: true // Disable email click if not verified
       },
       {
+        key: 'siteDisplay',
+        label: 'Site/Branch',
+        sortable: true,
+        type: 'text',
+        width: '150px',
+        align: 'left',
+        visible: true,
+        ellipsis: true
+      },
+      {
+        key: 'areaDisplay',
+        label: 'Area',
+        sortable: true,
+        type: 'text',
+        width: '150px',
+        align: 'left',
+        visible: true,
+        ellipsis: true,
+      },
+      {
         key: 'address',
         label: 'Address',
         sortable: false,
@@ -276,6 +302,8 @@ export class ManageUserComponent implements OnInit {
       roles: this.rolesService.getUserRoles(),
       departments: this.departmentService.getDepartments(),
       subDepartments: this.subDepartmentService.getSubDepartments(),
+      sites: this.siteOrBaranchService.getMySites(),
+      areas: this.areaService.getMyAreas()
     }).subscribe({
       next: (responses) => {
         this.dropdownData.update(current => ({
@@ -307,17 +335,15 @@ export class ManageUserComponent implements OnInit {
           })) ?? [],
 
           // Mock data for other dropdowns - replace with actual API calls when available
-          sites: [
-            { value: 1, label: 'Main Office' },
-            { value: 2, label: 'Branch Office' },
-            { value: 3, label: 'Remote' }
-          ],
-          locations: [
-            { value: 1, label: 'Riyadh' },
-            { value: 2, label: 'Jeddah' },
-            { value: 3, label: 'Dammam' },
-            { value: 4, label: 'Dubai' }
-          ]
+          sites: responses.sites.data?.map(s => ({
+            value: s.id,
+            label: s.name
+          })) ?? [],
+          allAreas: responses.areas.data?.map(a => ({
+            value: a.id,
+            label: a.name ?? '',
+            siteId: a.siteId // Critical: Store parent reference
+          })) ?? [],
         }));
 
         console.log('Dropdown data loaded:', {
@@ -326,6 +352,8 @@ export class ManageUserComponent implements OnInit {
           roles: responses.roles.success ? responses.roles.data.length : 0,
           departments: responses.departments.data?.length ?? 0,
           subDepartments: responses.subDepartments.data?.length ?? 0,
+          sites: responses.sites.data?.length ?? 0,
+          areas: responses.areas.data?.length ?? 0
         });
       },
       error: (error) => {
@@ -387,7 +415,7 @@ export class ManageUserComponent implements OnInit {
         label: 'Email Address',
         type: 'email',
         required: true,
-        placeholder: 'Enter email address',
+        placeholder: 'Enter address',
         colSpan: 2,
         icon: 'email',
         validators: [Validators.email],
@@ -464,16 +492,23 @@ export class ManageUserComponent implements OnInit {
         required: false,
         colSpan: 1,
         icon: 'location_city',
-        options: dropdowns.sites
+        options: dropdowns.sites,
+        placeholder: 'Select Site first'
       },
       {
-        key: 'location',
-        label: 'Location',
+        key: 'area',
+        label: 'Area',
         type: 'select',
         required: false,
         colSpan: 1,
-        icon: 'place',
-        options: dropdowns.locations
+        icon: 'map',
+        placeholder: 'Select Site first',
+
+        cascadeFrom: 'site',
+        cascadeProperty: 'siteId',
+        clearOnParentChange: true,
+
+        options: dropdowns.allAreas,
       },
       {
         key: 'joiningDate',
@@ -551,11 +586,13 @@ export class ManageUserComponent implements OnInit {
       designation: data.designation,
       department: data.department,
       subDepartment: data.subDepartment,
+      site: data.site,
+      area: data.area,
       designationDisplay: data.designationDisplay || 'N/A',
       departmentDisplay: data.departmentDisplay,
       subDepartmentDisplay: data.subDepartmentDisplay,
       siteDisplay: data.siteDisplay,
-      locationDisplay: data.locationDisplay,
+      areaDisplay: data.areaDisplay,
       roleIdDisplay: data.roleIdDisplay,
       roleId: data.roleId,
       joiningDate: data.joiningDate ? new Date(data.joiningDate) : undefined,
@@ -655,7 +692,7 @@ export class ManageUserComponent implements OnInit {
       department: formData.department,
       subDepartment: formData.subDepartment,
       site: formData.site,
-      location: formData.location,
+      area: formData.area,
       roleId: formData.roleId,
       joiningDate: formData.joiningDate,
       leavingDate: formData.leavingDate,
@@ -694,10 +731,17 @@ export class ManageUserComponent implements OnInit {
   editUser(user: UserProfile) {
     const fields = this.getUserFormFields();
 
+    // 🔥 IMPORTANT: Ensure isEmailVerified is properly set in user data
+    const userData = {
+      ...user,
+      // Make sure the verification status is properly passed
+      isEmailVerified: user.isEmailVerified === true
+    };
+
     this.popupService.openEditPopup(
       'Edit User',
       fields,
-      user,
+      userData,
       {
         subtitle: `Update information for ${user.fullName}`,
         icon: 'edit',
@@ -726,7 +770,7 @@ export class ManageUserComponent implements OnInit {
       department: formData.department,
       subDepartment: formData.subDepartment,
       site: formData.site,
-      location: formData.location,
+      area: formData.area,
       roleId: formData.roleId,
       joiningDate: formData.joiningDate,
       leavingDate: formData.leavingDate,

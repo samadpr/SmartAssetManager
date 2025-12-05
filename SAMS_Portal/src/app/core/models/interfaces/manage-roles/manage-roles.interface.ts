@@ -39,5 +39,6 @@ export interface ManageUserRolesDto extends EntityBase {
   name?: string;
   description?: string;
   applicationUserId: string;
+  organizationId: string;
   rolePermissions?: ManageUserRolesDetailsDto[];
 }

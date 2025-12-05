@@ -1,0 +1,200 @@
+<app-page-header [title]="'Login Access Management'" [breadcrumbs]="[
+  { label: 'Manage User', url: '/manage-users' },
+  { label: 'Login Access' }
+  ]">
+</app-page-header>
+
+<div class="login-access-container">
+  
+  <!-- Header Section -->
+  <div class="page-header">
+    <div class="header-stats">
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon-wrapper verified">
+              <mat-icon class="stat-icon">verified_user</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ verifiedUsersCount() }}</span>
+              <span class="stat-label">Verified Users</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon-wrapper active">
+              <mat-icon class="stat-icon">vpn_key</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ activeAccessCount() }}</span>
+              <span class="stat-label">Active Access</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Search and Actions -->
+    <div class="header-actions">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search users</mat-label>
+        <input 
+          matInput 
+          [value]="searchTerm()"
+          (input)="onSearch($event)"
+          placeholder="Search by name, email, or department">
+        <mat-icon matPrefix>search</mat-icon>
+        <button 
+          *ngIf="searchTerm()" 
+          mat-icon-button 
+          matSuffix 
+          (click)="clearSearch()"
+          matTooltip="Clear search">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <button 
+        mat-stroked-button 
+        (click)="onRefresh()"
+        [disabled]="loading()"
+        matTooltip="Refresh list"
+        class="refresh-btn">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="loading-container">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Loading users...</p>
+  </div>
+
+  <!-- User Cards Grid -->
+  <div *ngIf="!loading()" class="users-grid">
+    
+    <!-- Empty State -->
+    <div *ngIf="filteredUsers().length === 0" class="empty-state">
+      <mat-icon>person_off</mat-icon>
+      <h3>{{ searchTerm() ? 'No users found' : 'No verified users available' }}</h3>
+      <p>{{ searchTerm() ? 'Try adjusting your search criteria' : 'Users must verify their email before appearing here' }}</p>
+      <button *ngIf="searchTerm()" mat-raised-button color="primary" (click)="clearSearch()">
+        Clear Search
+      </button>
+    </div>
+
+    <!-- User Cards -->
+    <mat-card 
+      *ngFor="let user of filteredUsers(); trackBy: trackByUserId"
+      class="user-card"
+      [class.has-access]="user.hasLoginAccess"
+      matRipple>
+      
+      <!-- Card Header with Avatar -->
+      <div class="card-header">
+        <div class="user-avatar-section">
+          <div class="avatar" [class.has-image]="user.profilePicture">
+            <img 
+              *ngIf="user.profilePicture" 
+              [src]="user.profilePicture" 
+              [alt]="user.fullName"
+              loading="lazy">
+            <span *ngIf="!user.profilePicture" class="initials">
+              {{ getInitials(user.fullName) }}
+            </span>
+          </div>
+          
+          <div class="verified-badge" matTooltip="Email Verified">
+            <mat-icon>verified</mat-icon>
+          </div>
+        </div>
+
+        <!-- User Info -->
+        <div class="user-info">
+          <h3 class="user-name" [matTooltip]="user.fullName">
+            {{ user.fullName }}
+          </h3>
+          <p class="user-email" [matTooltip]="user.email">
+            {{ user.email }}
+          </p>
+        </div>
+
+        <!-- Access Toggle -->
+        <div class="toggle-wrapper">
+          <mat-slide-toggle
+            [checked]="user.hasLoginAccess"
+            (change)="onToggleAccess(user, $event.checked)"
+            [disabled]="loading()"
+            color="primary"
+            class="access-toggle">
+          </mat-slide-toggle>
+          <span class="toggle-label">
+            {{ user.hasLoginAccess ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Card Content -->
+      <mat-card-content class="card-content">
+        <div class="user-details">
+          <div class="detail-row" *ngIf="user.phoneNumber">
+            <mat-icon class="detail-icon">phone</mat-icon>
+            <span class="detail-text">{{ user.phoneNumber }}</span>
+          </div>
+
+          <div class="detail-row" *ngIf="user.designation">
+            <mat-icon class="detail-icon">work</mat-icon>
+            <span class="detail-text">{{ user.designation }}</span>
+          </div>
+
+          <div class="detail-row" *ngIf="user.department">
+            <mat-icon class="detail-icon">business</mat-icon>
+            <span class="detail-text">{{ user.department }}</span>
+          </div>
+
+          <div class="detail-row" *ngIf="user.roleName">
+            <mat-icon class="detail-icon">admin_panel_settings</mat-icon>
+            <span class="detail-text">{{ user.roleName }}</span>
+          </div>
+        </div>
+
+        <!-- Status Chip -->
+        <div class="status-section">
+          <mat-chip 
+            [class.access-granted]="user.hasLoginAccess"
+            [class.access-pending]="!user.hasLoginAccess">
+            <mat-icon>{{ user.hasLoginAccess ? 'check_circle' : 'pending' }}</mat-icon>
+            {{ user.hasLoginAccess ? 'Access Granted' : 'No Access' }}
+          </mat-chip>
+        </div>
+      </mat-card-content>
+
+      <!-- Card Actions -->
+      <mat-card-actions class="card-actions">
+        <button 
+          mat-button 
+          (click)="viewUserDetails(user)"
+          class="action-btn">
+          <mat-icon>visibility</mat-icon>
+          View
+        </button>
+
+        <button 
+          *ngIf="user.hasLoginAccess"
+          mat-button 
+          color="warn"
+          (click)="revokeAccess(user)"
+          class="action-btn">
+          <mat-icon>block</mat-icon>
+          Revoke
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

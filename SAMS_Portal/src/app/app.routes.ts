@@ -22,6 +22,9 @@ import { AreasComponent } from './pages/sites-or-branchs/areas/areas.component';
 import { CitiesComponent } from './pages/sites-or-branchs/cities/cities.component';
 import { AssetCategoryComponent } from './pages/assets/asset-category/asset-category/asset-category.component';
 import { AssetSubCategoryComponent } from './pages/assets/asset-category/asset-sub-category/asset-sub-category.component';
+import { LoginAccessComponent } from './pages/users/login-access/login-access.component';
+import { UserPasswordSetupComponent } from './pages/users/user-password-setup/user-password-setup.component';
+import { SupplierComponent } from './pages/assets/supplier/supplier.component';
 
 export const routes: Routes = [
     {
@@ -51,6 +54,10 @@ export const routes: Routes = [
         component: UserEmailVerificationComponent
     },
     {
+        path: 'user-password-setup',
+        component: UserPasswordSetupComponent
+    },
+    {
         path: '',
         canActivate: [authGuard],
         component: LayoutbodyComponent,
@@ -60,8 +67,12 @@ export const routes: Routes = [
                 component: DashboardComponent
             },
             {
-                path: 'manage-assets',
+                path: 'assets',
                 component: ManageAssetsComponent
+            },
+            {
+                path: 'assets/suppliers',
+                component: SupplierComponent
             },
             {
                 path: 'asset-category',
@@ -88,16 +99,12 @@ export const routes: Routes = [
                 component: ManageUserComponent,
             },
             {
+                path: 'manage-users/login-access',
+                component: LoginAccessComponent
+            },
+            {
                 path: 'manage-users/user-profile',
                 component: UserProfilesComponent,
-            },
-            {
-                path: 'profile',
-                component: ProfileComponent
-            },
-            {
-                path: 'manage-roles',
-                component: ManageRolesComponent
             },
             {
                 path: 'manage-users/designations',
@@ -106,6 +113,14 @@ export const routes: Routes = [
             {
                 path: 'department',
                 component: DepartmentComponent
+            },
+            {
+                path: 'manage-roles',
+                component: ManageRolesComponent
+            },
+            {
+                path: 'profile',
+                component: ProfileComponent
             },
             {
                 path: 'department/sub-department',
