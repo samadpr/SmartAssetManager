@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SAMS.API.UserProfileAPIs.ResponseObject;
 using SAMS.Data;
+using SAMS.Helpers;
 using SAMS.Models;
 using SAMS.Services.Account;
 using SAMS.Services.Profile.Interface;
@@ -12,11 +13,13 @@ public class UserProfileRepository : IUserProfileRepository
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<AccountRepository> _logger;
+    private readonly ICompanyContext _companyContext;
 
-    public UserProfileRepository(ApplicationDbContext context, ILogger<AccountRepository> logger)
+    public UserProfileRepository(ApplicationDbContext context, ILogger<AccountRepository> logger, ICompanyContext companyContext)
     {
         _context = context;
         _logger = logger;
+        _companyContext = companyContext;
     }
 
 
@@ -79,6 +82,17 @@ public class UserProfileRepository : IUserProfileRepository
         }
 
     }
+
+    public async Task<bool> IsEmailExistsAsync(string email, long userProfileId, Guid organizationId)
+    {
+        return await _context.UserProfiles
+            .AnyAsync(u =>
+                u.Email == email &&
+                u.UserProfileId != userProfileId &&
+                u.OrganizationId == organizationId &&
+                !u.Cancelled);
+    }
+
 
     public async Task<(GetProfileDetailsResponseObject responseObject, bool isSuccess, string message)> GetProfileDetails(string userEmail)
     {
@@ -221,6 +235,7 @@ public class UserProfileRepository : IUserProfileRepository
                                     ProfilePicture = vm.ProfilePicture,
                                     RoleIdDisplay = objManageRole.Name,
                                     RoleId = vm.RoleId,
+                                    IsAllowLoginAccess = vm.IsAllowLoginAccess,
                                 }).ToListAsync();
 
             if (!result.Any())
@@ -233,5 +248,30 @@ public class UserProfileRepository : IUserProfileRepository
             _logger.LogError(ex, "An error occurred while retrieving created user profiles.");
             return (Enumerable.Empty<GetProfileDetailsResponseObject>(), false, $"Error retrieving created user profiles: {ex.Message}");
         }
+    }
+
+    public async Task<(UserProfile user, string message)> GetUserProfileByOrganizationId(long userProfileId, Guid organizationId)
+    {
+        try
+        {
+            var result = await _context.UserProfiles.FirstOrDefaultAsync(u => u.UserProfileId == userProfileId && u.OrganizationId == organizationId && !u.Cancelled);
+
+            if (result == null)
+                return (null!, "User profile not found.");
+
+            return (result, "User profile found.");
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving user profile by organization ID.");
+            return (null!, "An error occurred while retrieving user profile.");
+        }
+    }
+
+    public async Task<UserProfile> GetUserProfileByApplicationUserIdAsync(string applicationUserId, string email)
+    {
+        var user = await _context.UserProfiles.FirstOrDefaultAsync(u => u.ApplicationUserId == applicationUserId && u.Email == email && !u.Cancelled);
+        if (user == null) return null!;
+        return user;
     }
 }

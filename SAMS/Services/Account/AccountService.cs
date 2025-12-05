@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using SAMS.Data;
 using SAMS.Helpers;
 using SAMS.Models;
 using SAMS.Models.EmailServiceModels;
@@ -28,6 +29,7 @@ namespace SAMS.Services.Account
         private readonly IRolesService _roleService;
         private readonly IEmailService _emailService;
         private readonly ICompanyService _companyService;
+        private readonly ApplicationDbContext _context;
 
         public AccountService(IAccountRepository accountRepository,
                                  UserManager<ApplicationUser> userManager,
@@ -38,7 +40,8 @@ namespace SAMS.Services.Account
                                  IConfiguration configuration,
                                  IRolesService roleService,
                                  IEmailService emailService,
-                                 ICompanyService companyService)
+                                 ICompanyService companyService,
+                                 ApplicationDbContext context)
         {
             _accountRepository = accountRepository;
             _userManager = userManager;
@@ -50,6 +53,7 @@ namespace SAMS.Services.Account
             _roleService = roleService;
             _emailService = emailService;
             _companyService = companyService;
+            _context = context;
         }
 
         public async Task<LoginResponseDto> LoginAsync(LoginRequestDto loginRequestDto)
@@ -133,6 +137,8 @@ namespace SAMS.Services.Account
 
         public async Task<(bool isSuccess, string message)> RegisterAsync(RegisterRequestDto requestDto)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
             try
             {
                 var user = new ApplicationUser
@@ -192,13 +198,26 @@ namespace SAMS.Services.Account
                 // Assign default roles
                 //await _userManager.AddToRoleAsync(user, RoleModels.Dashboard);
                 //await _userManager.AddToRoleAsync(user, RoleModels.UserProfile);
-                await _roleService.AddToRolesAsync(user);
+                var roleResult = await _roleService.AddToRolesAsync(user);
+                if (!roleResult)
+                {
+                    await _userManager.DeleteAsync(user);
+                    return (false, "Failed to assign default roles.");
+                }
                 _logger.LogInformation("User assigned default roles.");
 
+                // DB changes completed successfully
+                await transaction.CommitAsync();
+
+
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                bool isSent = await SendOtpMail(requestDto.Email, code, requestDto.FirstName+" "+requestDto.LastName);
-                if (!isSent) 
-                    return (false, "Failed to send OTP to user.");
+                var emailSent = await SendOtpMail(requestDto.Email, code, $"{requestDto.FirstName} {requestDto.LastName}");
+                if (!emailSent)
+                {
+                    _logger.LogWarning("Registration succeeded but email sending failed.");
+
+                    return (false, "Account created but verification email failed. Please resend OTP.");
+                }
                 _logger.LogInformation("OTP sent to user.");
 
                 //await _signInManager.SignInAsync(user, isPersistent: false);
@@ -223,6 +242,7 @@ namespace SAMS.Services.Account
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error occurred while registering user.");
                 return (false, $"An error occurred: {ex.Message}");
             }

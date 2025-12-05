@@ -29,7 +29,9 @@ public interface IUserProfileService
 
     Task<(bool Success, string Message)> UpdateLoginAccessForCreatedUserAsync(UpdateLoginAccessRequestObject updateLoginAccessRequestObject, string modifiedBy);
 
-    Task<(bool Success, string Message)> RevokeLoginAccessForCreatedUserProfile(long id, string modifiedBy);
+    Task<(bool Success, string Message)> RevokeLoginAccessForCreatedUserProfile(long id, string modifiedBy, bool sendEmail, string? message);
+
+    Task<(bool Success, string Message)> PasswordSetupAsync(PasswordSetupRequestObject request);
 
     Task<(IEnumerable<UserProfile> UserProfiles, bool Success, string Message)> GetUserProfilesUsedInRoleId(long roleId, string user);
 }

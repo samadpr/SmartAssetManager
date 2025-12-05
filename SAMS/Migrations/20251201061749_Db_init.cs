@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SAMS.Migrations
 {
     /// <inheritdoc />
-    public partial class DbInit : Migration
+    public partial class Db_init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -62,7 +62,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -77,7 +78,12 @@ namespace SAMS.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -96,7 +102,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -249,7 +256,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -268,7 +276,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -357,7 +366,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -390,7 +400,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -516,7 +527,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -537,14 +549,16 @@ namespace SAMS.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Location = table.Column<long>(type: "bigint", nullable: true),
+                    City = table.Column<long>(type: "bigint", nullable: true),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Type = table.Column<int>(type: "int", nullable: false),
                     LocationNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -630,7 +644,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -644,7 +659,7 @@ namespace SAMS.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "AssetLocation",
+                name: "AssetArea",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -656,13 +671,14 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AssetLocation", x => x.Id);
+                    table.PrimaryKey("PK_AssetArea", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AssetLocation_AssetSite_SiteId",
+                        name: "FK_AssetArea_AssetSite_SiteId",
                         column: x => x.SiteId,
                         principalTable: "AssetSite",
                         principalColumn: "Id");
@@ -683,7 +699,7 @@ namespace SAMS.Migrations
                     Department = table.Column<long>(type: "bigint", nullable: true),
                     SubDepartment = table.Column<long>(type: "bigint", nullable: true),
                     Site = table.Column<long>(type: "bigint", nullable: true),
-                    Location = table.Column<long>(type: "bigint", nullable: true),
+                    Area = table.Column<long>(type: "bigint", nullable: true),
                     JoiningDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LeavingDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -700,7 +716,7 @@ namespace SAMS.Migrations
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     DepartmentNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     DesignationNavigationId = table.Column<long>(type: "bigint", nullable: true),
-                    LocationNavigationId = table.Column<long>(type: "bigint", nullable: true),
+                    AreaNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     SiteNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     SubDepartmentNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -713,9 +729,9 @@ namespace SAMS.Migrations
                 {
                     table.PrimaryKey("PK_UserProfiles", x => x.UserProfileId);
                     table.ForeignKey(
-                        name: "FK_UserProfiles_AssetLocation_LocationNavigationId",
-                        column: x => x.LocationNavigationId,
-                        principalTable: "AssetLocation",
+                        name: "FK_UserProfiles_AssetArea_AreaNavigationId",
+                        column: x => x.AreaNavigationId,
+                        principalTable: "AssetArea",
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_UserProfiles_AssetSite_SiteNavigationId",
@@ -798,7 +814,7 @@ namespace SAMS.Migrations
                     AssetStatusNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     CategoryNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     DepartmentNavigationId = table.Column<long>(type: "bigint", nullable: true),
-                    LocationNavigationId = table.Column<long>(type: "bigint", nullable: true),
+                    AreaNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     SubCategoryNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     SubDepartmentNavigationId = table.Column<long>(type: "bigint", nullable: true),
                     SupplierNavigationId = table.Column<long>(type: "bigint", nullable: true),
@@ -806,20 +822,21 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Asset", x => x.Id);
                     table.ForeignKey(
+                        name: "FK_Asset_AssetArea_AreaNavigationId",
+                        column: x => x.AreaNavigationId,
+                        principalTable: "AssetArea",
+                        principalColumn: "Id");
+                    table.ForeignKey(
                         name: "FK_Asset_AssetCategorie_CategoryNavigationId",
                         column: x => x.CategoryNavigationId,
                         principalTable: "AssetCategorie",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Asset_AssetLocation_LocationNavigationId",
-                        column: x => x.LocationNavigationId,
-                        principalTable: "AssetLocation",
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Asset_AssetSite_SiteId",
@@ -885,19 +902,21 @@ namespace SAMS.Migrations
                     Level1ApprovedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Level2ApprovedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Level3ApprovedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AreaId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AssetAssigned", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AssetAssigned_AssetLocation_LocationId",
-                        column: x => x.LocationId,
-                        principalTable: "AssetLocation",
+                        name: "FK_AssetAssigned_AssetArea_AreaId",
+                        column: x => x.AreaId,
+                        principalTable: "AssetArea",
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_AssetAssigned_AssetSite_SiteId",
@@ -932,7 +951,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -970,7 +990,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1007,7 +1028,8 @@ namespace SAMS.Migrations
                     ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cancelled = table.Column<bool>(type: "bit", nullable: false)
+                    Cancelled = table.Column<bool>(type: "bit", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1099,6 +1121,11 @@ namespace SAMS.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Asset_AreaNavigationId",
+                table: "Asset",
+                column: "AreaNavigationId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Asset_AssetStatusNavigationId",
                 table: "Asset",
                 column: "AssetStatusNavigationId");
@@ -1117,11 +1144,6 @@ namespace SAMS.Migrations
                 name: "IX_Asset_DepartmentNavigationId",
                 table: "Asset",
                 column: "DepartmentNavigationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Asset_LocationNavigationId",
-                table: "Asset",
-                column: "LocationNavigationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Asset_SiteId",
@@ -1144,6 +1166,16 @@ namespace SAMS.Migrations
                 column: "SupplierNavigationId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AssetArea_SiteId",
+                table: "AssetArea",
+                column: "SiteId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AssetAssigned_AreaId",
+                table: "AssetAssigned",
+                column: "AreaId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AssetAssigned_AssetId",
                 table: "AssetAssigned",
                 column: "AssetId");
@@ -1152,11 +1184,6 @@ namespace SAMS.Migrations
                 name: "IX_AssetAssigned_EmployeeId",
                 table: "AssetAssigned",
                 column: "EmployeeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AssetAssigned_LocationId",
-                table: "AssetAssigned",
-                column: "LocationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AssetAssigned_SiteId",
@@ -1182,11 +1209,6 @@ namespace SAMS.Migrations
                 name: "IX_AssetIssue_RaisedByEmployeeId",
                 table: "AssetIssue",
                 column: "RaisedByEmployeeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AssetLocation_SiteId",
-                table: "AssetLocation",
-                column: "SiteId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AssetRequest_ApprovedByEmployeeId",
@@ -1241,6 +1263,11 @@ namespace SAMS.Migrations
                 column: "DepartmentId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserProfiles_AreaNavigationId",
+                table: "UserProfiles",
+                column: "AreaNavigationId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserProfiles_DepartmentNavigationId",
                 table: "UserProfiles",
                 column: "DepartmentNavigationId");
@@ -1249,11 +1276,6 @@ namespace SAMS.Migrations
                 name: "IX_UserProfiles_DesignationNavigationId",
                 table: "UserProfiles",
                 column: "DesignationNavigationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserProfiles_LocationNavigationId",
-                table: "UserProfiles",
-                column: "LocationNavigationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserProfiles_RoleId",
@@ -1362,7 +1384,7 @@ namespace SAMS.Migrations
                 name: "AssetCategorie");
 
             migrationBuilder.DropTable(
-                name: "AssetLocation");
+                name: "AssetArea");
 
             migrationBuilder.DropTable(
                 name: "Designation");

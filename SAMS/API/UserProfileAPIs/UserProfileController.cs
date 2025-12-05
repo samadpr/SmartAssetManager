@@ -183,12 +183,23 @@ namespace SAMS.API.UserProfile
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+            if (requestObject.IsPasswordCreated)
+            {
+                if(string.IsNullOrEmpty(requestObject.Password) && string.IsNullOrEmpty(requestObject.ConfirmPassword))
+                {
+                    return BadRequest("Password and confirm password is required.");
+                }
+                if (!requestObject.Password.Equals(requestObject.ConfirmPassword))
+                {
+                    return BadRequest("Password and confirm password does not match.");
+                }
+            }
 
             var user = HttpContext.User.Identity?.Name ?? "System";
             var result = await _userProfileService.AllowLoginAccessForCreatedUserAsync(requestObject, user);
             if (!result.Success)
-                return BadRequest("Login access allow failed. " + result.Message);
-            return Ok(result.Message);
+                return Ok(new { success = false, message = "Login access allow failed. " + result.Message });
+            return Ok(new {success = result.Success, message = result.Message});
         }
 
         [Authorize(Roles = RoleModels.Admin)]
@@ -207,13 +218,30 @@ namespace SAMS.API.UserProfile
 
         [Authorize(Roles = RoleModels.Admin)]
         [HttpDelete("user-profile/revoke-login-access-for-created-user-profile")]
-        public async Task<IActionResult> RevokeLoginAccessForCreatedUserProfile([FromQuery] long id)
+        public async Task<IActionResult> RevokeLoginAccessForCreatedUserProfile([FromQuery] long id, [FromQuery] bool sendEmail = false, [FromQuery] string? message = null)
         {
             var user = HttpContext.User.Identity?.Name ?? "System";
-            var result = await _userProfileService.RevokeLoginAccessForCreatedUserProfile(id, user);
+            var result = await _userProfileService.RevokeLoginAccessForCreatedUserProfile(id, user, sendEmail, message);
             if (!result.Success)
-                return BadRequest("User profile delete failed. " + result.Message);
-            return Ok(result.Message);
+                return BadRequest(new { success = false, message = "Login access revoke failed. " + result.Message });
+            return Ok(new { success = result.Success, message = result.Message });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("user-profile/password-setup")]
+        public async Task<IActionResult> PasswordSetup([FromBody] PasswordSetupRequestObject request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (request.Password != request.ConfirmPassword)
+                return BadRequest(new { success = false, message = "Password and Confirm Password do not match." });
+
+            var (success, message) = await _userProfileService.PasswordSetupAsync(request);
+            if (!success)
+                return BadRequest(new { success = false, message });
+
+            return Ok(new { success = true, message });
         }
 
 

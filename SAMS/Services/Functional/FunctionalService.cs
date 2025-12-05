@@ -119,7 +119,7 @@ namespace SAMS.Services.Functional
                     };
 
                     await _functionalRepo.SaveUserProfileAsync(profile);
-                    await _rolesService.AddToRolesAsync(superAdmin);
+                    var response = await _rolesService.AddToRolesAsync(superAdmin);
 
                 }
             }

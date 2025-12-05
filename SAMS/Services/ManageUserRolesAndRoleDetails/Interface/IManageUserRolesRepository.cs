@@ -20,6 +20,8 @@ namespace SAMS.Services.ManageUserRoles.Interface
 
         Task<ManageUserRole> GetUserRoleByIdAsync(long id, List<string> emails);
 
+        Task<ManageUserRole> GetUserRoleByIdWithOrgIdAsync(long id, Guid orgId);
+
         Task<ManageUserRolesDetail> GetUserRoleDetailsByIdAsync(long id, List<string> emails);
 
         Task<IEnumerable<ManageUserRolesDetail>> GetRoleDetailsByManagedRoleIdAsync(long managedRoleId);
@@ -31,6 +33,8 @@ namespace SAMS.Services.ManageUserRoles.Interface
         Task<bool> UpdateUserRoleDetailsAsync(ManageUserRolesDetail manageUserRolesDetail);
 
         Task<ManageUserRolesDto> GetUserRoleByIdWithRoleDetailsAsync(long id);
+
+        //Task<ManageUserRolesDto?> GetUserRoleByRoleIdInDetailsAsync(long roleId, Guid? organizationId);
 
         Task<bool> UpdateUserRolesAsync(ManageUserRole manageUserRole);
 

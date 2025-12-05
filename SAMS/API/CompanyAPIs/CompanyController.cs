@@ -44,7 +44,7 @@ namespace SAMS.API.CompanyAPIs
             return Ok(new { success = response.isSuccess, message = response.message });
         }
 
-        [Authorize(Roles = RoleModels.Admin)]
+        [Authorize(Roles = RoleModels.CompanyInfo)]
         [HttpGet("company/get-company")]
         public async Task<IActionResult> GetCompanies()
         {

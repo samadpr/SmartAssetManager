@@ -354,6 +354,9 @@ namespace SAMS.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("PurchaseReceipt")
                         .HasColumnType("nvarchar(max)");
 
@@ -548,6 +551,9 @@ namespace SAMS.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<long?>("SiteId")
                         .HasColumnType("bigint");
 
@@ -688,6 +694,9 @@ namespace SAMS.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssetId");
@@ -736,6 +745,9 @@ namespace SAMS.Migrations
 
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<long>("RaisedByEmployeeId")
                         .HasColumnType("bigint");
@@ -791,6 +803,9 @@ namespace SAMS.Migrations
 
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("ReceiveDate")
                         .HasColumnType("datetime2");
@@ -901,6 +916,9 @@ namespace SAMS.Migrations
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -1365,6 +1383,9 @@ namespace SAMS.Migrations
                     b.Property<string>("OperatingSystem")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("PublicIp")
                         .HasColumnType("nvarchar(max)");
 
@@ -1407,6 +1428,9 @@ namespace SAMS.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.ToTable("ManageUserRoles");
@@ -1442,6 +1466,9 @@ namespace SAMS.Migrations
 
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("RoleId")
                         .HasColumnType("nvarchar(max)");
@@ -1669,6 +1696,9 @@ namespace SAMS.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
 
@@ -1744,6 +1774,9 @@ namespace SAMS.Migrations
 
                     b.Property<string>("OSVersion")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("TimeZone")
                         .HasColumnType("nvarchar(max)");

@@ -22,5 +22,11 @@ public interface IUserProfileRepository
 
     Task<(UserProfile user, string message)> GetUserProfileByProfileId(long profileId, List<string> emails);
 
+    Task<(UserProfile user, string message)> GetUserProfileByOrganizationId(long userProfileId, Guid organizationId);
+
     Task<(bool success, string message)> UpdateUserProfileAsync(UserProfile user);
+
+    Task<bool> IsEmailExistsAsync(string email, long userProfileId, Guid organizationId);
+
+    Task<UserProfile> GetUserProfileByApplicationUserIdAsync(string applicationUserId, string email);
 }

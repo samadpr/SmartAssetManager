@@ -1,9 +1,10 @@
-﻿using System;
+﻿using SAMS.Models.CommonModels.Abstract;
+using System;
 using System.Collections.Generic;
 
 namespace SAMS.Models;
 
-public class AssetHistory : EntityBase
+public class AssetHistory : TenantEntityBase
 {
     public long Id { get; set; }
 
