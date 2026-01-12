@@ -137,19 +137,23 @@ export class SitesOrBranchsComponent implements OnInit {
       }
     ],
     actions: [
-      {
+     {
         key: 'edit',
         label: 'Edit',
         icon: 'edit',
+        buttonType: 'icon',
         color: 'primary',
-        tooltip: 'Edit site/branch'
+        tooltip: 'Edit asset',
+        position: 'end' // Default position
       },
       {
         key: 'delete',
         label: 'Delete',
         icon: 'delete',
+        buttonType: 'icon',
         color: 'warn',
-        tooltip: 'Delete site/branch'
+        tooltip: 'Delete asset',
+        position: 'end'
       }
     ]
   };
@@ -180,7 +184,7 @@ export class SitesOrBranchsComponent implements OnInit {
         label: 'Site/Branch Name',
         type: 'text',
         required: true,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'location_city',
         placeholder: 'Enter site or branch name',
         validators: [Validators.minLength(2), Validators.maxLength(100)]
@@ -190,7 +194,7 @@ export class SitesOrBranchsComponent implements OnInit {
         label: 'City',
         type: 'select',
         required: false,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'edit_location_alt',
         placeholder: 'Select city',
         options: dropdowns.cities,
@@ -201,7 +205,7 @@ export class SitesOrBranchsComponent implements OnInit {
         label: 'Type',
         type: 'radio',
         required: true,
-        colSpan: 2,
+        colSpan: 4,
         icon: 'category',
         options: this.typeOptions,
         value: SiteOrBranch.Site,
@@ -212,7 +216,7 @@ export class SitesOrBranchsComponent implements OnInit {
         label: 'Address',
         type: 'textarea',
         required: false,
-        colSpan: 2,
+        colSpan: 4,
         icon: 'location_on',
         placeholder: 'Enter full address',
         rows: 3,
@@ -223,7 +227,7 @@ export class SitesOrBranchsComponent implements OnInit {
         label: 'Description',
         type: 'textarea',
         required: false,
-        colSpan: 2,
+        colSpan: 4,
         icon: 'description',
         placeholder: 'Enter description',
         rows: 4,
@@ -248,7 +252,7 @@ export class SitesOrBranchsComponent implements OnInit {
           label: 'City Name',
           type: 'text',
           required: true,
-          colSpan: 2,
+          colSpan: 4,
           icon: 'edit_location_alt',
           placeholder: 'Enter city name',
           validators: [Validators.minLength(2), Validators.maxLength(100)]
@@ -258,7 +262,7 @@ export class SitesOrBranchsComponent implements OnInit {
           label: 'Description',
           type: 'textarea',
           required: false,
-          colSpan: 2,
+          colSpan: 4,
           icon: 'description',
           placeholder: 'Enter city description',
           rows: 3,

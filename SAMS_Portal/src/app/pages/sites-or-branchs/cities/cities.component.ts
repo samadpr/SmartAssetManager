@@ -97,15 +97,19 @@ export class CitiesComponent implements OnInit {
         key: 'edit',
         label: 'Edit',
         icon: 'edit',
+        buttonType: 'icon',
         color: 'primary',
-        tooltip: 'Edit Cities'
+        tooltip: 'Edit asset',
+        position: 'end' // Default position
       },
       {
         key: 'delete',
         label: 'Delete',
         icon: 'delete',
+        buttonType: 'icon',
         color: 'warn',
-        tooltip: 'Delete Cities'
+        tooltip: 'Delete asset',
+        position: 'end'
       }
     ]
   };

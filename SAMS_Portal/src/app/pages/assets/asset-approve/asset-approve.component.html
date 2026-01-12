@@ -1,0 +1,381 @@
+<app-page-header [title]="'Asset Approvals'" [breadcrumbs]="[
+    { label: 'Asset', url: '/assets' },
+    { label: 'Approvals' }
+  ]">
+</app-page-header>
+
+<div class="approval-page-container">
+  
+  <!-- Floating Action Bar (shows when items selected) -->
+  <div class="floating-action-bar" *ngIf="hasSelection()" [@fadeIn]>
+    <div class="action-bar-content">
+      <div class="selection-info">
+        <mat-icon>check_circle</mat-icon>
+        <span class="selection-count">{{ selectedCount() }} selected</span>
+      </div>
+      
+      <div class="action-buttons">
+        <button mat-raised-button color="primary" (click)="approveBulk()">
+          <mat-icon>check_circle</mat-icon>
+          Approve Selected
+        </button>
+        
+        <button mat-raised-button color="warn" (click)="rejectBulk()">
+          <mat-icon>cancel</mat-icon>
+          Reject Selected
+        </button>
+        
+        <button mat-icon-button (click)="clearSelection()" matTooltip="Clear Selection">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading()">
+    <mat-spinner diameter="50"></mat-spinner>
+  </div>
+
+  <!-- Main Content -->
+  <mat-tab-group 
+    class="approval-tabs"
+    [(selectedIndex)]="selectedTabIndex"
+    (selectedIndexChange)="selectedTabIndex.set($event)"
+    animationDuration="300ms">
+    
+    <!-- Transfer Requests Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <div class="tab-label">
+          <mat-icon>swap_horiz</mat-icon>
+          <span>Transfer Requests</span>
+          <mat-chip class="count-chip" *ngIf="transferRequests().length > 0">
+            {{ transferRequests().length }}
+          </mat-chip>
+        </div>
+      </ng-template>
+      
+      <div class="tab-content">
+        <!-- Bulk Actions Toolbar -->
+        <div class="bulk-actions-toolbar" *ngIf="transferRequests().length > 0">
+          <button 
+            mat-stroked-button 
+            (click)="selectAll(transferRequests())"
+            [disabled]="areAllTransferSelected()">
+            <mat-icon>select_all</mat-icon>
+            Select All
+          </button>
+          
+          <button 
+            mat-icon-button 
+            (click)="onRefresh()" 
+            matTooltip="Refresh">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+
+        <!-- Transfer Cards -->
+        <div class="approval-cards-grid" *ngIf="transferRequests().length > 0; else emptyTransfer">
+          <mat-card 
+            *ngFor="let item of transferRequests(); trackBy: trackByAssignmentId"
+            class="approval-card transfer-card"
+            [class.selected]="isSelected(item.assignmentId)"
+            (click)="onCardClick(item, $event)"
+            [@cardAnimation]
+            matRipple>
+            
+            <!-- Selection Checkbox -->
+            <div class="card-checkbox" (click)="$event.stopPropagation()">
+              <mat-checkbox 
+                [checked]="isSelected(item.assignmentId)"
+                (change)="toggleSelection(item.assignmentId)"
+                color="primary">
+              </mat-checkbox>
+            </div>
+
+            <!-- Card Header -->
+            <mat-card-header>
+              <div class="card-header-content">
+                <div class="asset-info">
+                  <div class="asset-image-wrapper">
+                    <img 
+                      [src]="getAssetImage(item)" 
+                      [alt]="item.assetId"
+                      class="asset-image"
+                      loading="lazy"
+                      (error)="onImageError($event)">
+                  </div>
+                  
+                  <div class="asset-details">
+                    <h3 class="asset-id">{{ item.assetId }}</h3>
+                    <mat-chip class="type-chip transfer">
+                      <mat-icon>swap_horiz</mat-icon>
+                      Transfer Request
+                    </mat-chip>
+                  </div>
+                </div>
+              </div>
+            </mat-card-header>
+
+            <!-- Card Content -->
+            <mat-card-content>
+              <!-- Requested By -->
+              <div class="info-row">
+                <div class="info-label">
+                  <mat-icon>person</mat-icon>
+                  <span>Requested By</span>
+                </div>
+                <div class="info-value">
+                  <div class="user-profile">
+                    <img 
+                      [src]="getProfileImage(item, 'requester')" 
+                      [alt]="item.requestedByName || item.requestedByEmail"
+                      class="profile-avatar"
+                      loading="lazy">
+                    <span>{{ item.requestedByName || item.requestedByEmail }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Transfer To -->
+              <div class="info-row transfer-destination">
+                <div class="info-label">
+                  <mat-icon>arrow_forward</mat-icon>
+                  <span>Transfer To</span>
+                </div>
+                <div class="info-value">
+                  <ng-container *ngIf="item.assignTo === AssignToType.User && item.assignUserName">
+                    <div class="user-profile">
+                      <img 
+                        [src]="getProfileImage(item, 'assignee')" 
+                        [alt]="item.assignUserName"
+                        class="profile-avatar"
+                        loading="lazy">
+                      <span>{{ item.assignUserName }}</span>
+                    </div>
+                  </ng-container>
+                  
+                  <ng-container *ngIf="item.assignTo === AssignToType.Site">
+                    <div class="location-info">
+                      <mat-icon>location_city</mat-icon>
+                      <span>{{ item.siteName }}</span>
+                      <span *ngIf="item.areaName" class="area-name"> - {{ item.areaName }}</span>
+                    </div>
+                  </ng-container>
+                </div>
+              </div>
+
+              <!-- Request Date -->
+              <div class="info-row">
+                <div class="info-label">
+                  <mat-icon>schedule</mat-icon>
+                  <span>Request Date</span>
+                </div>
+                <div class="info-value">
+                  {{ item.requestedDate | date: 'medium' }}
+                </div>
+              </div>
+            </mat-card-content>
+
+            <!-- Card Actions -->
+            <mat-card-actions class="card-actions">
+              <button 
+                mat-raised-button 
+                color="primary"
+                (click)="approveSingle(item, $event)">
+                <mat-icon>check_circle</mat-icon>
+                Approve
+              </button>
+              
+              <button 
+                mat-stroked-button 
+                color="warn"
+                (click)="rejectSingle(item, $event)">
+                <mat-icon>cancel</mat-icon>
+                Reject
+              </button>
+              
+              <button 
+                mat-icon-button 
+                (click)="viewDetails(item); $event.stopPropagation()"
+                matTooltip="View Details">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+
+        <!-- Empty State -->
+        <ng-template #emptyTransfer>
+          <div class="empty-state">
+            <mat-icon class="empty-icon">inbox</mat-icon>
+            <h3>No Transfer Requests</h3>
+            <p>There are no pending transfer requests at the moment.</p>
+          </div>
+        </ng-template>
+      </div>
+    </mat-tab>
+
+    <!-- Disposal Requests Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <div class="tab-label">
+          <mat-icon>delete_forever</mat-icon>
+          <span>Disposal Requests</span>
+          <mat-chip class="count-chip" *ngIf="disposalRequests().length > 0">
+            {{ disposalRequests().length }}
+          </mat-chip>
+        </div>
+      </ng-template>
+      
+      <div class="tab-content">
+        <!-- Bulk Actions Toolbar -->
+        <div class="bulk-actions-toolbar" *ngIf="disposalRequests().length > 0">
+          <button 
+            mat-stroked-button 
+            (click)="selectAll(disposalRequests())"
+            [disabled]="areAllDisposalSelected()">
+            <mat-icon>select_all</mat-icon>
+            Select All
+          </button>
+          
+          <button 
+            mat-icon-button 
+            (click)="onRefresh()" 
+            matTooltip="Refresh">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+
+        <!-- Disposal Cards -->
+        <div class="approval-cards-grid" *ngIf="disposalRequests().length > 0; else emptyDisposal">
+          <mat-card 
+            *ngFor="let item of disposalRequests(); trackBy: trackByAssignmentId"
+            class="approval-card disposal-card"
+            [class.selected]="isSelected(item.assignmentId)"
+            (click)="onCardClick(item, $event)"
+            [@cardAnimation]
+            matRipple>
+            
+            <!-- Selection Checkbox -->
+            <div class="card-checkbox" (click)="$event.stopPropagation()">
+              <mat-checkbox 
+                [checked]="isSelected(item.assignmentId)"
+                (change)="toggleSelection(item.assignmentId)"
+                color="primary">
+              </mat-checkbox>
+            </div>
+
+            <!-- Card Header -->
+            <mat-card-header>
+              <div class="card-header-content">
+                <div class="asset-info">
+                  <div class="asset-image-wrapper">
+                    <img 
+                      [src]="getAssetImage(item)" 
+                      [alt]="item.assetId"
+                      class="asset-image"
+                      loading="lazy"
+                      (error)="onImageError($event)">
+                  </div>
+                  
+                  <div class="asset-details">
+                    <h3 class="asset-id">{{ item.assetId }}</h3>
+                    <mat-chip class="type-chip disposal">
+                      <mat-icon>delete_forever</mat-icon>
+                      Disposal Request
+                    </mat-chip>
+                  </div>
+                </div>
+              </div>
+            </mat-card-header>
+
+            <!-- Card Content -->
+            <mat-card-content>
+              <!-- Requested By -->
+              <div class="info-row">
+                <div class="info-label">
+                  <mat-icon>person</mat-icon>
+                  <span>Requested By</span>
+                </div>
+                <div class="info-value">
+                  <div class="user-profile">
+                    <img 
+                      [src]="getProfileImage(item, 'requester')" 
+                      [alt]="item.requestedByName || item.requestedByEmail"
+                      class="profile-avatar"
+                      loading="lazy">
+                    <span>{{ item.requestedByName || item.requestedByEmail }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Current Location -->
+              <div class="info-row" *ngIf="item.siteName">
+                <div class="info-label">
+                  <mat-icon>location_on</mat-icon>
+                  <span>Current Location</span>
+                </div>
+                <div class="info-value">
+                  <div class="location-info">
+                    <mat-icon>location_city</mat-icon>
+                    <span>{{ item.siteName }}</span>
+                    <span *ngIf="item.areaName" class="area-name"> - {{ item.areaName }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Request Date -->
+              <div class="info-row">
+                <div class="info-label">
+                  <mat-icon>schedule</mat-icon>
+                  <span>Request Date</span>
+                </div>
+                <div class="info-value">
+                  {{ item.requestedDate | date: 'medium' }}
+                </div>
+              </div>
+            </mat-card-content>
+
+            <!-- Card Actions -->
+            <mat-card-actions class="card-actions">
+              <button 
+                mat-raised-button 
+                color="primary"
+                (click)="approveSingle(item, $event)">
+                <mat-icon>check_circle</mat-icon>
+                Approve
+              </button>
+              
+              <button 
+                mat-stroked-button 
+                color="warn"
+                (click)="rejectSingle(item, $event)">
+                <mat-icon>cancel</mat-icon>
+                Reject
+              </button>
+              
+              <button 
+                mat-icon-button 
+                (click)="viewDetails(item); $event.stopPropagation()"
+                matTooltip="View Details">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+
+        <!-- Empty State -->
+        <ng-template #emptyDisposal>
+          <div class="empty-state">
+            <mat-icon class="empty-icon">inbox</mat-icon>
+            <h3>No Disposal Requests</h3>
+            <p>There are no pending disposal requests at the moment.</p>
+          </div>
+        </ng-template>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>
+

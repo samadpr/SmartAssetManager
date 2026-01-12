@@ -1,0 +1,727 @@
+@use '@angular/material' as mat;
+
+// ============================================================================
+// DESIGN TOKENS
+// ============================================================================
+:host {
+    --card-radius: 16px;
+    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --card-hover-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --grid-gap: 24px;
+    --avatar-size: 40px;
+    --asset-image-size: 80px;
+}
+
+// ============================================================================
+// MAIN CONTAINER
+// ============================================================================
+.approval-page-container {
+    position: relative;
+    min-height: calc(100vh - 200px);
+    padding: 0;
+}
+
+// ============================================================================
+// FLOATING ACTION BAR
+// ============================================================================
+.floating-action-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    width: max-content;
+    background: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary);
+    padding: 16px 32px;
+    border-radius: var(--mat-sys-corner-full);
+    box-shadow: var(--mat-sys-elevation-3);
+    backdrop-filter: blur(10px);
+    
+
+    .action-bar-content {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+
+        .selection-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+
+            mat-icon {
+                font-size: 24px;
+                width: 24px;
+                height: 24px;
+                color: var(--mat-sys-on-primary);
+            }
+
+            .selection-count {
+                font-size: 1.125rem;
+            }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+
+            button {
+                border-radius: var(--mat-sys-corner-full);
+                font-weight: 600;
+
+                mat-icon {
+                    margin-right: 8px;
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// LOADING OVERLAY
+// ============================================================================
+.loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--mat-sys-scrim) 40%, transparent);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    border-radius: var(--mat-sys-corner-large);
+}
+
+// ============================================================================
+// TABS
+// ============================================================================
+.approval-tabs {
+    ::ng-deep {
+        .mat-mdc-tab-labels {
+            background: var(--mat-sys-surface-container-low);
+            border-radius: var(--mat-sys-corner-large);
+            padding: 8px;
+            margin-bottom: 24px;
+        }
+
+        .mat-mdc-tab {
+            min-width: 200px;
+            height: 56px;
+            border-radius: var(--mat-sys-corner-medium);
+            transition: var(--transition);
+
+            &.mat-mdc-tab-active {
+                background: var(--mat-sys-primary-container);
+
+                .tab-label {
+                    color: var(--mat-sys-on-primary-container);
+                }
+            }
+        }
+    }
+
+    .tab-label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+
+        mat-icon {
+            font-size: 24px;
+            width: 24px;
+            height: 24px;
+        }
+
+        .count-chip {
+            min-height: 24px;
+            padding: 0 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: var(--mat-sys-tertiary-container);
+            color: var(--mat-sys-on-tertiary-container);
+        }
+    }
+}
+
+// ============================================================================
+// TAB CONTENT
+// ============================================================================
+.tab-content {
+    min-height: 400px;
+}
+
+// ============================================================================
+// BULK ACTIONS TOOLBAR
+// ============================================================================
+.bulk-actions-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--mat-sys-surface-container-low);
+    border-radius: var(--mat-sys-corner-large);
+    margin-bottom: 24px;
+
+    button {
+        border-radius: var(--mat-sys-corner-full);
+
+        mat-icon {
+            margin-right: 8px;
+        }
+    }
+}
+
+// ============================================================================
+// APPROVAL CARDS GRID
+// ============================================================================
+.approval-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: var(--grid-gap);
+    padding-bottom: 100px; // Space for floating action bar
+}
+
+// ============================================================================
+// APPROVAL CARD
+// ============================================================================
+.approval-card {
+    position: relative;
+    border-radius: var(--card-radius);
+    border: 2px solid transparent;
+    box-shadow: var(--card-shadow);
+    transition: var(--transition);
+    cursor: pointer;
+    overflow: visible;
+
+    &:hover {
+        box-shadow: var(--card-hover-shadow);
+        transform: translateY(-4px);
+    }
+
+    &.selected {
+        border-color: var(--mat-sys-primary);
+        background: var(--mat-sys-primary-container);
+        box-shadow: var(--card-hover-shadow), 0 0 0 4px color-mix(in srgb, var(--mat-sys-primary) 20%, transparent);
+    }
+
+    // Transfer Card Accent
+    &.transfer-card {
+        border-left: 4px solid var(--mat-sys-tertiary);
+    }
+
+    // Disposal Card Accent
+    &.disposal-card {
+        border-left: 4px solid var(--mat-sys-error);
+    }
+
+    // Selection Checkbox
+    .card-checkbox {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+        background: var(--mat-sys-surface);
+        border-radius: var(--mat-sys-corner-full);
+        padding: 4px;
+        box-shadow: var(--mat-sys-elevation-1);
+    }
+
+    // Card Header
+    ::ng-deep .mat-mdc-card-header {
+        padding: 24px 24px 16px;
+
+        .card-header-content {
+            width: 100%;
+
+            .asset-info {
+                display: flex;
+                gap: 16px;
+                align-items: center;
+
+                .asset-image-wrapper {
+                    flex-shrink: 0;
+                    width: var(--asset-image-size);
+                    height: var(--asset-image-size);
+                    border-radius: var(--mat-sys-corner-medium);
+                    overflow: hidden;
+                    background: var(--mat-sys-surface-container-highest);
+                    border: 2px solid var(--mat-sys-outline-variant);
+
+                    .asset-image {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                    }
+                }
+
+                .asset-details {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    min-width: 0;
+
+                    .asset-id {
+                        margin: 0;
+                        font-size: 1.25rem;
+                        font-weight: 700;
+                        color: var(--mat-sys-on-surface);
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+
+                    .type-chip {
+                        width: fit-content;
+                        height: 28px;
+                        padding: 0 12px;
+                        font-size: 0.8125rem;
+                        font-weight: 600;
+
+                        mat-icon {
+                            font-size: 16px;
+                            width: 16px;
+                            height: 16px;
+                            margin-right: 6px;
+                        }
+
+                        &.transfer {
+                            background: var(--mat-sys-tertiary-container);
+                            color: var(--mat-sys-on-tertiary-container);
+                        }
+
+                        &.disposal {
+                            background: var(--mat-sys-error-container);
+                            color: var(--mat-sys-on-error-container);
+                        }
+                    }
+
+                    .mat-mdc-standard-chip:not(.mdc-evolution-chip--disabled) .mdc-evolution-chip__text-label {
+                        color: var(--mdc-chip-label-text-color, var(--mat-sys-on-surface-variant));
+                        display: flex;
+                        align-items: center;
+                    }
+                }
+            }
+        }
+    }
+
+    // Card Content
+    ::ng-deep .mat-mdc-card-content {
+        padding: 0 24px 16px;
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            .info-label {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: var(--mat-sys-on-surface-variant);
+                font-size: 0.875rem;
+                font-weight: 500;
+
+                mat-icon {
+                    font-size: 18px;
+                    width: 18px;
+                    height: 18px;
+                    opacity: 0.7;
+                }
+            }
+
+            .info-value {
+                font-size: 0.9375rem;
+                font-weight: 500;
+                color: var(--mat-sys-on-surface);
+                text-align: right;
+
+                .user-profile {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+
+                    .profile-avatar {
+                        width: var(--avatar-size);
+                        height: var(--avatar-size);
+                        border-radius: var(--mat-sys-corner-full);
+                        object-fit: cover;
+                        border: 2px solid var(--mat-sys-outline-variant);
+                    }
+
+                    span {
+                        max-width: 180px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                }
+
+                .location-info {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+
+                    mat-icon {
+                        font-size: 18px;
+                        width: 18px;
+                        height: 18px;
+                        color: var(--mat-sys-tertiary);
+                    }
+
+                    .area-name {
+                        color: var(--mat-sys-on-surface-variant);
+                    }
+                }
+            }
+
+            &.transfer-destination {
+                .info-label mat-icon {
+                    color: var(--mat-sys-tertiary);
+                }
+            }
+        }
+    }
+
+    // Card Actions
+    ::ng-deep .mat-mdc-card-actions {
+        padding: 16px 24px 24px;
+        display: flex;
+        gap: 12px;
+
+        button {
+            flex: 1;
+            border-radius: var(--mat-sys-corner-full);
+            font-weight: 600;
+
+            mat-icon {
+                margin-right: 6px;
+                font-size: 18px;
+                width: 18px;
+                height: 18px;
+            }
+
+            &:last-child {
+                flex: 0;
+            }
+        }
+    }
+}
+
+// ============================================================================
+// EMPTY STATE
+// ============================================================================
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    text-align: center;
+    min-height: 400px;
+
+    .empty-icon {
+        font-size: 80px;
+        width: 80px;
+        height: 80px;
+        color: var(--mat-sys-outline);
+        opacity: 0.4;
+        margin-bottom: 24px;
+    }
+
+    h3 {
+        margin: 0 0 12px;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--mat-sys-on-surface);
+    }
+
+    p {
+        margin: 0;
+        font-size: 1rem;
+        color: var(--mat-sys-on-surface-variant);
+        max-width: 400px;
+    }
+}
+
+// ============================================================================
+// RESPONSIVE DESIGN
+// ============================================================================
+
+// Tablets (768px - 1024px)
+@media (max-width: 1024px) and (min-width: 768px) {
+    .approval-cards-grid {
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 20px;
+    }
+
+    .floating-action-bar {
+        .action-bar-content {
+            gap: 20px;
+
+            .action-buttons {
+                button span {
+                    display: none;
+                }
+            }
+        }
+    }
+}
+
+// Mobile (< 768px)
+@media (max-width: 767px) {
+    :host {
+        --grid-gap: 16px;
+        --asset-image-size: 64px;
+        --avatar-size: 32px;
+    }
+
+    .approval-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding-bottom: 120px;
+    }
+
+    .approval-card {
+        .card-checkbox {
+            top: 12px;
+            right: 12px;
+        }
+
+        ::ng-deep .mat-mdc-card-header {
+            padding: 16px 16px 12px;
+
+            .card-header-content .asset-info {
+                gap: 12px;
+
+                .asset-details {
+                    .asset-id {
+                        font-size: 1.125rem;
+                    }
+
+                    .type-chip {
+                        height: 24px;
+                        font-size: 0.75rem;
+                        padding: 0 10px;
+
+                        mat-icon {
+                            font-size: 14px;
+                            width: 14px;
+                            height: 14px;
+                        }
+                    }
+                }
+            }
+        }
+
+        ::ng-deep .mat-mdc-card-content {
+            padding: 0 16px 12px;
+
+            .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                padding: 10px 0;
+
+                .info-label {
+                    width: 100%;
+                }
+
+                .info-value {
+                    width: 100%;
+                    text-align: left;
+
+                    .user-profile span {
+                        max-width: 100%;
+                    }
+                }
+            }
+        }
+
+        ::ng-deep .mat-mdc-card-actions {
+            padding: 12px 16px 16px;
+            flex-wrap: wrap;
+
+            button {
+                &:not(:last-child) {
+                    flex: 1;
+                    min-width: calc(50% - 6px);
+                }
+
+                &:last-child {
+                    width: 100%;
+                    margin-top: 8px;
+                }
+            }
+        }
+    }
+
+    .floating-action-bar {
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
+        transform: none;
+        padding: 12px 16px;
+        border-radius: var(--mat-sys-corner-large);
+
+        .action-bar-content {
+            flex-direction: column;
+            gap: 12px;
+
+            .selection-info {
+                width: 100%;
+                justify-content: center;
+
+                .selection-count {
+                    font-size: 1rem;
+                }
+            }
+
+            .action-buttons {
+                width: 100%;
+
+                button {
+                    flex: 1;
+
+                    span {
+                        display: none;
+                    }
+
+                    mat-icon {
+                        margin-right: 0;
+                    }
+                }
+            }
+        }
+    }
+
+    .bulk-actions-toolbar {
+        padding: 12px;
+        margin-bottom: 16px;
+    }
+
+    .approval-tabs ::ng-deep {
+        .mat-mdc-tab-labels {
+            padding: 6px;
+            margin-bottom: 16px;
+        }
+
+        .mat-mdc-tab {
+            min-width: auto;
+            height: 48px;
+
+            .tab-label {
+                font-size: 0.875rem;
+                gap: 8px;
+
+                mat-icon {
+                    font-size: 20px;
+                    width: 20px;
+                    height: 20px;
+                }
+
+                span:not(.count-chip) {
+                    display: none;
+                }
+            }
+        }
+    }
+}
+
+// Small Mobile (< 480px)
+@media (max-width: 479px) {
+    :host {
+        --asset-image-size: 56px;
+        --avatar-size: 28px;
+    }
+
+    .approval-card {
+        ::ng-deep .mat-mdc-card-header {
+            .card-header-content .asset-info {
+                .asset-details {
+                    .asset-id {
+                        font-size: 1rem;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// DARK MODE ENHANCEMENTS
+// ============================================================================
+@media (prefers-color-scheme: dark) {
+    .approval-card {
+        &:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        &.selected {
+            box-shadow: var(--card-hover-shadow), 0 0 0 4px color-mix(in srgb, var(--mat-sys-primary) 30%, transparent);
+        }
+    }
+
+    .floating-action-bar {
+        box-shadow: var(--mat-sys-elevation-4), 0 0 20px rgba(0, 0, 0, 0.3);
+    }
+}
+
+// ============================================================================
+// HIGH CONTRAST MODE
+// ============================================================================
+@media (prefers-contrast: high) {
+    .approval-card {
+        border-width: 3px;
+
+        &.selected {
+            border-width: 4px;
+        }
+    }
+
+    .floating-action-bar {
+        border: 2px solid var(--mat-sys-primary);
+    }
+}
+
+// ============================================================================
+// REDUCED MOTION
+// ============================================================================
+@media (prefers-reduced-motion: reduce) {
+
+    .approval-card,
+    .floating-action-bar,
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+// ============================================================================
+// PRINT STYLES
+// ============================================================================
+@media print {
+
+    .floating-action-bar,
+    .bulk-actions-toolbar,
+    .card-checkbox,
+    .card-actions {
+        display: none !important;
+    }
+
+    .approval-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+}

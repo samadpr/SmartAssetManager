@@ -68,28 +68,4 @@ export class SuppliersService {
       `${this.baseUrl}/delete?id=${id}`
     );
   }
-
-  getFullFileUrl(relativePath: string | null | undefined): string {
-    if (!relativePath || relativePath.trim() === '') {
-      return '';
-    }
-
-    // If already absolute URL, return as is
-    if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
-      return relativePath;
-    }
-
-    // Remove leading slash if present
-    const cleanPath = relativePath.startsWith('/')
-      ? relativePath.substring(1)
-      : relativePath;
-
-    // Construct full URL
-    const fullUrl = `${environment.assetBaseUrl}/${cleanPath}`;
-
-    console.log('🔗 File URL:', { relativePath, fullUrl });
-
-    return fullUrl;
-  }
-
 }

@@ -104,3 +104,60 @@ export interface UpdateLoginAccessRequest {
   confirmPassword?: string;
   roleId: number;
 }
+
+
+// -------------------------------------------------------------------------------
+
+export interface UsersList {
+  // ===== Base (TenantEntityBase – include if you use these on frontend)
+  id?: number;
+  organizationId?: string;
+  createdDate?: string;
+  createdBy?: string;
+  modifiedDate?: string;
+  modifiedBy?: string;
+
+  // ===== User Identity
+  userProfileId: number;
+  employeeId?: string;
+  applicationUserId?: string;
+
+  // ===== Personal Info
+  firstName?: string;
+  lastName?: string;
+
+  // ===== Designation
+  designation?: number;
+  designationDisplay?: string;
+
+  // ===== Department
+  department?: number;
+  departmentDisplay?: string;
+
+  // ===== Sub Department
+  subDepartment?: number;
+  subDepartmentDisplay?: string;
+
+  // ===== Site
+  site?: number;
+  siteDisplay?: string;
+
+  // ===== Area
+  area?: number;
+  areaDisplay?: string;
+
+  // ===== Role
+  roleId?: number;
+  roleIdDisplay?: string;
+
+  // ===== Contact
+  phoneNumber?: string;
+  email?: string;
+  isEmailConfirmed?: boolean;
+
+  // ===== Profile
+  profilePicture?: string;
+
+  // ===== Approver
+  isApprover?: number; // 0 / 1 from backend
+}

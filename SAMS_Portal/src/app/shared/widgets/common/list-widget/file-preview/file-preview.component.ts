@@ -56,7 +56,7 @@ export class FilePreviewComponent {
         console.warn('Loading timeout - auto-completing');
         this.loading.set(false);
       }
-    }, 10000); // 10 second timeout
+    }, 5000); // 5 second timeout
   }
 
   isPDF(): boolean {

@@ -6,8 +6,8 @@ import { SubDepartmentService } from '../../../core/services/department/sub-depa
 import { PopupWidgetService } from '../../../core/services/popup-widget/popup-widget.service';
 import { GlobalService } from '../../../core/services/global/global.service';
 import { Validators } from '@angular/forms';
-import { PopupField } from '../../../core/models/interfaces/popup-widget.interface';
-import { forkJoin } from 'rxjs';
+import { PopupField, QuickAddConfig } from '../../../core/models/interfaces/popup-widget.interface';
+import { forkJoin, map, tap } from 'rxjs';
 import { DepartmentService } from '../../../core/services/department/department.service';
 
 interface DropdownOption {
@@ -104,15 +104,19 @@ export class SubDepartmentComponent implements OnInit {
         key: 'edit',
         label: 'Edit',
         icon: 'edit',
+        buttonType: 'icon',
         color: 'primary',
-        tooltip: 'Edit department'
+        tooltip: 'Edit asset',
+        position: 'end' // Default position
       },
       {
         key: 'delete',
         label: 'Delete',
         icon: 'delete',
+        buttonType: 'icon',
         color: 'warn',
-        tooltip: 'Delete department'
+        tooltip: 'Delete asset',
+        position: 'end'
       }
     ]
   };
@@ -155,7 +159,10 @@ export class SubDepartmentComponent implements OnInit {
         colSpan: 1,
         icon: 'domain',
         placeholder: 'Select department',
-        options: dropdowns.departments
+        options: dropdowns.departments,
+        validators: [Validators.required],
+        // 🆕 QUICK ADD ENABLED
+        quickAdd: this.getDepartmentQuickAddConfig()
       },
       {
         key: 'name',
@@ -178,6 +185,70 @@ export class SubDepartmentComponent implements OnInit {
         validators: [Validators.minLength(10), Validators.maxLength(500)]
       },
     ];
+  }
+
+  private getDepartmentQuickAddConfig(): QuickAddConfig {
+    return {
+      enabled: true,
+      buttonLabel: 'Add New Department',
+      buttonIcon: 'add_circle',
+      popupTitle: 'Add New Department',
+      popupIcon: 'domain',
+
+      fields: [
+        {
+          key: 'name',
+          label: 'Department Name',
+          type: 'text',
+          required: true,
+          colSpan: 4,
+          icon: 'domain',
+          placeholder: 'Enter department name',
+          validators: [Validators.minLength(2), Validators.maxLength(100)]
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          colSpan: 4,
+          icon: 'description',
+          rows: 3,
+          validators: [Validators.maxLength(500)]
+        }
+      ],
+
+      // 🔹 Save department
+      onAdd: (departmentData) => {
+        return this.departmentService.createDepartment(departmentData).pipe(
+          tap(() => {
+            this.globalSevice.showSnackbar('Department created successfully', 'success');
+          })
+        );
+      },
+
+      // 🔹 Refresh department dropdown
+      refreshOptions: () => {
+        return this.departmentService.getDepartments().pipe(
+          map(res => {
+            if (res.success && res.data) {
+              const options = res.data.map(d => ({
+                value: d.id,
+                label: d.name
+              }));
+
+              // 🔥 Update local dropdown cache
+              this.dropdownData.update(current => ({
+                ...current,
+                departments: options
+              }));
+
+              return options;
+            }
+            return [];
+          })
+        );
+      }
+    };
   }
 
 
@@ -380,7 +451,7 @@ export class SubDepartmentComponent implements OnInit {
   }
 
   deleteSubDepartment(subDepartment: SubDepartmentDto) {
-     console.log('Deleting Sub department:', subDepartment);
+    console.log('Deleting Sub department:', subDepartment);
     // Implement delete logic
 
     this.popupService.openDeleteConfirmation(
