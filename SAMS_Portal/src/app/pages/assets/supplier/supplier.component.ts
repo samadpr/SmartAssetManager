@@ -7,6 +7,7 @@ import { GlobalService } from '../../../core/services/global/global.service';
 import { Supplier, SupplierCreateRequest, SupplierUpdateRequest } from '../../../core/models/interfaces/asset-manage/supplier.interface';
 import { PopupField } from '../../../core/models/interfaces/popup-widget.interface';
 import { Validators } from '@angular/forms';
+import { FileUrlHelper } from '../../../core/helper/get-file-url';
 
 @Component({
   selector: 'app-supplier',
@@ -120,15 +121,19 @@ export class SupplierComponent implements OnInit {
         key: 'edit',
         label: 'Edit',
         icon: 'edit',
+        buttonType: 'icon',
         color: 'primary',
-        tooltip: 'Edit supplier'
+        tooltip: 'Edit asset',
+        position: 'end' // Default position
       },
       {
         key: 'delete',
         label: 'Delete',
         icon: 'delete',
+        buttonType: 'icon',
         color: 'warn',
-        tooltip: 'Delete supplier'
+        tooltip: 'Delete asset',
+        position: 'end'
       }
     ]
   };
@@ -144,7 +149,7 @@ export class SupplierComponent implements OnInit {
         label: 'Supplier Name',
         type: 'text',
         required: true,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'business',
         placeholder: 'Enter supplier name',
         validators: [Validators.minLength(2), Validators.maxLength(100)]
@@ -154,7 +159,7 @@ export class SupplierComponent implements OnInit {
         label: 'Contact Person',
         type: 'text',
         required: true,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'person',
         placeholder: 'Enter contact person name',
         validators: [Validators.minLength(2), Validators.maxLength(100)]
@@ -165,7 +170,7 @@ export class SupplierComponent implements OnInit {
         label: 'Trade License Document',
         type: 'file',
         required: false,
-        colSpan: 2, // Full width
+        colSpan: 4, // Full width
         icon: 'upload_file',
         placeholder: 'Upload trade license',
         acceptedFileTypes: '.pdf,.jpg,.jpeg,.png',
@@ -185,7 +190,7 @@ export class SupplierComponent implements OnInit {
         label: 'Email',
         type: 'email',
         required: true,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'email',
         placeholder: 'Enter email address',
         validators: [Validators.email]
@@ -195,7 +200,7 @@ export class SupplierComponent implements OnInit {
         label: 'Phone',
         type: 'text',
         required: true,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'phone',
         placeholder: 'Enter phone number',
         validators: [Validators.pattern(/^[0-9+\-\s()]+$/)]
@@ -205,7 +210,7 @@ export class SupplierComponent implements OnInit {
         label: 'Address',
         type: 'textarea',
         required: false,
-        colSpan: 2,
+        colSpan: 4,
         icon: 'location_on',
         placeholder: 'Enter supplier address (optional)',
         rows: 3,
@@ -226,7 +231,7 @@ export class SupplierComponent implements OnInit {
         }
         const mappedSuppliers = response.data?.map(s => {
           const fullUrl = s.tradeLicense && typeof s.tradeLicense === 'string'
-            ? this.suppliersService.getFullFileUrl(s.tradeLicense)
+            ? FileUrlHelper.getFullUrl(s.tradeLicense)
             : s.tradeLicense;
 
           // 🔍 DEBUG

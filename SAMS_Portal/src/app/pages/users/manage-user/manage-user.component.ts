@@ -9,8 +9,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { GlobalService } from '../../../core/services/global/global.service';
 import { PopupWidgetService } from '../../../core/services/popup-widget/popup-widget.service';
 import { Validators } from '@angular/forms';
-import { PopupField } from '../../../core/models/interfaces/popup-widget.interface';
-import { forkJoin, map, of } from 'rxjs';
+import { PopupField, QuickAddConfig } from '../../../core/models/interfaces/popup-widget.interface';
+import { forkJoin, map, of, tap } from 'rxjs';
 import { DesignationService } from '../../../core/services/Designation/designation.service';
 import { ManageRolesService } from '../../../core/services/roles-manager/manage-roles.service';
 import { CountryService } from '../../../core/services/account/country/country.service';
@@ -18,6 +18,8 @@ import { DepartmentService } from '../../../core/services/department/department.
 import { SubDepartmentService } from '../../../core/services/department/sub-department/sub-department.service';
 import { SitesOrBranchesService } from '../../../core/services/sites-or-branchs/sites-or-branches.service';
 import { AssetAreaService } from '../../../core/services/sites-or-branchs/areas/asset-area.service';
+import { CitiesService } from '../../../core/services/sites-or-branchs/cities/cities.service';
+import { SiteOrBranch } from '../../../core/models/interfaces/sites-or-branchs/asset-site.interface';
 
 export interface UserProfile {
   userProfileId: number;
@@ -66,6 +68,7 @@ interface DropdownData {
   allAreas: DropdownOption[];
   roles: DropdownOption[];
   countries: DropdownOption[];
+  cities: DropdownOption[]
 }
 
 @Component({
@@ -89,7 +92,7 @@ export class ManageUserComponent implements OnInit {
   private areaService = inject(AssetAreaService);
   private rolesService = inject(ManageRolesService);
   private countryService = inject(CountryService);
-
+  private citiesService = inject(CitiesService);
 
   userProfiles = signal<UserProfile[]>([])
   loading = signal(false);
@@ -100,8 +103,15 @@ export class ManageUserComponent implements OnInit {
     sites: [],
     allAreas: [],
     roles: [],
-    countries: []
+    countries: [],
+    cities: []
   });
+
+  // Type options for radio buttons
+  private readonly typeOptions = [
+    { value: SiteOrBranch.Site, label: 'Site', disabled: false },
+    { value: SiteOrBranch.Branch, label: 'Branch', disabled: false }
+  ];
 
   listConfig: ListConfig = {
     title: 'Manage Users',
@@ -116,7 +126,7 @@ export class ManageUserComponent implements OnInit {
     rowClickAction: 'view', // Enable row click to view details
     pageSize: 10,
     pageSizeOptions: [5, 10, 25, 50],
-    maxVisibleRows: 5,
+    maxVisibleRows: 6,
     exportFileName: 'users_export',
     emptyMessage: 'No Users found. Click "Add User" to create one.',
     columns: [
@@ -275,15 +285,19 @@ export class ManageUserComponent implements OnInit {
         key: 'edit',
         label: 'Edit',
         icon: 'edit',
+        buttonType: 'icon',
         color: 'primary',
-        tooltip: 'Edit User'
+        tooltip: 'Edit asset',
+        position: 'end' // Default position
       },
       {
         key: 'delete',
         label: 'Delete',
         icon: 'delete',
+        buttonType: 'icon',
         color: 'warn',
-        tooltip: 'Delete User'
+        tooltip: 'Delete asset',
+        position: 'end'
       }
     ]
   };
@@ -303,7 +317,8 @@ export class ManageUserComponent implements OnInit {
       departments: this.departmentService.getDepartments(),
       subDepartments: this.subDepartmentService.getSubDepartments(),
       sites: this.siteOrBaranchService.getMySites(),
-      areas: this.areaService.getMyAreas()
+      areas: this.areaService.getMyAreas(),
+      cities: this.citiesService.getMyCities()
     }).subscribe({
       next: (responses) => {
         this.dropdownData.update(current => ({
@@ -343,6 +358,10 @@ export class ManageUserComponent implements OnInit {
             value: a.id,
             label: a.name ?? '',
             siteId: a.siteId // Critical: Store parent reference
+          })) ?? [],
+          cities: responses.cities.data?.map(c => ({
+            value: c.id,
+            label: c.name ?? '',
           })) ?? [],
         }));
 
@@ -396,7 +415,7 @@ export class ManageUserComponent implements OnInit {
         type: 'text',
         required: true,
         placeholder: 'Enter first name',
-        colSpan: 1,
+        colSpan: 2,
         icon: 'person',
         validators: [Validators.minLength(2), Validators.maxLength(50)]
       },
@@ -406,7 +425,7 @@ export class ManageUserComponent implements OnInit {
         type: 'text',
         required: true,
         placeholder: 'Enter last name',
-        colSpan: 1,
+        colSpan: 2,
         icon: 'person',
         validators: [Validators.minLength(2), Validators.maxLength(50)]
       },
@@ -416,7 +435,7 @@ export class ManageUserComponent implements OnInit {
         type: 'email',
         required: true,
         placeholder: 'Enter address',
-        colSpan: 2,
+        colSpan: 4,
         icon: 'email',
         validators: [Validators.email],
 
@@ -432,7 +451,7 @@ export class ManageUserComponent implements OnInit {
         type: 'text',
         required: true,
         placeholder: 'Enter phone number',
-        colSpan: 1,
+        colSpan: 2,
         icon: 'phone',
         validators: [Validators.pattern(/^[\+]?[\d\s\-\(\)]+$/)]
       },
@@ -441,36 +460,37 @@ export class ManageUserComponent implements OnInit {
         label: 'Date of Birth',
         type: 'date',
         required: false,
-        colSpan: 1,
+        colSpan: 2,
         max: new Date().getDate() // Cannot be future date
       },
-
       // Work Information Section
       {
         key: 'designation',
         label: 'Designation',
         type: 'select',
         required: false,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'work',
-        options: dropdowns.designations
+        options: dropdowns.designations,
+        quickAdd: this.getDesignationQuickAddConfig()
       },
       {
         key: 'department',
         label: 'Department',
         type: 'select',
         required: false,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'business',
         options: dropdowns.departments,
-        placeholder: 'Select department first'
+        placeholder: 'Select department first',
+        quickAdd: this.getDepartmentQuickAddConfig()
       },
       {
         key: 'subDepartment',
         label: 'Sub Department',
         type: 'select',
         required: false,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'account_tree',
         placeholder: 'Select department first',
 
@@ -484,23 +504,26 @@ export class ManageUserComponent implements OnInit {
 
         // Option 2: Use dynamic loading (uncomment to use API calls instead)
         // loadOptionsOnChange: (departmentId) => this.loadSubDepartmentsByDepartment(departmentId)
+
+        quickAdd: this.getSubDepartmentQuickAddConfig()
       },
       {
         key: 'site',
         label: 'Site',
         type: 'select',
         required: false,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'location_city',
         options: dropdowns.sites,
-        placeholder: 'Select Site first'
+        placeholder: 'Select Site first',
+        quickAdd: this.getSiteOrBranchQuickAddConfig()
       },
       {
         key: 'area',
         label: 'Area',
         type: 'select',
         required: false,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'map',
         placeholder: 'Select Site first',
 
@@ -509,13 +532,14 @@ export class ManageUserComponent implements OnInit {
         clearOnParentChange: true,
 
         options: dropdowns.allAreas,
+        quickAdd: this.getAreaQuickAddConfig()
       },
       {
         key: 'joiningDate',
         label: 'Joining Date',
         type: 'date',
         required: true,
-        colSpan: 1
+        colSpan: 2
       },
 
       // Role and Permissions
@@ -524,7 +548,7 @@ export class ManageUserComponent implements OnInit {
         label: 'Role',
         type: 'select',
         required: false,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'admin_panel_settings',
         options: dropdowns.roles
       },
@@ -535,7 +559,7 @@ export class ManageUserComponent implements OnInit {
         label: 'Country',
         type: 'select',
         required: false,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'public',
         options: []
       },
@@ -544,7 +568,7 @@ export class ManageUserComponent implements OnInit {
         label: 'Address',
         type: 'textarea',
         placeholder: 'Enter full address',
-        colSpan: 2, // Full width
+        colSpan: 4, // Full width
         rows: 2,
         icon: 'location_on'
       }
@@ -888,4 +912,567 @@ export class ManageUserComponent implements OnInit {
   onSelectionChange(selected: UserProfileData[]) {
     console.log('Selected designations:', selected);
   }
+
+  // Quick adding
+
+  private getDepartmentQuickAddConfig(): QuickAddConfig {
+    return {
+      enabled: true,
+      buttonLabel: 'Add New Department',
+      buttonIcon: 'add_circle',
+      popupTitle: 'Add New Department',
+      popupIcon: 'domain',
+
+      fields: [
+        {
+          key: 'name',
+          label: 'Department Name',
+          type: 'text',
+          required: true,
+          colSpan: 4,
+          icon: 'domain',
+          placeholder: 'Enter department name',
+          validators: [Validators.minLength(2), Validators.maxLength(100)]
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          colSpan: 4,
+          icon: 'description',
+          rows: 3,
+          validators: [Validators.maxLength(500)]
+        }
+      ],
+
+      // 🔹 Save department
+      onAdd: (departmentData) => {
+        return this.departmentService.createDepartment(departmentData).pipe(
+          tap(() => {
+            this.globalService.showSnackbar('Department created successfully', 'success');
+          })
+        );
+      },
+
+      // 🔹 Refresh department dropdown
+      refreshOptions: () => {
+        return this.departmentService.getDepartments().pipe(
+          map(res => {
+            if (res.success && res.data) {
+              const options = res.data.map(d => ({
+                value: d.id,
+                label: d.name
+              }));
+
+              // 🔥 Update local dropdown cache
+              this.dropdownData.update(current => ({
+                ...current,
+                departments: options
+              }));
+
+              return options;
+            }
+            return [];
+          })
+        );
+      }
+    };
+  }
+
+  private getDesignationQuickAddConfig(): QuickAddConfig {
+    return {
+      enabled: true,
+      buttonLabel: 'Add New Designation',
+      buttonIcon: 'add_circle',
+      popupTitle: 'Add New Designation',
+      popupIcon: 'work',
+
+      fields: [
+        {
+          key: 'name',
+          label: 'Designation Name',
+          type: 'text',
+          required: true,
+          colSpan: 4,
+          icon: 'work',
+          placeholder: 'Enter designation name',
+          validators: [Validators.minLength(2), Validators.maxLength(100)]
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          colSpan: 4,
+          icon: 'description',
+          rows: 3,
+          validators: [Validators.maxLength(500)]
+        }
+      ],
+
+      // 🔹 CREATE DESIGNATION
+      onAdd: (designationData) => {
+        return this.designationService.createDesignation(designationData).pipe(
+          tap(() => {
+            this.globalService.showSnackbar(
+              'Designation created successfully',
+              'success'
+            );
+          })
+        );
+      },
+
+      // 🔹 REFRESH DROPDOWN AFTER CREATE
+      refreshOptions: () => {
+        return this.designationService.getDesignations().pipe(
+          map(res => {
+            if (res.success && res.data) {
+              const options = res.data.map(d => ({
+                value: d.id,
+                label: d.name
+              }));
+
+              // 🔥 Update local dropdown cache
+              this.dropdownData.update(current => ({
+                ...current,
+                designations: options
+              }));
+
+              return options;
+            }
+            return [];
+          })
+        );
+      }
+    };
+  }
+
+
+  // 🆕 NEW: Get Quick Add configuration for site or breanch field
+  private getSiteOrBranchQuickAddConfig(): QuickAddConfig {
+    const dropdowns = this.dropdownData();
+    return {
+      enabled: true,
+      buttonLabel: 'Add New Site/Branch',
+      buttonIcon: 'add_circle',
+      popupTitle: 'Add New Site/Branch',
+      popupIcon: 'edit_location_alt',
+
+      // Fields for the quick add Site/Branch popup
+      fields: [
+        {
+          key: 'name',
+          label: 'Site/Branch Name',
+          type: 'text',
+          required: true,
+          colSpan: 1,
+          icon: 'location_city',
+          placeholder: 'Enter Site/Branch name',
+          validators: [Validators.minLength(2), Validators.maxLength(100)]
+        },
+        {
+          key: 'city',
+          label: 'City',
+          type: 'select',
+          required: false,
+          colSpan: 1,
+          icon: 'edit_location_alt',
+          placeholder: 'Select city',
+          options: dropdowns.cities,
+          quickAdd: this.getCityQuickAddConfig()
+        },
+        {
+          key: 'type',
+          label: 'Type',
+          type: 'radio',
+          required: true,
+          colSpan: 2,
+          icon: 'category',
+          options: this.typeOptions,
+          value: SiteOrBranch.Site,
+          validators: [Validators.required]
+        },
+        {
+          key: 'address',
+          label: 'Address',
+          type: 'textarea',
+          required: false,
+          colSpan: 2,
+          icon: 'location_on',
+          placeholder: 'Enter full address',
+          rows: 3,
+          validators: [Validators.maxLength(500)]
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          required: false,
+          colSpan: 2,
+          icon: 'description',
+          placeholder: 'Enter description',
+          rows: 3,
+          validators: [Validators.maxLength(500)]
+        }
+      ],
+
+      // Handler to save the new siteOrBranch
+      onAdd: (SiteOrBranchData) => {
+        console.log('💾 Saving new Site/Branch:', SiteOrBranchData);
+        return this.siteOrBaranchService.createSite(SiteOrBranchData).pipe(
+          tap(response => {
+            console.log('✅ Site/Branch created:', response);
+          })
+        );
+      },
+
+      // Refresh dropdown options after successful add
+      // 🔥 FIXED: Refresh handler - This is the KEY fix
+      refreshOptions: (response) => {
+        console.log('🔄 Refreshing options after Site/Branch add:', response);
+
+        // Show success message
+        const siteOrBranchName = response?.data?.name || response?.name || 'Site/Branch';
+        this.globalService.showSnackbar(`"${siteOrBranchName}" added successfully!`, 'success');
+
+        // 🔥 CRITICAL: Fetch fresh data from API
+        return this.siteOrBaranchService.getMySites().pipe(
+          map(apiResponse => {
+            if (apiResponse.success && apiResponse.data) {
+              const newOptions = apiResponse.data.map(cat => ({
+                value: cat.id,
+                label: cat.name
+              }));
+
+              console.log('✅ Fresh options loaded:', newOptions.length);
+
+              // 🔥 CRITICAL: Update the component's dropdown data
+              this.dropdownData.update(current => ({
+                ...current,
+                sites: newOptions
+              }));
+
+              return newOptions;
+            }
+            return [];
+          }),
+          tap(newOptions => {
+            console.log('🎯 Options ready for dropdown:', newOptions);
+          })
+        );
+      }
+    };
+  }
+
+  // 🆕 NEW: Get Quick Add configuration for city field in site popup
+  private getCityQuickAddConfig(): QuickAddConfig {
+    return {
+      enabled: true,
+      buttonLabel: 'Add New City',
+      buttonIcon: 'add_circle',
+      popupTitle: 'Add New City',
+      popupIcon: 'edit_location_alt',
+
+      // Fields for the quick add city popup
+      fields: [
+        {
+          key: 'name',
+          label: 'City Name',
+          type: 'text',
+          required: true,
+          colSpan: 2,
+          icon: 'edit_location_alt',
+          placeholder: 'Enter city name',
+          validators: [Validators.minLength(2), Validators.maxLength(100)]
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          required: false,
+          colSpan: 2,
+          icon: 'description',
+          placeholder: 'Enter city description',
+          rows: 3,
+          validators: [Validators.maxLength(500)]
+        }
+      ],
+
+      // Handler to save the new city
+      onAdd: (cityData) => {
+        console.log('💾 Saving new City:', cityData);
+        return this.citiesService.createCity(cityData).pipe(
+          tap(response => {
+            console.log('✅ City created:', response);
+          })
+        );
+      },
+
+      // Refresh dropdown options after successful add
+      // 🔥 FIXED: Refresh handler - This is the KEY fix
+      refreshOptions: (response) => {
+        console.log('🔄 Refreshing options after city add:', response);
+
+        // Show success message
+        const cityName = response?.data?.name || response?.name || 'City';
+        this.globalService.showSnackbar(`"${cityName}" added successfully!`, 'success');
+
+        // 🔥 CRITICAL: Fetch fresh data from API
+        return this.citiesService.getMyCities().pipe(
+          map(apiResponse => {
+            if (apiResponse.success && apiResponse.data) {
+              const newOptions = apiResponse.data.map(cat => ({
+                value: cat.id,
+                label: cat.name
+              }));
+
+              console.log('✅ Fresh options loaded:', newOptions.length);
+
+              // 🔥 CRITICAL: Update the component's dropdown data
+              this.dropdownData.update(current => ({
+                ...current,
+                cities: newOptions
+              }));
+
+              return newOptions;
+            }
+            return [];
+          }),
+          tap(newOptions => {
+            console.log('🎯 Options ready for dropdown:', newOptions);
+          })
+        );
+      }
+    };
+  }
+
+  private getSubDepartmentQuickAddConfig(): QuickAddConfig {
+    const dropdowns = this.dropdownData();
+
+    return {
+      enabled: true,
+      buttonLabel: 'Add New Sub Department',
+      buttonIcon: 'add_circle',
+      popupTitle: 'Add New Sub Department',
+      popupIcon: 'account_tree',
+
+      // 🔥 Enable Quick Add only when department is selected
+      enableWhen: {
+        field: 'department',
+        hasValue: true
+      },
+
+      // 🔥 NEW: Parent context configuration
+      parentContext: {
+        field: 'department',
+        autoPopulate: true,
+        lockParent: true
+      },
+
+      fields: [
+        {
+          key: 'departmentId',
+          label: 'Department',
+          type: 'select',
+          required: true,
+          colSpan: 2,
+          icon: 'business',
+          options: dropdowns.departments,
+          placeholder: 'Select department',
+          validators: [Validators.required],
+          quickAdd: this.getDepartmentQuickAddConfig()
+        },
+        {
+          key: 'name',
+          label: 'Sub Department Name',
+          type: 'text',
+          required: true,
+          colSpan: 2,
+          icon: 'account_tree',
+          placeholder: 'Enter sub department name',
+          validators: [Validators.minLength(2), Validators.maxLength(100)]
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          colSpan: 4,
+          rows: 3,
+          icon: 'description',
+          validators: [Validators.maxLength(500)]
+        }
+      ],
+
+      onAdd: (data) => {
+        console.log('💾 Creating Sub Department:', data);
+        return this.subDepartmentService.createSubDepartment(data).pipe(
+          tap((response) => {
+            console.log('✅ Sub Department created:', response);
+            this.globalService.showSnackbar(
+              'Sub Department created successfully',
+              'success'
+            );
+          })
+        );
+      },
+
+      // 🔥 CRITICAL FIX: Refresh with parent context awareness
+      refreshOptions: (response) => {
+        console.log('🔄 Refreshing subdepartments after add:', response);
+
+        const newSubDeptName = response?.data?.name || response?.name || 'Sub Department';
+        const newSubDeptId = response?.data?.id || response?.id;
+        const parentDeptId = response?.data?.departmentId || response?.departmentId;
+
+        this.globalService.showSnackbar(`"${newSubDeptName}" added successfully!`, 'success');
+
+        // 🔥 CRITICAL: Fetch ALL subdepartments from API
+        return this.subDepartmentService.getSubDepartments().pipe(
+          map(apiResponse => {
+            if (apiResponse.success && apiResponse.data) {
+              // Map ALL subdepartments with parent reference
+              const allSubDepartments = apiResponse.data.map(sd => ({
+                value: sd.id,
+                label: sd.name ?? '',
+                departmentId: sd.departmentId // 🔥 CRITICAL: Store parent reference
+              }));
+
+              console.log('✅ All subdepartments loaded:', allSubDepartments.length);
+
+              // 🔥 Update component's complete subdepartment cache
+              this.dropdownData.update(current => ({
+                ...current,
+                allSubDepartments: allSubDepartments
+              }));
+
+              // 🔥 Return ONLY subdepartments for current parent department
+              const filteredOptions = allSubDepartments.filter(
+                sd => sd.departmentId === parentDeptId
+              );
+
+              console.log('🎯 Filtered options for department', parentDeptId, ':', filteredOptions.length);
+
+              return filteredOptions;
+            }
+            return [];
+          })
+        );
+      }
+    };
+  }
+
+  private getAreaQuickAddConfig(): QuickAddConfig {
+    const dropdowns = this.dropdownData();
+
+    return {
+      enabled: true,
+      buttonLabel: 'Add New Area',
+      buttonIcon: 'add_circle',
+      popupTitle: 'Add New Area',
+      popupIcon: 'map',
+
+      // 🔥 Enable Quick Add only when site is selected
+      enableWhen: {
+        field: 'site',
+        hasValue: true
+      },
+
+      // 🔥 NEW: Parent context configuration
+      parentContext: {
+        field: 'site',
+        autoPopulate: true,
+        lockParent: true
+      },
+
+      fields: [
+        {
+          key: 'siteId',
+          label: 'Site',
+          type: 'select',
+          required: true,
+          colSpan: 2,
+          icon: 'location_city',
+          options: dropdowns.sites,
+          placeholder: 'Select site',
+          validators: [Validators.required],
+          quickAdd: this.getSiteOrBranchQuickAddConfig()
+        },
+        {
+          key: 'name',
+          label: 'Area Name',
+          type: 'text',
+          required: true,
+          colSpan: 2,
+          icon: 'map',
+          placeholder: 'Enter area name',
+          validators: [Validators.minLength(2), Validators.maxLength(100)]
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          colSpan: 4,
+          rows: 3,
+          icon: 'description',
+          validators: [Validators.maxLength(500)]
+        }
+      ],
+
+      onAdd: (data) => {
+        console.log('💾 Creating Area:', data);
+        return this.areaService.createArea(data).pipe(
+          tap((response) => {
+            console.log('✅ Area created:', response);
+            this.globalService.showSnackbar(
+              'Area created successfully',
+              'success'
+            );
+          })
+        );
+      },
+
+      // 🔥 CRITICAL FIX: Refresh with parent context awareness
+      refreshOptions: (response) => {
+        console.log('🔄 Refreshing areas after add:', response);
+
+        const newAreaName = response?.data?.name || response?.name || 'Area';
+        const newAreaId = response?.data?.id || response?.id;
+        const parentSiteId = response?.data?.siteId || response?.siteId;
+
+        this.globalService.showSnackbar(`"${newAreaName}" added successfully!`, 'success');
+
+        // 🔥 CRITICAL: Fetch ALL areas from API
+        return this.areaService.getMyAreas().pipe(
+          map(apiResponse => {
+            if (apiResponse.success && apiResponse.data) {
+              // Map ALL areas with parent reference
+              const allAreas = apiResponse.data.map(a => ({
+                value: a.id,
+                label: a.name ?? '',
+                siteId: a.siteId // 🔥 CRITICAL: Store parent reference
+              }));
+
+              console.log('✅ All areas loaded:', allAreas.length);
+
+              // 🔥 Update component's complete area cache
+              this.dropdownData.update(current => ({
+                ...current,
+                allAreas: allAreas
+              }));
+
+              // 🔥 Return ONLY areas for current parent site
+              const filteredOptions = allAreas.filter(
+                a => a.siteId === parentSiteId
+              );
+
+              console.log('🎯 Filtered options for site', parentSiteId, ':', filteredOptions.length);
+
+              return filteredOptions;
+            }
+            return [];
+          })
+        );
+      }
+    };
+  }
+
 }

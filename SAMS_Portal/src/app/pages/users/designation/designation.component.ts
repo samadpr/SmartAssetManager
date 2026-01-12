@@ -80,15 +80,19 @@ export class DesignationComponent implements OnInit {
         key: 'edit',
         label: 'Edit',
         icon: 'edit',
+        buttonType: 'icon',
         color: 'primary',
-        tooltip: 'Edit designation'
+        tooltip: 'Edit asset',
+        position: 'end' // Default position
       },
       {
         key: 'delete',
         label: 'Delete',
         icon: 'delete',
+        buttonType: 'icon',
         color: 'warn',
-        tooltip: 'Delete designation'
+        tooltip: 'Delete asset',
+        position: 'end'
       }
     ]
   };

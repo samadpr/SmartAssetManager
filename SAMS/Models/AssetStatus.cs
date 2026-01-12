@@ -12,5 +12,9 @@ public class AssetStatus : TenantEntityBase
 
     public string? Description { get; set; }
 
+    // 🔥 NEW
+    public bool IsSystem { get; set; }          // true = enum based
+    public int? EnumValue { get; set; }         // maps to AssetStatusEnum
+
     public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
 }

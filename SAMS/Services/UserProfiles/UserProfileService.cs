@@ -2553,4 +2553,23 @@ public class UserProfileService : IUserProfileService
             throw new Exception("An error occurred while getting user profiles used in role.", ex);
         }
     }
+
+    public async Task<(IEnumerable<UsersListDto> UserList, bool Success, string Message)> GetAllOrganizationUsers()
+    {
+        try
+        {
+            var orgId = _companyContext.OrganizationId;
+
+            var userList = await _userProfileRepository.GetUsersListByOrg(orgId);
+            if (userList.users == null || !userList.users.Any())
+                return (null!, false, "User profiles not found.");
+
+            return (userList.users, true, userList.message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while getting user list.");
+            throw new Exception("An error occurred while getting user list.", ex);
+        }
+    }
 }

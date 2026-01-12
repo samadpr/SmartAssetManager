@@ -19,7 +19,7 @@ export class GlobalService {
     });
   }
 
-  public showToastr(message: string, type: 'success' | 'error' | 'info' | 'Required'): void {
+  public showToastr(message: string, type: 'success' | 'error' | 'info' | 'Required' | 'warning'): void {
     const options: Partial<IndividualConfig> = {
       timeOut: 3000,
       closeButton: true,

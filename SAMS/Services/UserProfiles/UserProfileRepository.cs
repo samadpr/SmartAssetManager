@@ -133,7 +133,7 @@ public class UserProfileRepository : IUserProfileRepository
                                 {
                                     UserProfileId = vm.UserProfileId,
                                     ApplicationUserId = vm.ApplicationUserId,
-                                    EmployeeId = vm.EmployeeId,
+                                    UserId = vm.UserId,
                                     FirstName = vm.FirstName,
                                     LastName = vm.LastName,
                                     DateOfBirth = vm.DateOfBirth,
@@ -211,7 +211,7 @@ public class UserProfileRepository : IUserProfileRepository
                                 {
                                     UserProfileId = vm.UserProfileId,
                                     ApplicationUserId = vm.ApplicationUserId,
-                                    EmployeeId = vm.EmployeeId,
+                                    UserId = vm.UserId,
                                     FirstName = vm.FirstName,
                                     LastName = vm.LastName,
                                     DateOfBirth = vm.DateOfBirth,
@@ -273,5 +273,79 @@ public class UserProfileRepository : IUserProfileRepository
         var user = await _context.UserProfiles.FirstOrDefaultAsync(u => u.ApplicationUserId == applicationUserId && u.Email == email && !u.Cancelled);
         if (user == null) return null!;
         return user;
+    }
+
+    public async Task<(IEnumerable<UsersListDto> users, string message)> GetUsersListByOrg(Guid? orgId)
+    {
+        try
+        {
+            var result = await (from vm in _context.UserProfiles
+
+                                    // ⭐ Department Join
+                                join _Department in _context.Department on vm.Department equals _Department.Id into _Department
+                                from objDepartment in _Department.DefaultIfEmpty()
+
+                                    // ⭐ SubDepartment Join
+                                join _SubDepartment in _context.SubDepartment on vm.SubDepartment equals _SubDepartment.Id into _SubDepartment
+                                from objSubDepartment in _SubDepartment.DefaultIfEmpty()
+
+                                    // ⭐ Designation Join
+                                join _Designation in _context.Designation on vm.Designation equals _Designation.Id into _Designation
+                                from objDesignation in _Designation.DefaultIfEmpty()
+
+                                    // ⭐ ManageRole Join
+                                join _ManageRole in _context.ManageUserRoles on vm.RoleId equals _ManageRole.Id into _ManageRole
+                                from objManageRole in _ManageRole.DefaultIfEmpty()
+
+                                    // ⭐ AspNetUser Join
+                                join _AspNetUser in _context.Users on vm.Email equals _AspNetUser.Email into _AspNetUser
+                                from objAspNetUser in _AspNetUser.DefaultIfEmpty()
+
+                                    // ⭐ AssetSite Join → SiteDisplay
+                                join _Site in _context.AssetSite on vm.Site equals _Site.Id into _Site
+                                from objSite in _Site.DefaultIfEmpty()
+
+                                    // ⭐ AssetArea Join → AreaDisplay
+                                join _Area in _context.AssetArea on vm.Area equals _Area.Id into _Area
+                                from objArea in _Area.DefaultIfEmpty()
+
+                                where !vm.Cancelled && orgId == vm.OrganizationId
+                                orderby vm.CreatedDate descending
+                                select new UsersListDto
+                                {
+                                    UserProfileId = vm.UserProfileId,
+                                    ApplicationUserId = vm.ApplicationUserId,
+                                    UserId = vm.UserId,
+                                    FirstName = vm.FirstName,
+                                    LastName = vm.LastName,
+                                    Designation = vm.Designation,
+                                    DesignationDisplay = objDesignation.Name,
+                                    Department = vm.Department,
+                                    DepartmentDisplay = objDepartment.Name,
+                                    SubDepartment = vm.SubDepartment,
+                                    SubDepartmentDisplay = objSubDepartment.Name,
+                                    Site = vm.Site,
+                                    SiteDisplay = objSite.Name,
+                                    Area = vm.Area,
+                                    AreaDisplay = objArea.Name,
+                                    PhoneNumber = vm.PhoneNumber,
+                                    Email = vm.Email,
+                                    IsEmailConfirmed = objAspNetUser != null ? objAspNetUser.EmailConfirmed : false,
+                                    ProfilePicture = vm.ProfilePicture,
+                                    RoleIdDisplay = objManageRole.Name,
+                                    RoleId = vm.RoleId,
+                                    OrganizationId = vm.OrganizationId
+                                }).ToListAsync();
+
+            if (!result.Any())
+                return (null!, "No created user profiles found.");
+
+            return (result, "Created user profiles retrieved successfully.");
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving user profile by organization ID.");
+            return (null!, "An error occurred while retrieving user profile.");
+        }
     }
 }

@@ -3,7 +3,7 @@ import { environment } from '../../../../environments/environment.development';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiResponse } from '../../models/interfaces/ApiResponse.interface';
-import { LoginAccessRequest, UpdateLoginAccessRequest, UserProfileRequest } from '../../models/interfaces/account/userProfile';
+import { LoginAccessRequest, UpdateLoginAccessRequest, UserProfileRequest, UsersList } from '../../models/interfaces/account/userProfile';
 
 @Injectable({
   providedIn: 'root'
@@ -26,6 +26,12 @@ export class UserProfileService {
   // ✅ Get All Created User Profiles
   getCreatedUsersProfilesDetails(): Observable<ApiResponse> {
     return this.http.get<ApiResponse>(`${this.baseUrl}/get-created-user-profiles-details`);
+  }
+  // ✅ Get Organization Users
+  getOrganizationUsers(): Observable<ApiResponse<UsersList[]>> {
+    return this.http.get<ApiResponse<UsersList[]>>(
+      `${this.baseUrl}/get-organization-users`
+    );
   }
 
   // ✅ Update User Profile

@@ -19,6 +19,20 @@ export interface QuickAddConfig {
   fields: PopupField[];
   onAdd?: (data: any) => Observable<any>;
   refreshOptions?: (newData: any) => Observable<PopupFieldOption[]>;
+
+  // 🆕 NEW: Conditional enabling based on parent field
+  enableWhen?: {
+    field: string; // Parent field key
+    hasValue?: boolean; // Enable when parent has any value
+    value?: any; // Enable when parent has specific value
+  };
+
+  // 🔥 NEW: Parent context for cascading relationships
+  parentContext?: {
+    field: string; // Parent field key (e.g., 'department')
+    autoPopulate?: boolean; // Auto-populate parent field in Quick Add popup
+    lockParent?: boolean; // Lock parent field (disable editing)
+  };
 }
 
 // Conditional Display Configuration
@@ -105,6 +119,7 @@ export interface PopupField {
   dependsOn?: string;
   dependsOnValue?: any;
   showIf?: ConditionalDisplay;
+  conditionalRequired?: ConditionalDisplay;
 }
 
 export interface PopupFormConfig {
@@ -125,7 +140,7 @@ export interface PopupFormConfig {
   cancelButtonText?: string;
   showCloseButton?: boolean;
 
-// 🆕 ENHANCED DIALOG OPTIONS
+  // 🆕 ENHANCED DIALOG OPTIONS
   width?: string;
   maxWidth?: string;
   minWidth?: string;
@@ -201,4 +216,46 @@ export interface PopupData {
 export interface PopupResult {
   action: 'submit' | 'confirm' | 'cancel' | 'close' | 'edit';
   data?: any;
+}
+
+
+
+export type ActionButtonType = 'raised' | 'flat' | 'stroked' | 'icon' | 'fab' | 'mini-fab';
+export type ActionButtonColor = 'primary' | 'accent' | 'warn' | 'success' | 'info' | 'default';
+
+export interface CustomActionButton {
+  key: string;
+  label: string;
+  icon?: string;
+  type?: ActionButtonType;
+  color?: ActionButtonColor;
+  tooltip?: string;
+  disabled?: boolean;
+  hidden?: boolean;
+  position?: 'before' | 'after'; // Position relative to default actions
+
+  // Conditional visibility
+  showIf?: (row: any) => boolean;
+
+  // Custom styling
+  customClass?: string;
+
+  // Popup configuration when clicked
+  popupConfig?: {
+    title: string;
+    subtitle?: string;
+    icon?: string;
+    fields: PopupField[];
+    columns?: 1 | 2 | 3 | 4;
+    maxWidth?: string;
+    submitButtonText?: string;
+    onSubmit?: (formData: any, row: any) => Observable<any>;
+  };
+}
+
+export interface ActionColumnConfig {
+  header?: string; // Custom column header (default: 'Actions')
+  width?: string;
+  align?: 'left' | 'center' | 'right';
+  sticky?: boolean; // Make column sticky
 }

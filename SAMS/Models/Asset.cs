@@ -32,7 +32,7 @@ public class Asset : TenantEntityBase
 
     public long? SiteId { get; set; }
 
-    public long? Location { get; set; }
+    public long? AreaId { get; set; }
 
     public long? Department { get; set; }
 
@@ -72,7 +72,7 @@ public class Asset : TenantEntityBase
 
     public int? AssignTo { get; set; }
 
-    public long? AssignEmployeeId { get; set; }
+    public long? AssignUserId { get; set; }
 
     public long? AssetStatus { get; set; }
 
@@ -108,7 +108,7 @@ public class Asset : TenantEntityBase
 
     public virtual AssetStatus? AssetStatusNavigation { get; set; }
 
-    public virtual UserProfile? AssignEmployee { get; set; }
+    public virtual UserProfile? AssignUser { get; set; }
 
     public virtual AssetCategorie? CategoryNavigation { get; set; }
 

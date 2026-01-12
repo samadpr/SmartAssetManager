@@ -112,15 +112,19 @@ export class AssetSubCategoryComponent implements OnInit {
         key: 'edit',
         label: 'Edit',
         icon: 'edit',
+        buttonType: 'icon',
         color: 'primary',
-        tooltip: 'Edit sub category'
+        tooltip: 'Edit asset',
+        position: 'end' // Default position
       },
       {
         key: 'delete',
         label: 'Delete',
         icon: 'delete',
+        buttonType: 'icon',
         color: 'warn',
-        tooltip: 'Delete sub category'
+        tooltip: 'Delete asset',
+        position: 'end'
       }
     ]
   };
@@ -171,7 +175,7 @@ export class AssetSubCategoryComponent implements OnInit {
           label: 'Category Name',
           type: 'text',
           required: true,
-          colSpan: 2,
+          colSpan: 4,
           icon: 'category',
           placeholder: 'Enter category name',
           validators: [Validators.minLength(2), Validators.maxLength(100)]
@@ -181,7 +185,7 @@ export class AssetSubCategoryComponent implements OnInit {
           label: 'Description',
           type: 'textarea',
           required: false,
-          colSpan: 2,
+          colSpan: 4,
           icon: 'description',
           placeholder: 'Enter category description',
           rows: 3,
@@ -245,7 +249,7 @@ export class AssetSubCategoryComponent implements OnInit {
         label: 'Category',
         type: 'select',
         required: true,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'category',
         placeholder: 'Select category',
         options: dropdowns.categories,
@@ -258,7 +262,7 @@ export class AssetSubCategoryComponent implements OnInit {
         label: 'Sub Category Name',
         type: 'text',
         required: true,
-        colSpan: 1,
+        colSpan: 2,
         icon: 'label',
         placeholder: 'Enter sub category name',
         validators: [Validators.minLength(2), Validators.maxLength(100)]
@@ -268,7 +272,7 @@ export class AssetSubCategoryComponent implements OnInit {
         label: 'Description',
         type: 'textarea',
         required: false,
-        colSpan: 2,
+        colSpan: 4,
         icon: 'description',
         placeholder: 'Enter sub category description (optional)',
         rows: 4,

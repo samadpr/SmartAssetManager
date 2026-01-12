@@ -20,11 +20,13 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { FilesUploadService } from '../../../../core/services/common/files-upload.service';
 import { Country, CountryService } from '../../../../core/services/account/country/country.service';
-import { Subject, takeUntil } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { MatDividerModule } from '@angular/material/divider';
 import { GlobalService } from '../../../../core/services/global/global.service';
 import { FilePreviewComponent } from '../list-widget/file-preview/file-preview.component';
 import { PopupWidgetService } from '../../../../core/services/popup-widget/popup-widget.service';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { AssetDepreciation } from '../../../../core/models/interfaces/asset-manage/assets.interface';
 
 @Component({
   selector: 'app-popup-widget',
@@ -97,6 +99,7 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
   public data: PopupData = inject(MAT_DIALOG_DATA);
   private globalService = inject(GlobalService);
   private popupService = inject(PopupWidgetService);
+  private sanitizer = inject(DomSanitizer);
 
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
 
@@ -108,6 +111,13 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
   imageFile = signal<File | null>(null);
   countries = signal<Country[]>([]);
   countriesLoaded = signal(false);
+
+  // 🆕 NEW: Track Quick Add button disabled state
+  quickAddDisabledMap = signal<Map<string, boolean>>(new Map());
+
+  // 🔥 NEW: Track conditional field visibility
+  private conditionalFieldsMap = signal<Map<string, PopupField>>(new Map());
+  private fieldValidatorsMap = signal<Map<string, any[]>>(new Map());
 
   private destroy$ = new Subject<void>();
   fieldOptionsMap = signal<Map<string, any[]>>(new Map());
@@ -164,6 +174,79 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * ✅ FIXED: Properly sanitize HTML content for safe rendering
+   */
+  sanitizeHtml(html: string | undefined | null): SafeHtml {
+    if (!html) {
+      return '';
+    }
+
+    // For trusted internal content, bypass security
+    return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  /**
+ * ✅ ENHANCED: Format depreciation schedule with proper structure
+ */
+  private formatDepreciationScheduleAsTable(schedule: AssetDepreciation[]): string {
+    if (!schedule || schedule.length === 0) {
+      return '<div class="no-schedule-data"><mat-icon class="info-icon">info_outline</mat-icon><span>No depreciation schedule available</span></div>';
+    }
+
+    let html = '<div class="depreciation-schedule-wrapper">';
+    html += '<div class="depreciation-schedule-table">';
+    html += '<table cellspacing="0" cellpadding="0">';
+
+    // Table Header
+    html += '<thead>';
+    html += '<tr>';
+    html += '<th class="col-year">Year</th>';
+    html += '<th class="col-beginning">Beginning Value</th>';
+    html += '<th class="col-depreciation">Depreciation</th>';
+    html += '<th class="col-ending">Ending Value</th>';
+    html += '</tr>';
+    html += '</thead>';
+
+    // Table Body
+    html += '<tbody>';
+    schedule.forEach((item, index) => {
+      const rowClass = index % 2 === 0 ? 'even-row' : 'odd-row';
+      html += `<tr class="${rowClass}">`;
+      html += `<td class="year-cell">${this.escapeHtml(item.year.toString())}</td>`;
+      html += `<td class="currency-cell">₹${this.escapeHtml(this.formatCurrency(item.bookValueYearBegining))}</td>`;
+      html += `<td class="currency-cell depreciation">₹${this.escapeHtml(this.formatCurrency(item.depreciation))}</td>`;
+      html += `<td class="currency-cell">₹${this.escapeHtml(this.formatCurrency(item.bookValueYearEnd))}</td>`;
+      html += '</tr>';
+    });
+    html += '</tbody>';
+
+    html += '</table>';
+    html += '</div>'; // Close depreciation-schedule-table
+    html += '</div>'; // Close depreciation-schedule-wrapper
+
+    return html;
+  }
+
+  /**
+   * ✅ NEW: Helper method to escape HTML entities
+   */
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  /**
+   * ✅ Helper method to format currency
+   */
+  private formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  }
+
   private updateCountryField() {
     if (!this.form) return;
 
@@ -187,31 +270,73 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
     const controls: { [k: string]: FormControl } = {};
 
+    // 🔥 STEP 1: Build conditional fields map
+    cfg.fields.forEach(field => {
+      if (field.showIf || field.dependsOn) {
+        this.conditionalFieldsMap.update(map => {
+          const newMap = new Map(map);
+          newMap.set(field.key, field);
+          return newMap;
+        });
+      }
+    });
+
     cfg.fields.forEach(field => {
       const validators = this.getFieldValidators(field);
       let value = field.value;
 
+      // Get existing data
       if (this.data?.data && this.data.data[field.key] !== undefined) {
         value = this.data.data[field.key];
 
-        // Handle existing file URLs for file fields
-        if (field.type === 'file' && value && typeof value === 'string') {
-          this.filePreviewMap.update(map => {
-            const newMap = new Map(map);
-            newMap.set(field.key, value);
-            return newMap;
-          });
+        // File field handling
+        if (field.type === 'file') {
+          if (typeof value === 'string' && value.trim() !== '') {
+            this.filePreviewMap.update(map => {
+              const newMap = new Map(map);
+              newMap.set(field.key, value as string);
+              return newMap;
+            });
+            value = null;
+          } else if (value instanceof File) {
+            this.fileMap.update(map => {
+              const newMap = new Map(map);
+              newMap.set(field.key, value as File);
+              return newMap;
+            });
+          } else {
+            value = null;
+          }
         }
       }
 
-      if (field.type === 'checkbox') {
+      // Handle checkbox defaults
+      if (field.type === 'checkbox' || field.type === 'toggle') {
         value = !!value;
-      } else if (field.type === 'date' && value) {
+      }
+      // Handle date conversion
+      else if (field.type === 'date' && value) {
         value = new Date(value);
       }
 
-      const isDisabled = field.disabled || (field.cascadeFrom ? true : false);
+      // 🔥 CRITICAL: Determine initial disabled state
+      let isDisabled = field.disabled || false;
 
+      // Cascade handling
+      if (field.cascadeFrom) {
+        isDisabled = true;
+      }
+
+      // Email verification
+      if (field.type === 'email' && field.showEmailVerification) {
+        const verificationKey = field.emailVerificationKey || 'isEmailVerified';
+        const isAlreadyVerified = this.data?.data?.[verificationKey] === true;
+        if (isAlreadyVerified) {
+          isDisabled = true;
+        }
+      }
+
+      // Country field
       if (field.key === 'country' && field.type === 'select') {
         field.options = this.countries().map(country => ({
           value: country.name,
@@ -221,6 +346,7 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         }));
       }
 
+      // Store select options
       if (field.options) {
         this.fieldOptionsMap.update(map => {
           const newMap = new Map(map);
@@ -229,53 +355,114 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         });
       }
 
-      // 🔥 UPDATED: Email field - disable if already verified from backend
-      let fieldDisabled = isDisabled;
-      if (field.type === 'email' && field.showEmailVerification) {
-        const verificationKey = field.emailVerificationKey || 'isEmailVerified';
-        const isAlreadyVerified = this.data?.data?.[verificationKey] === true;
-
-        // If email is already verified from backend, disable the email field
-        if (isAlreadyVerified) {
-          fieldDisabled = true;
-        }
+      // 🔥 NEW: Store original validators for dynamic management
+      if (validators.length > 0) {
+        this.fieldValidatorsMap.update(map => {
+          const newMap = new Map(map);
+          newMap.set(field.key, validators);
+          return newMap;
+        });
       }
 
+      // 🔥 CRITICAL: Check if field should be initially hidden
+      const shouldBeHidden = !this.shouldShowField(field);
+
+      // 🔥 Create form control with conditional validators
       controls[field.key] = new FormControl(
         { value, disabled: isDisabled },
-        validators.length ? validators : null
+        shouldBeHidden || (field.type === 'file' && this.filePreviewMap().has(field.key))
+          ? [] // No validators for hidden or existing file fields
+          : validators
       );
 
-      // 🔥 UPDATED: Email verification toggle control
+      // Email verification toggle
       if (field.type === 'email' && field.showEmailVerification) {
         const verificationKey = field.emailVerificationKey || 'isEmailVerified';
         const isAlreadyVerified = this.data?.data?.[verificationKey] === true;
 
-        // Create verification control
         const verificationControl = new FormControl({
           value: isAlreadyVerified,
-          disabled: isAlreadyVerified // Disable only if already verified from backend
+          disabled: isAlreadyVerified
         });
 
         controls[verificationKey] = verificationControl;
-
-        // 🆕 Setup reactive validation: toggle enabled only when email is valid
-        if (!isAlreadyVerified) {
-          // Initially disable the toggle
-          verificationControl.disable();
-        }
       }
     });
 
+    // Profile picture control
     if (!controls['profilePicture']) {
-      controls['profilePicture'] = new FormControl(this.data?.data?.profilePicture || '');
+      controls['profilePicture'] = new FormControl(
+        this.data?.data?.profilePicture || ''
+      );
     }
 
     this.form = new FormGroup(controls);
 
-    // 🆕 Setup email validation listeners AFTER form creation
+    // ✅ Setup reactive features AFTER form creation
     this.setupEmailVerificationValidation();
+    this.setupCascadingDropdowns();
+    this.setupConditionalDisplay(); // 🔥 CRITICAL: This must run after form is created
+    this.setupDepreciableCostAutoBinding();
   }
+
+  private setupDepreciableCostAutoBinding() {
+    if (!this.form) return;
+
+    const isDepreciableCtrl = this.form.get('isDepreciable');
+    const unitPriceCtrl = this.form.get('unitPrice');
+    const depreciableCostCtrl = this.form.get('depreciableCost');
+
+    if (!isDepreciableCtrl || !unitPriceCtrl || !depreciableCostCtrl) return;
+
+    let userManuallyEdited = false;
+
+    // Detect manual edit
+    depreciableCostCtrl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        userManuallyEdited = true;
+      });
+
+    // When unit price changes
+    unitPriceCtrl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(price => {
+        if (!userManuallyEdited && price != null) {
+          depreciableCostCtrl.setValue(price, { emitEvent: false });
+        }
+      });
+
+    // When depreciation toggle changes
+    isDepreciableCtrl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(isDepreciable => {
+
+        if (!isDepreciable) {
+          // NOT depreciable → mirror unit price
+          depreciableCostCtrl.setValue(unitPriceCtrl.value, { emitEvent: false });
+          depreciableCostCtrl.disable({ emitEvent: false });
+          userManuallyEdited = false;
+        } else {
+          // Depreciable → allow editing
+          depreciableCostCtrl.enable({ emitEvent: false });
+
+          if (!depreciableCostCtrl.value) {
+            depreciableCostCtrl.setValue(unitPriceCtrl.value, { emitEvent: false });
+          }
+        }
+
+        depreciableCostCtrl.updateValueAndValidity({ emitEvent: false });
+      });
+
+    // 🔥 INITIAL LOAD (Edit Mode)
+    const initialIsDepreciable = isDepreciableCtrl.value;
+
+    if (!initialIsDepreciable) {
+      depreciableCostCtrl.setValue(unitPriceCtrl.value, { emitEvent: false });
+      depreciableCostCtrl.disable({ emitEvent: false });
+    }
+  }
+
 
   private setupCascadingDropdowns() {
     if (!this.form || !this.formConfig) return;
@@ -306,8 +493,10 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     const childControl = this.form!.get(childField.key);
     if (!childControl) return;
 
+    // Clear value if not initial load
     if (!isInitial && childField.clearOnParentChange !== false) {
       childControl.setValue(null);
+      childControl.markAsTouched();
     }
 
     if (!parentValue) {
@@ -316,6 +505,7 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // 🔥 Handle dynamic loading
     if (childField.loadOptionsOnChange) {
       this.setFieldLoading(childField.key, true);
       childControl.disable();
@@ -324,29 +514,68 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (options) => {
+            console.log(`✅ Loaded ${options.length} options for ${childField.key}`);
+
             this.updateFieldOptions(childField.key, options);
             this.setFieldLoading(childField.key, false);
             childControl.enable();
+
+            // Restore existing value during edit
+            if (isInitial && this.data?.data?.[childField.key]) {
+              const existingValue = this.data.data[childField.key];
+              const valueExists = options.some(opt => opt.value === existingValue);
+
+              if (valueExists) {
+                setTimeout(() => {
+                  childControl.setValue(existingValue);
+                  childControl.markAsTouched();
+                  childControl.updateValueAndValidity();
+                }, 100);
+              }
+            }
           },
           error: (error) => {
-            console.error(`Error loading options for ${childField.key}:`, error);
+            console.error(`❌ Error loading options for ${childField.key}:`, error);
             this.updateFieldOptions(childField.key, []);
             this.setFieldLoading(childField.key, false);
             childControl.enable();
           }
         });
-    } else if (childField.options && childField.cascadeProperty) {
+    }
+    // 🔥 Handle cached filtering (CRITICAL FIX)
+    else if (childField.options && childField.cascadeProperty) {
       const filteredOptions = childField.options.filter(opt =>
         opt[childField.cascadeProperty!] === parentValue
       );
 
+      console.log(`🔍 Filtered ${filteredOptions.length} options for ${childField.key} (parent=${parentValue})`);
+
+      // 🔥 CRITICAL: Update field options
       this.updateFieldOptions(childField.key, filteredOptions);
       childControl.enable();
+
+      // Restore existing value during edit
+      if (isInitial && this.data?.data?.[childField.key]) {
+        const existingValue = this.data.data[childField.key];
+        const valueExists = filteredOptions.some(opt => opt.value === existingValue);
+
+        if (valueExists) {
+          setTimeout(() => {
+            childControl.setValue(existingValue);
+            childControl.markAsTouched();
+            childControl.updateValueAndValidity();
+          }, 100);
+        } else {
+          console.warn(`⚠️ Existing value ${existingValue} not found in filtered options`);
+        }
+      }
     }
   }
 
   // 🔥 FIXED: Properly update field options AND the original field config
   private updateFieldOptions(fieldKey: string, options: any[]) {
+    console.log(`📝 Updating options for ${fieldKey}:`, options.length);
+
     // Update the signal map
     this.fieldOptionsMap.update(map => {
       const newMap = new Map(map);
@@ -354,14 +583,41 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       return newMap;
     });
 
-    // 🔥 CRITICAL FIX: Also update the original field config
-    if (this.formConfig) {
-      const field = this.formConfig.fields.find(f => f.key === fieldKey);
-      if (field && field.type === 'select') {
-        field.options = options;
+    // 🔥 Force change detection
+    if (this.form) {
+      const control = this.form.get(fieldKey);
+      if (control) {
+        control.updateValueAndValidity({ emitEvent: false });
       }
     }
   }
+
+  /**
+   * 🆕 DEBUG: Log current dropdown state
+   */
+  private debugDropdownState(fieldKey: string, message: string) {
+    console.group(`🐛 DEBUG: ${message}`);
+    console.log('Field:', fieldKey);
+    console.log('Options in map:', this.fieldOptionsMap().get(fieldKey)?.length || 0);
+
+    if (this.formConfig) {
+      const field = this.formConfig.fields.find(f => f.key === fieldKey);
+      if (field) {
+        console.log('Options in config:', field.options?.length || 0);
+        console.log('Cascade from:', field.cascadeFrom);
+        console.log('Cascade property:', field.cascadeProperty);
+      }
+    }
+
+    if (this.form) {
+      const control = this.form.get(fieldKey);
+      console.log('Control value:', control?.value);
+      console.log('Control disabled:', control?.disabled);
+    }
+
+    console.groupEnd();
+  }
+
 
   private setFieldLoading(fieldKey: string, loading: boolean) {
     this.fieldLoadingMap.update(map => {
@@ -369,6 +625,15 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       newMap.set(fieldKey, loading);
       return newMap;
     });
+
+    const control = this.form?.get(fieldKey);
+    if (!control) return;
+
+    if (loading) {
+      control.disable({ emitEvent: false });
+    } else {
+      control.enable({ emitEvent: false });
+    }
   }
 
   private setQuickAddLoading(fieldKey: string, loading: boolean) {
@@ -414,13 +679,143 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     return this.fieldLoadingMap().get(fieldKey) || false;
   }
 
+  isQuickAddDisabled(field: PopupField): boolean {
+    if (!field.quickAdd?.enabled) return true;
+
+    // Check if there's a condition for enabling
+    if (field.quickAdd.enableWhen) {
+      const parentFieldKey = field.quickAdd.enableWhen.field;
+      const parentControl = this.form?.get(parentFieldKey);
+
+      if (!parentControl) return true;
+
+      const parentValue = parentControl.value;
+
+      // Check hasValue condition
+      if (field.quickAdd.enableWhen.hasValue !== undefined) {
+        const hasValue = parentValue !== null &&
+          parentValue !== undefined &&
+          parentValue !== '';
+        return !hasValue;
+      }
+
+      // Check specific value condition
+      if (field.quickAdd.enableWhen.value !== undefined) {
+        return parentValue !== field.quickAdd.enableWhen.value;
+      }
+    }
+
+    // Check if field itself is disabled
+    if (field.disabled) return true;
+
+    // Check if field is in loading state
+    if (this.isFieldLoading(field.key)) return true;
+
+    // Check if Quick Add is already loading
+    if (this.isQuickAddLoading(field.key)) return true;
+
+    return false;
+  }
+
+  /**
+   * 🆕 Get tooltip for disabled Quick Add button
+   */
+  getQuickAddDisabledTooltip(field: PopupField): string {
+    if (!field.quickAdd?.enabled) {
+      return 'Quick add is not enabled';
+    }
+
+    if (field.quickAdd.enableWhen) {
+      const parentFieldKey = field.quickAdd.enableWhen.field;
+      const parentField = this.formConfig?.fields.find(f => f.key === parentFieldKey);
+      const parentLabel = parentField?.label || parentFieldKey;
+
+      if (field.quickAdd.enableWhen.hasValue) {
+        return `Select ${parentLabel} first to enable quick add`;
+      }
+
+      if (field.quickAdd.enableWhen.value !== undefined) {
+        return `${parentLabel} must be "${field.quickAdd.enableWhen.value}" to enable quick add`;
+      }
+    }
+
+    if (field.disabled) {
+      return 'Field is disabled';
+    }
+
+    if (this.isFieldLoading(field.key)) {
+      return 'Loading options...';
+    }
+
+    if (this.isQuickAddLoading(field.key)) {
+      return 'Adding new item...';
+    }
+
+    return field.quickAdd?.buttonLabel || 'Add new item';
+  }
+
   // 🆕 Enhanced Quick Add with better UX
   onQuickAddClick(field: PopupField, event: Event) {
     event.stopPropagation();
 
     if (!field.quickAdd || this.isQuickAddLoading(field.key)) return;
 
+    // Check if Quick Add should be disabled
+    if (this.isQuickAddDisabled(field)) {
+      console.warn('Quick Add is disabled for field:', field.key);
+      return;
+    }
+
     const quickAddConfig = field.quickAdd;
+
+    // 🔥 NEW: Handle parent context (auto-populate and lock)
+    if (quickAddConfig.parentContext) {
+      const parentFieldKey = quickAddConfig.parentContext.field;
+      const parentValue = this.form?.get(parentFieldKey)?.value;
+
+      console.log('🎯 Parent context:', {
+        parentField: parentFieldKey,
+        parentValue: parentValue,
+        autoPopulate: quickAddConfig.parentContext.autoPopulate,
+        lockParent: quickAddConfig.parentContext.lockParent
+      });
+
+      if (parentValue) {
+        // Find parent field in Quick Add popup
+        const parentFieldInPopup = quickAddConfig.fields.find(
+          f => f.key === `${parentFieldKey}Id` || f.key === parentFieldKey
+        );
+
+        if (parentFieldInPopup) {
+          if (quickAddConfig.parentContext.autoPopulate) {
+            parentFieldInPopup.value = parentValue;
+            console.log('✅ Auto-populated parent field:', parentFieldKey, '=', parentValue);
+          }
+
+          if (quickAddConfig.parentContext.lockParent) {
+            parentFieldInPopup.disabled = true;
+            console.log('🔒 Locked parent field:', parentFieldKey);
+          }
+        }
+      }
+    }
+
+    // 🔥 LEGACY: Support old enableWhen logic (backward compatibility)
+    else if (quickAddConfig.enableWhen) {
+      const parentFieldKey = quickAddConfig.enableWhen.field;
+      const parentValue = this.form?.get(parentFieldKey)?.value;
+
+      if (parentValue) {
+        const parentFieldInPopup = quickAddConfig.fields.find(
+          f => f.key === `${parentFieldKey}Id` || f.key === parentFieldKey
+        );
+
+        if (parentFieldInPopup) {
+          parentFieldInPopup.value = parentValue;
+          parentFieldInPopup.disabled = true;
+        }
+      }
+    }
 
     const nestedPopupConfig: PopupFormConfig = {
       title: quickAddConfig.popupTitle,
@@ -457,6 +852,52 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     });
   }
 
+
+  /**
+ * 🆕 Setup reactive Quick Add button state management
+ */
+  private setupQuickAddButtonStates() {
+    if (!this.form || !this.formConfig) return;
+
+    const fieldsWithQuickAdd = this.formConfig.fields.filter(
+      f => f.quickAdd?.enabled && f.quickAdd.enableWhen
+    );
+
+    fieldsWithQuickAdd.forEach(field => {
+      if (!field.quickAdd?.enableWhen) return;
+
+      const parentFieldKey = field.quickAdd.enableWhen.field;
+      const parentControl = this.form!.get(parentFieldKey);
+
+      if (!parentControl) return;
+
+      // Listen to parent field changes
+      parentControl.valueChanges
+        .pipe(
+          debounceTime(50),
+          distinctUntilChanged(),
+          takeUntil(this.destroy$)
+        )
+        .subscribe(value => {
+          const isDisabled = this.isQuickAddDisabled(field);
+
+          this.quickAddDisabledMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(field.key, isDisabled);
+            return newMap;
+          });
+        });
+
+      // Initial state
+      const initialDisabled = this.isQuickAddDisabled(field);
+      this.quickAddDisabledMap.update(map => {
+        const newMap = new Map(map);
+        newMap.set(field.key, initialDisabled);
+        return newMap;
+      });
+    });
+  }
+
   // 🔥 FIXED: Proper refresh and selection logic
   private handleQuickAddSubmit(field: PopupField, newData: any, quickAddConfig: any) {
     if (!quickAddConfig.onAdd) return;
@@ -471,16 +912,15 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
           // Use the refresh function to get updated options
           quickAddConfig.refreshOptions(response).subscribe({
             next: (newOptions: any[]) => {
-              console.log('✅ Refreshed options:', newOptions);
+              console.log('✅ Refreshed options:', newOptions.length);
 
-              // 🔥 CRITICAL: Update both the map AND the field config
+              // 🔥 CRITICAL: Update the field options in the map
               this.updateFieldOptions(field.key, newOptions);
 
               // Extract the newly created item's ID
               const newItemId = response?.data?.id || response?.id;
-              const newItemName = response?.data?.name || response?.name || 'New Item';
 
-              console.log('🎯 Selecting new item:', { id: newItemId, name: newItemName });
+              console.log('🎯 Selecting new item:', newItemId);
 
               // Auto-select the newly added item
               if (newItemId && this.form) {
@@ -493,6 +933,9 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
                     control.updateValueAndValidity();
 
                     console.log('✅ Value set in form control:', control.value);
+
+                    // 🔥 CRITICAL: Trigger cascade update for child fields
+                    this.triggerCascadeUpdate(field.key, newItemId);
                   }, 100);
                 }
               }
@@ -527,6 +970,8 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
                 control.setValue(newItemId);
                 control.markAsTouched();
                 control.updateValueAndValidity();
+
+                this.triggerCascadeUpdate(field.key, newItemId);
               }, 100);
             }
           }
@@ -539,6 +984,23 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         console.error('❌ Quick add error:', error);
         this.setQuickAddLoading(field.key, false);
       }
+    });
+  }
+
+  /**
+   * 🆕 NEW: Trigger cascade update for child fields
+   */
+  private triggerCascadeUpdate(parentFieldKey: string, parentValue: any) {
+    if (!this.formConfig) return;
+
+    // Find child fields that cascade from this parent
+    const childFields = this.formConfig.fields.filter(
+      f => f.cascadeFrom === parentFieldKey
+    );
+
+    childFields.forEach(childField => {
+      console.log('🔄 Triggering cascade update for child:', childField.key);
+      this.handleCascadeChange(childField, parentValue, false);
     });
   }
 
@@ -774,8 +1236,16 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
   isFieldInvalid(key: string): boolean {
     if (!this.form) return false;
     const control = this.form.get(key);
+
+    // 🔥 CRITICAL: Don't show errors for hidden fields
+    const field = this.formConfig?.fields.find(f => f.key === key);
+    if (field && !this.shouldShowField(field)) {
+      return false;
+    }
+
     return !!(control && control.invalid && (control.dirty || control.touched || this.submitted()));
   }
+
 
   getDisplayValue(field: PopupField): any {
     if (!this.data?.data) return null;
@@ -806,7 +1276,27 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     if (!this.form) return;
     this.submitted.set(true);
 
+    // 🔥 CRITICAL: Before validation, ensure hidden fields don't block submission
+    this.cleanupHiddenFields();
+
     if (!this.form.valid) {
+      console.warn('❌ Form invalid:', this.form.errors);
+
+      // Debug: Log invalid controls
+      Object.keys(this.form.controls).forEach(key => {
+        const control = this.form!.get(key);
+        if (control && control.invalid) {
+          const field = this.formConfig?.fields.find(f => f.key === key);
+          const isVisible = field ? this.shouldShowField(field) : true;
+          console.warn(`❌ Invalid field: ${key}`, {
+            errors: control.errors,
+            value: control.value,
+            isVisible,
+            disabled: control.disabled
+          });
+        }
+      });
+
       Object.keys(this.form.controls).forEach(key => this.form!.get(key)?.markAsTouched());
       return;
     }
@@ -838,11 +1328,80 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     }
   }
 
-  private finalizeSubmit() {
-    // 🔥 IMPORTANT: Get raw value to include disabled controls
-    const formValue = { ...this.form!.getRawValue() };
+  // ============================================================================
+  // 🔥 NEW: Clean up hidden fields before submission
+  // ============================================================================
+  private cleanupHiddenFields() {
+    if (!this.form || !this.formConfig) return;
 
-    // 🆕 Handle email verification: if toggle is disabled due to invalid email, set to false
+    this.formConfig.fields.forEach(field => {
+      const control = this.form!.get(field.key);
+      if (!control) return;
+
+      const isVisible = this.shouldShowField(field);
+
+      if (!isVisible) {
+        // Clear validators for hidden fields
+        control.clearValidators();
+
+        // Optionally clear value (uncomment if you want to remove hidden field data)
+        // control.setValue(null, { emitEvent: false });
+
+        control.updateValueAndValidity({ emitEvent: false });
+      }
+    });
+  }
+
+  // 5️⃣ UPDATE: Fixed final submit processing
+  private finalizeSubmit() {
+    if (!this.form) return;
+
+    const formValue = { ...this.form.getRawValue() };
+
+    console.log('📤 Form raw value:', formValue);
+
+    // 🔥 CRITICAL: Process file fields with proper naming
+    if (this.formConfig) {
+      this.formConfig.fields.forEach(field => {
+        if (field.type === 'file') {
+          const fieldKey = field.key;
+          const fileFieldKey = this.getFileFieldKey(fieldKey);
+          const pathFieldKey = this.getPathFieldKey(fieldKey);
+
+          // Check if user uploaded a NEW file
+          const newFile = this.fileMap().get(fileFieldKey);
+
+          if (newFile instanceof File) {
+            // 🔥 NEW FILE: Add with "File" suffix
+            formValue[fileFieldKey] = newFile;
+            delete formValue[fieldKey]; // Remove old key
+
+            console.log(`✅ NEW FILE: ${fileFieldKey}`, newFile.name);
+          } else {
+            // 🔥 EXISTING FILE: Preserve path
+            const existingUrl = this.filePreviewMap().get(fieldKey);
+
+            if (existingUrl && typeof existingUrl === 'string' && !existingUrl.startsWith('data:')) {
+              // Extract relative path from full URL
+              const relativePath = this.extractRelativePath(existingUrl);
+              formValue[pathFieldKey] = relativePath;
+
+              console.log(`✅ EXISTING FILE: ${pathFieldKey} = ${relativePath}`);
+            } else {
+              formValue[pathFieldKey] = null;
+            }
+
+            // Clean up File field if no new upload
+            delete formValue[fileFieldKey];
+            delete formValue[fieldKey];
+          }
+        }
+      });
+    }
+
+    console.log('📦 Final form data:', formValue);
+
+    // Handle email verification toggles
     if (this.formConfig) {
       const emailFields = this.formConfig.fields.filter(
         f => f.type === 'email' && f.showEmailVerification
@@ -852,9 +1411,18 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         const verificationKey = field.emailVerificationKey || 'isEmailVerified';
         const verificationControl = this.form!.get(verificationKey);
 
-        // If verification control is disabled and not from backend, ensure it's false
         if (verificationControl?.disabled && !this.isEmailAlreadyVerified(field)) {
           formValue[verificationKey] = false;
+        }
+      });
+    }
+
+    // Clean up hidden field values
+    if (this.formConfig) {
+      this.formConfig.fields.forEach(field => {
+        if (!this.shouldShowField(field)) {
+          // Optionally remove hidden field data
+          // delete formValue[field.key];
         }
       });
     }
@@ -864,9 +1432,23 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       data: formValue
     };
 
+    console.log('✅ Submitting:', result);
+
     this.dialogRef.close(result);
     this.loading.set(false);
     this.submitted.set(false);
+  }
+
+
+  private extractRelativePath(fullUrl: string): string {
+    try {
+      const url = new URL(fullUrl);
+      return url.pathname.startsWith('/')
+        ? url.pathname.substring(1)
+        : url.pathname;
+    } catch {
+      return fullUrl;
+    }
   }
 
   onConfirm() {
@@ -899,7 +1481,7 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       return !!dependentValue;
     }
 
-    // 🆕 Check new showIf logic (more flexible)
+    // Check new showIf logic (more flexible)
     if (field.showIf) {
       const conditionalField = field.showIf.field;
       const conditionalValue = field.showIf.value;
@@ -923,37 +1505,167 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     return true;
   }
 
-  // Add this new method to set up reactive showIf listeners:
   private setupConditionalDisplay() {
     if (!this.form || !this.formConfig) return;
 
-    const fieldsWithShowIf = this.formConfig.fields.filter(f => f.showIf);
+    const conditionalFields = this.formConfig.fields.filter(
+      f => f.showIf || f.dependsOn || f.conditionalRequired
+    );
 
-    fieldsWithShowIf.forEach(field => {
-      if (!field.showIf) return;
+    conditionalFields.forEach(childField => {
 
-      const watchedField = field.showIf.field;
-      const watchedControl = this.form!.get(watchedField);
+      /* ===============================
+         PART 1: EXISTING showIf / dependsOn LOGIC (UNCHANGED)
+         =============================== */
 
-      if (watchedControl) {
-        // Set up value change listener
-        watchedControl.valueChanges
-          .pipe(takeUntil(this.destroy$))
-          .subscribe(() => {
-            // Force Angular to re-evaluate *ngIf by triggering change detection
-            // This happens automatically, but we can add logic here if needed
+      const watchedFieldKey =
+        childField.showIf?.field ||
+        childField.dependsOn ||
+        childField.conditionalRequired?.field;
 
-            const childControl = this.form!.get(field.key);
-            if (childControl) {
-              // If field is now hidden and has a value, optionally clear it
-              if (!this.shouldShowField(field) && childControl.value) {
-                // Uncomment if you want to clear hidden fields:
-                // childControl.setValue(null);
-              }
+      if (!watchedFieldKey) return;
+
+      const watchedControl = this.form!.get(watchedFieldKey);
+      const childControl = this.form!.get(childField.key);
+
+      if (!watchedControl || !childControl) return;
+
+      watchedControl.valueChanges
+        .pipe(
+          debounceTime(100),
+          distinctUntilChanged(),
+          takeUntil(this.destroy$)
+        )
+        .subscribe(value => {
+
+          /* ---------- Visibility ---------- */
+          if (childField.showIf || childField.dependsOn) {
+            const shouldShow = this.evaluateFieldVisibility(childField, value);
+
+            if (shouldShow) {
+              this.enableFieldWithValidators(childField);
+            } else {
+              this.disableFieldAndClearValidators(childField);
             }
-          });
+          }
+
+          /* ===============================
+             PART 2: 🔥 CONDITIONAL REQUIRED (NEW)
+             =============================== */
+          if (childField.conditionalRequired) {
+            const shouldBeRequired =
+              value === childField.conditionalRequired.value;
+
+            if (shouldBeRequired) {
+              const baseValidators =
+                this.fieldValidatorsMap().get(childField.key) || [];
+
+              childControl.setValidators([
+                Validators.required,
+                ...baseValidators
+              ]);
+            } else {
+              childControl.clearValidators();
+            }
+          }
+
+          childControl.updateValueAndValidity({ emitEvent: false });
+        });
+
+      /* ===============================
+         PART 3: INITIAL LOAD (EDIT MODE FIX)
+         =============================== */
+
+      const initialValue = watchedControl.value;
+
+      // Visibility init
+      if (childField.showIf || childField.dependsOn) {
+        const shouldShow = this.evaluateFieldVisibility(childField, initialValue);
+        if (!shouldShow) {
+          this.disableFieldAndClearValidators(childField);
+        } else {
+          this.enableFieldWithValidators(childField);
+        }
+      }
+
+      // Conditional required init
+      if (childField.conditionalRequired) {
+        if (initialValue === childField.conditionalRequired.value) {
+          childControl.setValidators([Validators.required]);
+        } else {
+          childControl.clearValidators();
+        }
+        childControl.updateValueAndValidity({ emitEvent: false });
       }
     });
+  }
+
+
+  // ============================================================================
+  // 🔥 NEW: Evaluate field visibility based on conditions
+  // ============================================================================
+  private evaluateFieldVisibility(field: PopupField, parentValue: any): boolean {
+    // Check showIf condition (new flexible logic)
+    if (field.showIf) {
+      const conditionalValue = field.showIf.value;
+
+      if (typeof conditionalValue === 'boolean') {
+        return !!parentValue === conditionalValue;
+      }
+
+      return parentValue === conditionalValue;
+    }
+
+    // Check dependsOn condition (legacy logic)
+    if (field.dependsOn) {
+      if (field.dependsOnValue !== undefined) {
+        return parentValue === field.dependsOnValue;
+      }
+      return !!parentValue;
+    }
+
+    return true;
+  }
+
+  // ============================================================================
+  // 🔥 NEW: Enable field and restore its validators
+  // ============================================================================
+  private enableFieldWithValidators(field: PopupField) {
+    const control = this.form?.get(field.key);
+    if (!control) return;
+
+    // Restore validators from stored map
+    const validators = this.fieldValidatorsMap().get(field.key) || [];
+
+    if (validators.length > 0) {
+      control.setValidators(validators);
+    }
+
+    // Don't enable if it should be disabled for other reasons
+    if (!field.disabled && !field.cascadeFrom) {
+      control.enable({ emitEvent: false });
+    }
+
+    control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  // ============================================================================
+  // 🔥 NEW: Disable field and clear validators (critical for hidden fields)
+  // ============================================================================
+  private disableFieldAndClearValidators(field: PopupField) {
+    const control = this.form?.get(field.key);
+    if (!control) return;
+
+    // 🔥 CRITICAL: Clear all validators for hidden fields
+    control.clearValidators();
+
+    // 🔥 OPTION 1: Clear value (recommended for cleaner data)
+    // control.setValue(null, { emitEvent: false });
+
+    // 🔥 OPTION 2: Keep value but mark as valid (if you want to preserve data)
+    // This is better for cases where you want to keep the data even when hidden
+
+    control.updateValueAndValidity({ emitEvent: false });
   }
 
   trackByField(index: number, field: PopupField): string {
@@ -974,6 +1686,11 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
   }
 
   formatDisplayValue(field: PopupField, value: any): string {
+    // 🔥 CRITICAL: Never format info fields - they handle their own rendering
+    if (field.type === 'info') {
+      return ''; // Return empty string, let the template handle it
+    }
+
     // 🔥 CRITICAL: Never format file fields here
     if (field.type === 'file') {
       return ''; // File fields are handled separately in template
@@ -1057,7 +1774,6 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
   }
 
   private handleFileUpload(file: File, fieldKey: string) {
-    // Get field config
     const field = this.formConfig?.fields.find(f => f.key === fieldKey);
     if (!field) return;
 
@@ -1077,7 +1793,7 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
     // Validate file size
     if (field.maxFileSize) {
-      const maxSizeInBytes = field.maxFileSize * 1024 * 1024; // Convert MB to bytes
+      const maxSizeInBytes = field.maxFileSize * 1024 * 1024;
       if (file.size > maxSizeInBytes) {
         this.globalService.showToastr(
           `File size exceeds ${field.maxFileSize}MB limit`,
@@ -1087,20 +1803,22 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Store file
+    // 🔥 CRITICAL FIX: Store file with "File" suffix for backend
+    const fileFieldKey = this.getFileFieldKey(fieldKey);
+
     this.fileMap.update(map => {
       const newMap = new Map(map);
-      newMap.set(fieldKey, file);
+      newMap.set(fileFieldKey, file);
       return newMap;
     });
 
-    // Update form control
+    // 🔥 Update form control with File object
     if (this.form) {
       this.form.get(fieldKey)?.setValue(file);
       this.form.get(fieldKey)?.markAsTouched();
     }
 
-    // Create preview for images
+    // Create preview
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (e: any) => {
@@ -1112,20 +1830,61 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       };
       reader.readAsDataURL(file);
     } else {
-      // For non-images, store filename
       this.filePreviewMap.update(map => {
         const newMap = new Map(map);
         newMap.set(fieldKey, file.name);
         return newMap;
       });
     }
+
+    console.log('✅ File uploaded:', {
+      fieldKey,
+      fileFieldKey,
+      fileName: file.name,
+      fileSize: file.size
+    });
+  }
+
+  // 2️⃣ NEW: Helper to convert field key to backend expected format
+  private getFileFieldKey(fieldKey: string): string {
+    // Maps: imageUrl -> ImageFile, deliveryNote -> DeliveryNoteFile, etc.
+    const mapping: { [key: string]: string } = {
+      'imageUrl': 'ImageFile',
+      'imageFile': 'ImageFile',
+      'deliveryNote': 'DeliveryNoteFile',
+      'deliveryNoteFile': 'DeliveryNoteFile',
+      'purchaseReceipt': 'PurchaseReceiptFile',
+      'purchaseReceiptFile': 'PurchaseReceiptFile',
+      'invoice': 'InvoiceFile',
+      'invoiceFile': 'InvoiceFile'
+    };
+
+    return mapping[fieldKey] || fieldKey;
+  }
+
+  // 3️⃣ NEW: Helper to get path field key
+  private getPathFieldKey(fieldKey: string): string {
+    const mapping: { [key: string]: string } = {
+      'imageUrl': 'ImagePath',
+      'imageFile': 'ImagePath',
+      'deliveryNote': 'DeliveryNotePath',
+      'deliveryNoteFile': 'DeliveryNotePath',
+      'purchaseReceipt': 'PurchaseReceiptPath',
+      'purchaseReceiptFile': 'PurchaseReceiptPath',
+      'invoice': 'InvoicePath',
+      'invoiceFile': 'InvoicePath'
+    };
+
+    return mapping[fieldKey] || fieldKey;
   }
 
   removeFile(fieldKey: string) {
     // Clear file from map
+    const fileFieldKey = this.getFileFieldKey(fieldKey);
+
     this.fileMap.update(map => {
       const newMap = new Map(map);
-      newMap.delete(fieldKey);
+      newMap.delete(fileFieldKey);
       return newMap;
     });
 
@@ -1139,6 +1898,7 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     // Clear form control
     if (this.form) {
       this.form.get(fieldKey)?.setValue(null);
+      this.form.get(fieldKey)?.markAsTouched();
     }
 
     // Clear file input
@@ -1146,6 +1906,8 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     if (input) {
       input.value = '';
     }
+
+    console.log('🗑️ File removed:', { fieldKey, fileFieldKey });
   }
 
   getFilePreview(fieldKey: string): string | null {
@@ -1180,7 +1942,7 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     // Priority 1: Check preview map (newly uploaded files)
     const preview = this.filePreviewMap().get(fieldKey);
     if (preview && preview.trim() !== '') {
-      console.log(`✅ Found preview for ${fieldKey}:`, preview);
+      // console.log(`✅ Found preview for ${fieldKey}:`, preview);
       return preview;
     }
 
@@ -1424,5 +2186,49 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       console.error('❌ Download error:', error);
       this.globalService.showToastr('Failed to download file', 'error');
     }
+  }
+
+  isCompactFileField(field: PopupField): boolean {
+    if (field.type !== 'file') return false;
+
+    const config = this.formConfig || this.viewConfig;
+    if (!config) return false;
+
+    const columns = config.columns || 1;
+    const fieldSpan = field.colSpan || 1;
+
+    // Use compact mode for files in grids with 3+ columns
+    // and files that don't span the full width
+    return columns >= 3 && fieldSpan <= 2;
+  }
+
+  /**
+   * Get CSS classes for file field based on mode
+   */
+  getFileFieldClasses(field: PopupField): string[] {
+    const classes: string[] = [];
+
+    if (this.isCompactFileField(field)) {
+      classes.push('compact-file');
+    }
+
+    if (this.isViewType()) {
+      classes.push('view-mode');
+    }
+
+    return classes;
+  }
+
+  /**
+   * Get CSS classes for file view container
+   */
+  getFileViewContainerClasses(field: PopupField): string[] {
+    const classes: string[] = [];
+
+    if (this.isCompactFileField(field)) {
+      classes.push('compact-view');
+    }
+
+    return classes;
   }
 }

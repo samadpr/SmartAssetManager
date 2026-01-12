@@ -7,10 +7,14 @@ using SAMS.Models.CommonModels;
 using SAMS.Models.EmailServiceModels;
 using SAMS.Services.Account;
 using SAMS.Services.Account.Interface;
+using SAMS.Services.Asset_Status;
+using SAMS.Services.Asset_Status.Interface;
 using SAMS.Services.AssetAreas;
 using SAMS.Services.AssetAreas.Interface;
 using SAMS.Services.AssetCategory;
 using SAMS.Services.AssetCategory.Interface;
+using SAMS.Services.Assets;
+using SAMS.Services.Assets.Interface;
 using SAMS.Services.AssetSitesOrBranches;
 using SAMS.Services.AssetSitesOrBranches.Interface;
 using SAMS.Services.AssetSubCategory;
@@ -124,6 +128,15 @@ namespace SAMS.Extensions
 
             services.AddScoped<ISuppliersService, SuppliersService>();
             services.AddScoped<ISuppliersRepository, SuppliersRepository>();
+
+            services.AddScoped<IAssetsService, AssetsService>();
+            services.AddScoped<IAssetsRepository, AssetsRepository>();
+
+            services.AddScoped<FileUploadHelper>();
+            services.AddScoped<BarcodeQRGenerator>();
+
+            services.AddScoped<IAssetStatusService, AssetStatusService>();
+            services.AddScoped<IAssetStatusRepository, AssetStatusRepository>();
 
             return services;
         }

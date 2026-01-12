@@ -231,6 +231,9 @@ namespace SAMS.Migrations
                     b.Property<int?>("ApproverType")
                         .HasColumnType("int");
 
+                    b.Property<long?>("AreaId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("AreaNavigationId")
                         .HasColumnType("bigint");
 
@@ -259,11 +262,11 @@ namespace SAMS.Migrations
                     b.Property<int?>("AssetType")
                         .HasColumnType("int");
 
-                    b.Property<long?>("AssignEmployeeId")
-                        .HasColumnType("bigint");
-
                     b.Property<int?>("AssignTo")
                         .HasColumnType("int");
+
+                    b.Property<long?>("AssignUserId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Barcode")
                         .HasColumnType("nvarchar(max)");
@@ -338,9 +341,6 @@ namespace SAMS.Migrations
                     b.Property<bool?>("IsDepreciable")
                         .HasColumnType("bit");
 
-                    b.Property<long?>("Location")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("ModifiedBy")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -411,7 +411,7 @@ namespace SAMS.Migrations
 
                     b.HasIndex("AssetStatusNavigationId");
 
-                    b.HasIndex("AssignEmployeeId");
+                    b.HasIndex("AssignUserId");
 
                     b.HasIndex("CategoryNavigationId");
 
@@ -489,6 +489,9 @@ namespace SAMS.Migrations
                     b.Property<long?>("AreaId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("AreaIdFrom")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("AssetId")
                         .HasColumnType("bigint");
 
@@ -514,12 +517,6 @@ namespace SAMS.Migrations
                     b.Property<DateTime?>("DueDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<long>("EmployeeId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("EmployeeIdFrom")
-                        .HasColumnType("bigint");
-
                     b.Property<DateTime?>("Level1ApprovedDate")
                         .HasColumnType("datetime2");
 
@@ -537,12 +534,6 @@ namespace SAMS.Migrations
 
                     b.Property<string>("Level3Approvedby")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<long?>("LocationId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("LocationIdFrom")
-                        .HasColumnType("bigint");
 
                     b.Property<string>("ModifiedBy")
                         .IsRequired()
@@ -566,15 +557,21 @@ namespace SAMS.Migrations
                     b.Property<DateTime?>("TransferDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("UserIdFrom")
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AreaId");
 
                     b.HasIndex("AssetId");
 
-                    b.HasIndex("EmployeeId");
-
                     b.HasIndex("SiteId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("AssetAssigned");
                 });
@@ -671,7 +668,7 @@ namespace SAMS.Migrations
                     b.Property<long>("AssetId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("AssignEmployeeId")
+                    b.Property<long?>("AssignUserId")
                         .HasColumnType("bigint");
 
                     b.Property<bool>("Cancelled")
@@ -701,7 +698,7 @@ namespace SAMS.Migrations
 
                     b.HasIndex("AssetId");
 
-                    b.HasIndex("AssignEmployeeId");
+                    b.HasIndex("AssignUserId");
 
                     b.ToTable("AssetHistory");
                 });
@@ -907,6 +904,12 @@ namespace SAMS.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("EnumValue")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("bit");
+
                     b.Property<string>("ModifiedBy")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1042,6 +1045,9 @@ namespace SAMS.Migrations
 
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -1251,6 +1257,9 @@ namespace SAMS.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.ToTable("Department");
@@ -1286,6 +1295,9 @@ namespace SAMS.Migrations
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -1616,6 +1628,9 @@ namespace SAMS.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DepartmentId");
@@ -1840,9 +1855,6 @@ namespace SAMS.Migrations
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("EmployeeId")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("FirstName")
                         .HasColumnType("nvarchar(max)");
 
@@ -1877,7 +1889,7 @@ namespace SAMS.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("OrganizationId")
+                    b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("PhoneNumber")
@@ -1900,6 +1912,9 @@ namespace SAMS.Migrations
 
                     b.Property<long?>("SubDepartmentNavigationId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("UserProfileId");
 
@@ -1979,9 +1994,9 @@ namespace SAMS.Migrations
                         .WithMany("Assets")
                         .HasForeignKey("AssetStatusNavigationId");
 
-                    b.HasOne("SAMS.Models.UserProfile", "AssignEmployee")
+                    b.HasOne("SAMS.Models.UserProfile", "AssignUser")
                         .WithMany("Assets")
-                        .HasForeignKey("AssignEmployeeId");
+                        .HasForeignKey("AssignUserId");
 
                     b.HasOne("SAMS.Models.AssetCategorie", "CategoryNavigation")
                         .WithMany("Assets")
@@ -2011,7 +2026,7 @@ namespace SAMS.Migrations
 
                     b.Navigation("AssetStatusNavigation");
 
-                    b.Navigation("AssignEmployee");
+                    b.Navigation("AssignUser");
 
                     b.Navigation("CategoryNavigation");
 
@@ -2047,23 +2062,21 @@ namespace SAMS.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SAMS.Models.UserProfile", "Employee")
-                        .WithMany("AssetAssigneds")
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("SAMS.Models.AssetSite", "Site")
                         .WithMany("AssetAssigneds")
                         .HasForeignKey("SiteId");
+
+                    b.HasOne("SAMS.Models.UserProfile", "User")
+                        .WithMany("AssetAssigneds")
+                        .HasForeignKey("UserId");
 
                     b.Navigation("Area");
 
                     b.Navigation("Asset");
 
-                    b.Navigation("Employee");
-
                     b.Navigation("Site");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SAMS.Models.AssetHistory", b =>
@@ -2074,15 +2087,13 @@ namespace SAMS.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SAMS.Models.UserProfile", "AssignEmployee")
+                    b.HasOne("SAMS.Models.UserProfile", "AssignUser")
                         .WithMany("AssetHistories")
-                        .HasForeignKey("AssignEmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("AssignUserId");
 
                     b.Navigation("Asset");
 
-                    b.Navigation("AssignEmployee");
+                    b.Navigation("AssignUser");
                 });
 
             modelBuilder.Entity("SAMS.Models.AssetIssue", b =>
@@ -2107,7 +2118,7 @@ namespace SAMS.Migrations
             modelBuilder.Entity("SAMS.Models.AssetRequest", b =>
                 {
                     b.HasOne("SAMS.Models.UserProfile", "ApprovedByEmployee")
-                        .WithMany("AssetRequestApprovedByEmployees")
+                        .WithMany("AssetRequestApprovedByUsers")
                         .HasForeignKey("ApprovedByEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -2119,7 +2130,7 @@ namespace SAMS.Migrations
                         .IsRequired();
 
                     b.HasOne("SAMS.Models.UserProfile", "RequestedEmployee")
-                        .WithMany("AssetRequestRequestedEmployees")
+                        .WithMany("AssetRequestRequestedUsers")
                         .HasForeignKey("RequestedEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -2333,9 +2344,9 @@ namespace SAMS.Migrations
 
                     b.Navigation("AssetIssues");
 
-                    b.Navigation("AssetRequestApprovedByEmployees");
+                    b.Navigation("AssetRequestApprovedByUsers");
 
-                    b.Navigation("AssetRequestRequestedEmployees");
+                    b.Navigation("AssetRequestRequestedUsers");
 
                     b.Navigation("Assets");
                 });

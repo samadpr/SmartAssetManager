@@ -1,4 +1,5 @@
 ﻿using SAMS.Models;
+using SAMS.Services.ManageUserRoles.DTOs;
 
 namespace SAMS.Services.Common.Interface
 {
@@ -7,5 +8,7 @@ namespace SAMS.Services.Common.Interface
         Task InsertLoginHistory(LoginHistory loginHistory);
 
         Task<List<string>> GetEmailsUnderAdminAsync(string targetUserEmail);
+
+        Task<ManageUserRolesDto> GetUserRoleIdWithRoleDetailsByOrgIdAsync(long roleId);
     }
 }

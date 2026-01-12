@@ -99,6 +99,11 @@ export class SidebarComponent implements OnInit {
           icon: 'local_shipping',
           label: 'Suppliers',
           route: 'suppliers'
+        },
+        {
+          icon: 'rule',
+          label: 'Asset Approve',
+          route: 'asset-approve'
         }
       ]
     },

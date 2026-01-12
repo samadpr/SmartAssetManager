@@ -290,18 +290,78 @@
 
       <!-- Actions Column -->
       <ng-container matColumnDef="actions" *ngIf="config.actions?.length">
-        <th mat-header-cell *matHeaderCellDef class="actions-header">Actions</th>
+        <th mat-header-cell *matHeaderCellDef class="actions-header">
+          {{ config.actionsHeaderLabel || 'Actions' }}
+        </th>
         <td mat-cell *matCellDef="let row" class="actions-cell">
           <div class="action-buttons-cell">
-            <button *ngFor="let action of config.actions" 
-                    mat-icon-button
-                    [color]="action.color || 'primary'"
-                    [matTooltip]="action.tooltip || action.label"
-                    (click)="onActionClick(action.key, row, $event)"
-                    class="action-btn"
-                    [class.hidden]="action.hidden">
-              <mat-icon>{{ action.icon }}</mat-icon>
-            </button>
+            
+            <!-- ✅ START POSITION ACTIONS -->
+            <ng-container *ngIf="!hasReplaceActions()">
+              <ng-container *ngFor="let action of startActions()">
+                <button *ngIf="isActionVisible(action, row)"
+                        [ngClass]="getActionButtonClass(action)"
+                        [disabled]="isActionDisabled(action, row)"
+                        [matTooltip]="action.tooltip || action.label"
+                        (click)="onActionClick(action, row, $event)"
+                        [@buttonAnimation]>
+                  <mat-icon>{{ action.icon }}</mat-icon>
+                  <span *ngIf="action.buttonType !== 'icon' && action.buttonType !== 'fab' && action.buttonType !== 'mini-fab'" 
+                        class="btn-label">
+                    {{ action.label }}
+                  </span>
+                </button>
+              </ng-container>
+            </ng-container>
+          
+            <!-- ✅ DEFAULT ACTIONS (Edit/Delete - no position or position='end') -->
+            <ng-container *ngIf="!hasReplaceActions()">
+              <button *ngFor="let action of defaultActions()" 
+                      mat-icon-button
+                      [matTooltip]="action.tooltip || action.label"
+                      (click)="onActionClick(action.key, row, $event)"
+                      class="action-btn"
+                      [class.hidden]="action.hidden">
+                <mat-icon>{{ action.icon }}</mat-icon>
+              </button>
+            </ng-container>
+          
+            <!-- ✅ END POSITION ACTIONS (Custom styled buttons at end) -->
+            <ng-container *ngIf="!hasReplaceActions()">
+              <ng-container *ngFor="let action of endActions()">
+                <button *ngIf="isActionVisible(action, row)"
+                        [ngClass]="getActionButtonClass(action)"
+                        [disabled]="isActionDisabled(action, row)"
+                        [matTooltip]="action.tooltip || action.label"
+                        (click)="onActionClick(action, row, $event)"
+                        [@buttonAnimation]>
+                  <mat-icon>{{ action.icon }}</mat-icon>
+                  <span *ngIf="action.buttonType !== 'icon' && action.buttonType !== 'fab' && action.buttonType !== 'mini-fab'" 
+                        class="btn-label">
+                    {{ action.label }}
+                  </span>
+                </button>
+              </ng-container>
+            </ng-container>
+          
+            <!-- ✅ REPLACE ACTIONS (Completely replace default) -->
+            <ng-container *ngIf="hasReplaceActions()">
+              <ng-container *ngFor="let action of replaceActions()">
+                <button *ngIf="isActionVisible(action, row)"
+                        [ngClass]="getActionButtonClass(action)"
+                        [disabled]="isActionDisabled(action, row)"
+                        [matTooltip]="action.tooltip || action.label"
+                        (click)="onActionClick(action, row, $event)"
+                        [@buttonAnimation]>
+                  <mat-icon>{{ action.icon }}</mat-icon>
+                  <span *ngIf="action.buttonType !== 'icon' && action.buttonType !== 'fab' && action.buttonType !== 'mini-fab'" 
+                        class="btn-label">
+                    {{ action.label }}
+                  </span>
+                </button>
+              </ng-container>
+            </ng-container>
+          
           </div>
         </td>
       </ng-container>

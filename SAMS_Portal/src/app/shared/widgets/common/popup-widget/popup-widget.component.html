@@ -87,8 +87,10 @@
 
             <!-- Form Fields Grid -->
             <div class="form-grid" [ngClass]="{
-              'grid-2-column': config.columns === 2,
               'grid-1-column': config.columns === 1,
+              'grid-2-column': config.columns === 2,
+              'grid-3-column': config.columns === 3,
+              'grid-4-column': config.columns === 4,
               'compact': config.compactMode
             }">
               
@@ -97,6 +99,8 @@
                      [ngClass]="{
                        'span-1': field.colSpan === 1 || !field.colSpan,
                        'span-2': field.colSpan === 2,
+                       'span-3': field.colSpan === 3,
+                       'span-4': field.colSpan === 4,
                        'break-after': field.breakAfter,
                        'has-email-verification': field.type === 'email' && field.showEmailVerification
                      }"
@@ -147,9 +151,9 @@
                       <mat-error *ngIf="isFieldInvalid(field.key)">{{ getFieldError(field.key) }}</mat-error>
 
                       <!-- 🆕 Show hint for verification requirement -->
-                      <mat-hint *ngIf="!isEmailAlreadyVerified(field)">
+                      <!-- <mat-hint *ngIf="!isEmailAlreadyVerified(field)">
                         Enter a valid email to enable verification option
-                      </mat-hint>
+                      </mat-hint> -->
                     </mat-form-field>
                   
                     <!-- 🔥 UPDATED: Email Verification Toggle -->
@@ -245,29 +249,29 @@
                   </mat-form-field>
 
                   <!-- FILE UPLOAD -->
-                  <div *ngIf="field.type === 'file'" class="file-field">
-                    <div class="file-upload-container">
-                      
-                      <!-- Label Section -->
-                      <div class="file-label-section">
-                        <mat-icon class="file-icon">{{ field.icon || 'upload_file' }}</mat-icon>
-                        <label class="file-label">{{ field.label }}</label>
-                        <span *ngIf="field.required" class="required-indicator">*</span>
-                      </div>
+                  <div *ngIf="field.type === 'file'" class="file-field" [ngClass]="getFileFieldClasses(field)">
+                  <div class="file-upload-container">
                     
-                      <!-- Upload Area with Preview -->
-                      <div class="file-upload-area" 
+                    <!-- Label Section -->
+                    <div class="file-label-section">
+                      <mat-icon class="file-icon">{{ field.icon || 'upload_file' }}</mat-icon>
+                      <label class="file-label">{{ field.label }}</label>
+                      <span *ngIf="field.required" class="required-indicator">*</span>
+                    </div>
+                    
+                    <!-- Upload Area with Preview -->
+                    <div class="file-upload-area" 
                            [class.has-file]="getFilePreview(field.key)"
                            [class.drag-over]="isFileDragOver(field.key)"
                            (dragover)="onFileDragOver($event, field.key)"
                            (dragleave)="onFileDragLeave($event, field.key)"
                            (drop)="onFileDrop($event, field.key)">
-                      
+
                         <!-- No File State -->
                         <div *ngIf="!getFilePreview(field.key)" class="upload-prompt">
                           <mat-icon class="upload-icon">cloud_upload</mat-icon>
                           <p class="upload-text">
-                            Drag & drop file here or 
+                            Drag & drop or 
                             <button type="button" 
                                     mat-button 
                                     color="primary"
@@ -286,15 +290,15 @@
                         <!-- File Preview State -->
                         <div *ngIf="getFilePreview(field.key)" class="file-preview">
                           <div class="preview-content">
-                            
+
                             <!-- Image Preview -->
                             <div *ngIf="isImageFile(getFieldFileUrl(field.key)!)" class="image-preview-wrapper">
                               <img [src]="getFieldFileUrl(field.key)" 
                                    alt="Preview"
                                    [style.width]="field.previewWidth || '100%'"
-                                   [style.max-width]="'400px'"
+                                   [style.max-width]="isCompactFileField(field) ? '100%' : '400px'"
                                    [style.height]="field.previewHeight || 'auto'"
-                                   [style.max-height]="'300px'"
+                                   [style.max-height]="isCompactFileField(field) ? '120px' : '300px'"
                                    class="image-preview">
                             </div>
                           
@@ -348,6 +352,7 @@
                       </div>
                     </div>
                   </div>
+
                   
                   <!-- SELECT with cascading support AND QUICK ADD -->
                   <div *ngIf="field.type === 'select'" class="select-field-wrapper">
@@ -357,8 +362,7 @@
                       <mat-select [formControlName]="field.key"
                                   [matTooltip]="field.tooltip || ''"
                                   [matTooltipDisabled]="!field.tooltip"
-                                  [placeholder]="field.placeholder || 'Select ' + field.label"
-                                  [disabled]="isFieldLoading(field.key)">
+                                  [placeholder]="field.placeholder || 'Select ' + field.label" >
 
                         <!-- Loading State -->
                         <mat-option *ngIf="isFieldLoading(field.key)" disabled>
@@ -388,7 +392,8 @@
                         <!-- Regular Options -->
                         <ng-template #regularOptions>
                           <ng-container *ngIf="!isFieldLoading(field.key)">
-                            <mat-option *ngFor="let opt of (field.cascadeFrom ? getFieldOptions(field.key) : field.options)" 
+                            <!-- 🔥 ENTERPRISE FIX: Always use getFieldOptions() as single source of truth -->
+                            <mat-option *ngFor="let opt of getFieldOptions(field.key)" 
                                         [value]="opt.value" 
                                         [disabled]="opt.disabled"
                                         class="custom-option">
@@ -397,11 +402,13 @@
                               </div>
                             </mat-option>
 
-                            <!-- Empty State for Cascading -->
+                            <!-- Empty State for Cascading - Show when parent not selected -->
                             <mat-option *ngIf="field.cascadeFrom && getFieldOptions(field.key).length === 0" disabled>
                               <div class="empty-option">
                                 <mat-icon class="empty-icon">info_outline</mat-icon>
-                                <span>{{ field.placeholder || 'No options available' }}</span>
+                                <span>
+                                  {{ field.placeholder || ('Select ' + (field.cascadeFrom || 'parent field') + ' first') }}
+                                </span>
                               </div>
                             </mat-option>
                           </ng-container>
@@ -430,8 +437,9 @@
                                 class="quick-add-button"
                                 [class.loading]="isQuickAddLoading(field.key)"
                                 [class.success]="isQuickAddSuccess(field.key)"
-                                [matTooltip]="field.quickAdd?.buttonLabel || 'Add New ' + field.label"
-                                [disabled]="isQuickAddLoading(field.key)"
+                                [class.disabled]="isQuickAddDisabled(field)"
+                                [matTooltip]="isQuickAddDisabled(field) ? getQuickAddDisabledTooltip(field) : (field.quickAdd?.buttonLabel || 'Add New ' + field.label)"
+                                [disabled]="isQuickAddLoading(field.key) || isQuickAddDisabled(field)"
                                 (click)="onQuickAddClick(field, $event)"
                                 [@successPulse]="isQuickAddSuccess(field.key) ? 'success' : 'idle'">
 
@@ -442,13 +450,18 @@
                           <mat-icon *ngIf="isQuickAddSuccess(field.key)" class="success-icon">
                             check_circle
                           </mat-icon>
-
-                          <mat-icon *ngIf="!isQuickAddLoading(field.key) && !isQuickAddSuccess(field.key)" class="add-icon">
+                        
+                          <mat-icon *ngIf="!isQuickAddLoading(field.key) && !isQuickAddSuccess(field.key)" 
+                                    class="add-icon"
+                                    [class.disabled-icon]="isQuickAddDisabled(field)">
                             {{ field.quickAdd?.buttonIcon || 'add_circle_outline' }}
                           </mat-icon>
                         </button>
-
-                        <span class="quick-add-hint">Quick add</span>
+                      
+                        <span class="quick-add-hint" 
+                              [class.disabled-hint]="isQuickAddDisabled(field)">
+                          Quick add
+                        </span>
                       </div>
 
                       <mat-error *ngIf="isFieldInvalid(field.key)">
@@ -555,9 +568,12 @@
                   </div>
 
                   <!-- DIVIDER FIELD -->
-                  <div *ngIf="field.type === 'divider'" class="divider-field">
+                  <div *ngIf="field.type === 'divider'" 
+                       class="divider-field"
+                       [class.view-divider]="isViewType()">
                     <mat-divider></mat-divider>
                     <span *ngIf="field.label" class="divider-label">{{ field.label }}</span>
+                    <!-- <mat-divider></mat-divider> -->
                   </div>
 
                 </div>
@@ -640,21 +656,38 @@
           
           <!-- Field Display Grid -->
           <div class="view-grid" [ngClass]="{
-            'grid-2-column': config.columns === 2,
             'grid-1-column': config.columns === 1,
+            'grid-2-column': config.columns === 2,
+            'grid-3-column': config.columns === 3,
+            'grid-4-column': config.columns === 4,
             'compact': config.compactMode
           }">
             
             <ng-container *ngFor="let field of config.fields; trackBy: trackByField">
+              <!-- 🆕 DIVIDER FIELD (OUTSIDE field-display) -->
+              <div *ngIf="field.type === 'divider' && shouldShowField(field)" 
+                   class="view-field divider-view-field"
+                   [ngClass]="{
+                     'span-4': true,
+                     'break-after': field.breakAfter
+                   }"
+                   [@fadeInOut]>
+                <div class="divider-field view-divider">
+                  <mat-divider></mat-divider>
+                  <span *ngIf="field.label" class="divider-label">{{ field.label }}</span>
+                </div>
+              </div>
               <div class="view-field" 
                    [ngClass]="{
                      'span-1': (field.colSpan === 1 || !field.colSpan) && field.type !== 'file',
                      'span-2': field.colSpan === 2 || field.type === 'file',
+                     'span-3': field.colSpan === 3,
+                     'span-4': field.colSpan === 4,
                      'break-after': field.breakAfter,
                      'file-field-view': field.type === 'file'
                    }"
                    [@fadeInOut]
-                   *ngIf="shouldShowField(field)">
+                   *ngIf="shouldShowField(field) && field.type !== 'divider'">
                   
                 <div class="field-display">
                   <div class="field-header">
@@ -665,19 +698,20 @@
                   <!-- 🔥 FILE FIELD (PRIORITY CHECK) -->
                   <ng-container *ngIf="field.type === 'file'; else nonFileField">
                     <div class="field-value file-field-value">
-                      
+
                       <!-- File Exists -->
                       <ng-container *ngIf="getFieldFileUrl(field.key) as fileUrl; else noFileInView">
-                        <div class="file-view-container">
-                        
+                        <div class="file-view-container"
+                             [ngClass]="getFileViewContainerClasses(field)">
+
                           <!-- Image Preview -->
                           <div *ngIf="isImageFile(fileUrl)" class="file-image-preview">
                             <img [src]="fileUrl" 
                                  [alt]="field.label"
                                  [style.width]="field.previewWidth || '100%'"
-                                 [style.max-width]="'500px'"
+                                 [style.max-width]="isCompactFileField(field) ? '100%' : '500px'"
                                  [style.height]="field.previewHeight || 'auto'"
-                                 [style.max-height]="'400px'"
+                                 [style.max-height]="isCompactFileField(field) ? '180px' : '400px'"
                                  class="preview-image"
                                  loading="lazy"
                                  (error)="onImageError($event)">
@@ -725,7 +759,8 @@
                     
                       <!-- No File Template -->
                       <ng-template #noFileInView>
-                        <div class="no-file-view">
+                        <div class="no-file-view"
+                             [ngClass]="getFileViewContainerClasses(field)">
                           <mat-icon class="no-file-icon">insert_drive_file</mat-icon>
                           <span class="no-file-text">No file uploaded</span>
                         </div>
@@ -745,6 +780,19 @@
                            'value-checkbox': field.type === 'checkbox',
                            'value-country': field.key === 'country'
                          }">
+
+                      <!-- 🔥 INFO FIELD - HANDLE SEPARATELY -->
+                      <ng-container *ngIf="field.type === 'info'">
+                        <div class="info-value-display" 
+                             [class.depreciation-schedule-container]="field.key === 'depreciationScheduleDisplay'"
+                             [innerHTML]="sanitizeHtml(field.value)"></div>
+
+                        <div *ngIf="field.helperText && field.key !== 'depreciationScheduleDisplay'" 
+                             class="info-helper-text">
+                          {{ field.helperText }}
+                        </div>
+                      </ng-container>
+                    
                       
                       <!-- Country Display -->
                       <div *ngIf="field.key === 'country' && getDisplayValue(field)" class="country-display-value">
@@ -758,7 +806,7 @@
                       
                       <!-- Regular Text/Number/Date -->
                       <span class="formatted-value" 
-                            *ngIf="field.type !== 'checkbox' && field.key !== 'country' && field.type !== 'email'">
+                            *ngIf="field.type !== 'checkbox' && field.key !== 'country' && field.type !== 'email' && field.type !== 'info'">
                         {{ formatDisplayValue(field, getDisplayValue(field)) }}
                       </span>
                     

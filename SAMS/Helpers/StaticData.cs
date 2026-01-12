@@ -1,4 +1,6 @@
-﻿namespace SAMS.Helpers
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SAMS.Helpers
 {
     public class StaticData
     {
@@ -21,5 +23,6 @@
             public const string connMSSQLProd = "connMSSQLProd";
             public const string connOthers = "connOthers";
         }
+
     }
 }

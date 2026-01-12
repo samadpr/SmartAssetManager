@@ -1005,23 +1005,38 @@
 
   // Actions Cell
   .actions-cell {
-    width: 120px;
+    width: auto;
+    min-width: 120px;
+    max-width: 500px; // Increased for multiple buttons
     padding: 8px 16px;
     text-align: center;
 
     .action-buttons-cell {
       display: flex;
-      gap: 4px;
+      gap: 8px;
       justify-content: center;
+      align-items: center;
+      flex-wrap: nowrap;
 
+      // ============================================================================
+      // 🎨 BASE ACTION BUTTON STYLES
+      // ============================================================================
       .action-btn {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
         transition: var(--transition);
+        flex-shrink: 0;
 
-        &:hover {
-          transform: scale(1.1);
+        &:hover:not([disabled]) {
+          transform: scale(1.08);
+        }
+
+        &:active:not([disabled]) {
+          transform: scale(0.95);
+        }
+
+        &[disabled] {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
         }
 
         &.hidden {
@@ -1029,13 +1044,349 @@
         }
 
         mat-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      // ============================================================================
+      // 🎨 BUTTON TYPE STYLES
+      // ============================================================================
+
+      // Icon Button (Default)
+      .btn-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--mat-sys-corner-full);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+
+        &:hover:not([disabled]) {
+          background: var(--mat-sys-surface-container-high);
+        }
+      }
+
+      // Raised Button
+      .btn-raised {
+        min-width: 100px;
+        height: 36px;
+        border-radius: var(--mat-sys-corner-full);
+        padding: 0 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: var(--mat-sys-elevation-1);
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+
+        &:hover:not([disabled]) {
+          box-shadow: var(--mat-sys-elevation-2);
+        }
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+
+        .btn-label {
+          font: var(--mat-sys-label-large);
+          font-weight: 500;
+          text-transform: none;
+        }
+      }
+
+      // Flat Button
+      .btn-flat {
+        min-width: 100px;
+        height: 36px;
+        border-radius: var(--mat-sys-corner-full);
+        padding: 0 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        background: transparent;
+
+        &:hover:not([disabled]) {
+          background: var(--mat-sys-surface-container-high);
+        }
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+
+        .btn-label {
+          font: var(--mat-sys-label-large);
+          font-weight: 500;
+          text-transform: none;
+        }
+      }
+
+      // Stroked Button
+      .btn-stroked {
+        min-width: 100px;
+        height: 36px;
+        border-radius: var(--mat-sys-corner-full);
+        padding: 0 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 2px solid var(--mat-sys-outline);
+        background: transparent;
+        cursor: pointer;
+        font-family: inherit;
+
+        &:hover:not([disabled]) {
+          background: var(--mat-sys-surface-container-highest);
+          border-color: var(--mat-sys-outline-variant);
+        }
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+
+        .btn-label {
+          font: var(--mat-sys-label-large);
+          font-weight: 500;
+          text-transform: none;
+        }
+      }
+
+      // FAB Button
+      .btn-fab {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--mat-sys-corner-full);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--mat-sys-elevation-3);
+        border: none;
+        cursor: pointer;
+
+        &:hover:not([disabled]) {
+          box-shadow: var(--mat-sys-elevation-4);
+        }
+
+        mat-icon {
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+      }
+
+      // Mini FAB Button
+      .btn-mini-fab {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--mat-sys-corner-full);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--mat-sys-elevation-2);
+        border: none;
+        cursor: pointer;
+
+        &:hover:not([disabled]) {
+          box-shadow: var(--mat-sys-elevation-3);
+        }
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      // ============================================================================
+      // 🎨 COLOR VARIANTS
+      // ============================================================================
+
+      // Primary (Default)
+      .btn-primary {
+        &.btn-raised,
+        &.btn-flat,
+        &.btn-fab,
+        &.btn-mini-fab {
+          background: var(--mat-sys-primary);
+          color: var(--mat-sys-on-primary);
+        }
+
+        &.btn-icon {
+          color: var(--mat-sys-primary);
+
+          &:hover:not([disabled]) {
+            background: var(--mat-sys-primary-container);
+          }
+        }
+
+        &.btn-stroked {
+          border-color: var(--mat-sys-primary);
+          color: var(--mat-sys-primary);
+
+          &:hover:not([disabled]) {
+            background: var(--mat-sys-primary-container);
+          }
+        }
+      }
+
+      // Accent
+      .btn-accent {
+        &.btn-raised,
+        &.btn-flat,
+        &.btn-fab,
+        &.btn-mini-fab {
+          background: var(--mat-sys-tertiary);
+          color: var(--mat-sys-on-tertiary);
+        }
+
+        &.btn-icon {
+          color: var(--mat-sys-tertiary);
+
+          &:hover:not([disabled]) {
+            background: var(--mat-sys-tertiary-container);
+          }
+        }
+
+        &.btn-stroked {
+          border-color: var(--mat-sys-tertiary);
+          color: var(--mat-sys-tertiary);
+
+          &:hover:not([disabled]) {
+            background: var(--mat-sys-tertiary-container);
+          }
+        }
+      }
+
+      // Warn
+      .btn-warn {
+        &.btn-raised,
+        &.btn-flat,
+        &.btn-fab,
+        &.btn-mini-fab {
+          background: var(--mat-sys-error);
+          color: var(--mat-sys-on-error);
+        }
+
+        &.btn-icon {
+          color: var(--mat-sys-error);
+
+          &:hover:not([disabled]) {
+            background: var(--mat-sys-error-container);
+          }
+        }
+
+        &.btn-stroked {
+          border-color: var(--mat-sys-error);
+          color: var(--mat-sys-error);
+
+          &:hover:not([disabled]) {
+            background: var(--mat-sys-error-container);
+          }
+        }
+      }
+
+      // Success (Custom)
+      .btn-success {
+        &.btn-raised,
+        &.btn-flat,
+        &.btn-fab,
+        &.btn-mini-fab {
+          background: #4caf50;
+          color: #ffffff;
+        }
+
+        &.btn-icon {
+          color: #4caf50;
+
+          &:hover:not([disabled]) {
+            background: color-mix(in srgb, #4caf50 15%, transparent);
+          }
+        }
+
+        &.btn-stroked {
+          border-color: #4caf50;
+          color: #4caf50;
+
+          &:hover:not([disabled]) {
+            background: color-mix(in srgb, #4caf50 10%, transparent);
+          }
+        }
+      }
+
+      // Info (Custom)
+      .btn-info {
+        &.btn-raised,
+        &.btn-flat,
+        &.btn-fab,
+        &.btn-mini-fab {
+          background: #2196f3;
+          color: #ffffff;
+        }
+
+        &.btn-icon {
+          color: #2196f3;
+
+          &:hover:not([disabled]) {
+            background: color-mix(in srgb, #2196f3 15%, transparent);
+          }
+        }
+
+        &.btn-stroked {
+          border-color: #2196f3;
+          color: #2196f3;
+
+          &:hover:not([disabled]) {
+            background: color-mix(in srgb, #2196f3 10%, transparent);
+          }
         }
       }
     }
   }
+
+  // // ============================================================================
+  // // 🆕 RESPONSIVE ACTIONS
+  // // ============================================================================
+  // @media (max-width: 768px) {
+  //   .actions-cell {
+  //     .action-buttons-cell {
+  //       flex-direction: column;
+  //       gap: 4px;
+  //       flex-wrap: nowrap;
+
+  //       .action-btn {
+  //         &.btn-raised,
+  //         &.btn-flat,
+  //         &.btn-stroked {
+  //           width: 100%;
+  //           justify-content: flex-start;
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 }
 
 // Verified Pulse Animation
@@ -1195,18 +1546,19 @@
       }
     }
 
-    .actions-cell .action-buttons-cell {
-      flex-direction: column;
-      gap: 2px;
+    .actions-cell {
+      .action-buttons-cell {
+        flex-direction: row;
+        gap: 4px;
+        flex-wrap: nowrap;
 
-      .action-btn {
-        width: 28px;
-        height: 28px;
-
-        mat-icon {
-          font-size: 14px;
-          width: 14px;
-          height: 14px;
+        .action-btn {
+          &.btn-raised,
+          &.btn-flat,
+          &.btn-stroked {
+            width: 100%;
+            justify-content: flex-start;
+          }
         }
       }
     }

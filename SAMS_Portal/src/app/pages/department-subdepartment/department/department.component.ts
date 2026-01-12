@@ -76,15 +76,19 @@ export class DepartmentComponent implements OnInit {
         key: 'edit',
         label: 'Edit',
         icon: 'edit',
+        buttonType: 'icon',
         color: 'primary',
-        tooltip: 'Edit department'
+        tooltip: 'Edit asset',
+        // position: 'end' // Default position
       },
       {
         key: 'delete',
         label: 'Delete',
         icon: 'delete',
+        buttonType: 'icon',
         color: 'warn',
-        tooltip: 'Delete department'
+        tooltip: 'Delete asset',
+        // position: 'end'
       }
     ]
   };

@@ -1,0 +1,105 @@
+// Type Badge Styling in Table (if needed for custom rendering)
+.type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.875rem;
+    font-weight: 500;
+
+    &.type-site {
+        background: var(--mat-sys-primary-container);
+        color: var(--mat-sys-on-primary-container);
+    }
+
+    &.type-branch {
+        background: var(--mat-sys-secondary-container);
+        color: var(--mat-sys-on-secondary-container);
+    }
+
+    mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+    }
+}
+
+// Enhanced Radio Button Styling in Popup
+::ng-deep {
+    .radio-field {
+        .radio-group {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-around !important;
+            gap: 16px;
+            padding: 5px 0;
+
+            @media (max-width: 768px) {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .mat-mdc-radio-button {
+                // flex: 1;
+
+                .mdc-form-field {
+                    width: 100%;
+
+                    >label {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 16px 24px;
+                        border-radius: var(--mat-sys-corner-large);
+                        border: 2px solid var(--mat-sys-outline-variant);
+                        background: var(--mat-sys-surface-container-low);
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        cursor: pointer;
+                        font-weight: 500 !important;
+                        min-height: 64px;
+                        width: 100px;
+
+                        &:hover {
+                            border-color: var(--mat-sys-outline);
+                            background: var(--mat-sys-surface-container);
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                        }
+                    }
+                }
+
+                // When radio is checked
+                &.mat-mdc-radio-checked {
+                    .mdc-form-field>label {
+                        border-color: var(--mat-sys-primary);
+                        background: var(--mat-sys-primary-container);
+                        color: var(--mat-sys-on-primary-container);
+                        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+                    }
+
+                    .mdc-radio {
+                        .mdc-radio__native-control:enabled:checked+.mdc-radio__background {
+                            .mdc-radio__outer-circle {
+                                border-color: var(--mat-sys-primary);
+                            }
+
+                            .mdc-radio__inner-circle {
+                                background-color: var(--mat-sys-primary);
+                            }
+                        }
+                    }
+                }
+
+                // Radio button hidden style
+                .mdc-radio {
+                    position: absolute;
+                    display: none !important;
+                    left: 12px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                }
+            }
+        }
+    }
+}

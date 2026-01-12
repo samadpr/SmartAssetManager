@@ -9,7 +9,7 @@ public class UserProfile : EntityBase
 
     public string? ApplicationUserId { get; set; }
 
-    public string? EmployeeId { get; set; }
+    public string? UserId { get; set; }
 
     public string? FirstName { get; set; }
 
@@ -53,7 +53,7 @@ public class UserProfile : EntityBase
 
     public bool? Level3Approval { get; set; }
 
-    public Guid? OrganizationId { get; set; }
+    public Guid OrganizationId { get; set; }
 
     public virtual ICollection<AssetAssigned> AssetAssigneds { get; set; } = new List<AssetAssigned>();
 
@@ -61,9 +61,9 @@ public class UserProfile : EntityBase
 
     public virtual ICollection<AssetIssue> AssetIssues { get; set; } = new List<AssetIssue>();
 
-    public virtual ICollection<AssetRequest> AssetRequestApprovedByEmployees { get; set; } = new List<AssetRequest>();
+    public virtual ICollection<AssetRequest> AssetRequestApprovedByUsers { get; set; } = new List<AssetRequest>();
 
-    public virtual ICollection<AssetRequest> AssetRequestRequestedEmployees { get; set; } = new List<AssetRequest>();
+    public virtual ICollection<AssetRequest> AssetRequestRequestedUsers { get; set; } = new List<AssetRequest>();
 
     public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
 

@@ -21,6 +21,8 @@ public interface IUserProfileService
 
     Task<(IEnumerable<GetProfileDetailsResponseObject> responseObject, bool isSuccess, string message)> GetCreatedUserProfilesDetails(string email);
 
+    Task<(IEnumerable<UsersListDto> UserList, bool Success, string Message)> GetAllOrganizationUsers();
+
     Task<(bool success, string message)> UpdateCreatedUserProfileAsync( UserProfileDto userProfile, string createdBy);
 
     Task<(bool success, string message)> DeleteCreatedUserProfile(long id, string modifiedBy);

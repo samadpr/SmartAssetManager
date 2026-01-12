@@ -2,3 +2,17 @@
     { label: 'Asset' }
   ]">
 </app-page-header>
+
+<div class="assets-page">
+  <app-list-widget 
+    [config]="listConfig" 
+    [data]="assets()" 
+    [loading]="loading()"
+    (actionClick)="onActionClick($event)" 
+    (addClick)="onAddAsset()" 
+    (refreshClick)="onRefresh()"
+    (selectionChange)="onSelectionChange($event)"
+    (selectionAction)="onSelectionAction($event)"
+    (rowClick)="onRowClick($event)">
+  </app-list-widget>
+</div>

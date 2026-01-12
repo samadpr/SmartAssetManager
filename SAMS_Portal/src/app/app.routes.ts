@@ -25,6 +25,7 @@ import { AssetSubCategoryComponent } from './pages/assets/asset-category/asset-s
 import { LoginAccessComponent } from './pages/users/login-access/login-access.component';
 import { UserPasswordSetupComponent } from './pages/users/user-password-setup/user-password-setup.component';
 import { SupplierComponent } from './pages/assets/supplier/supplier.component';
+import { AssetApproveComponent } from './pages/assets/asset-approve/asset-approve.component';
 
 export const routes: Routes = [
     {
@@ -73,6 +74,10 @@ export const routes: Routes = [
             {
                 path: 'assets/suppliers',
                 component: SupplierComponent
+            },
+            {
+                path: 'assets/asset-approve',
+                component: AssetApproveComponent
             },
             {
                 path: 'asset-category',
