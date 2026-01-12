@@ -151,6 +151,18 @@ namespace SAMS.API.UserProfile
             return Ok(new { success = true, message = result.message, data = result.responseObject });
         }
 
+
+        [Authorize(Roles = RoleModels.UserProfile)]
+        [HttpGet("user-profile/get-organization-users")]
+        public async Task<IActionResult> GetAllOrganizationUsers()
+        {
+            var userProfile = await _userProfileService.GetAllOrganizationUsers();
+            if (!userProfile.Success)
+                return NotFound(new { success = false, message = "No users found." });
+
+            return Ok(new { success = true, message = "Users fetched successfully", data = userProfile.UserList });
+        }
+
         [Authorize(Roles = RoleModels.UserManagement)]
         [HttpPut("user-profile/update-created-user-profile")]
         public async Task<IActionResult> UpdateCreatedUserProfile([FromBody] UserProfileRequestObject request)

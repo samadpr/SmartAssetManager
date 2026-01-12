@@ -6,7 +6,7 @@
 
         public string? ApplicationUserId { get; set; }
 
-        public string? EmployeeId { get; set; }
+        public string? UserId { get; set; }
 
         public string? FirstName { get; set; }
 

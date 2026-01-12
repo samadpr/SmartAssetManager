@@ -31,13 +31,13 @@ public partial class ApplicationDbContext : AuditableIdentityContext
 
         builder.Entity<AssetRequest>()
             .HasOne(ar => ar.ApprovedByEmployee)
-            .WithMany(up => up.AssetRequestApprovedByEmployees)
+            .WithMany(up => up.AssetRequestApprovedByUsers)
             .HasForeignKey(ar => ar.ApprovedByEmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Entity<AssetRequest>()
             .HasOne(ar => ar.RequestedEmployee)
-            .WithMany(up => up.AssetRequestRequestedEmployees)
+            .WithMany(up => up.AssetRequestRequestedUsers)
             .HasForeignKey(ar => ar.RequestedEmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
 
@@ -55,7 +55,11 @@ public partial class ApplicationDbContext : AuditableIdentityContext
 
                 var currentOrg = Expression.Call(Expression.Constant(this), method!);
 
-                var body = Expression.Equal(orgProperty, currentOrg);
+                var emptyGuid = Expression.Constant(Guid.Empty);
+                var body = Expression.OrElse(
+                    Expression.Equal(orgProperty, currentOrg),
+                    Expression.Equal(orgProperty, emptyGuid)
+                );
 
                 var lambda = Expression.Lambda(body, param);
 

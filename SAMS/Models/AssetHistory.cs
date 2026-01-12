@@ -10,7 +10,7 @@ public class AssetHistory : TenantEntityBase
 
     public long AssetId { get; set; }
 
-    public long AssignEmployeeId { get; set; }
+    public long? AssignUserId { get; set; }
 
     public string? Action { get; set; }
 
@@ -18,5 +18,5 @@ public class AssetHistory : TenantEntityBase
 
     public virtual Asset Asset { get; set; } = null!;
 
-    public virtual UserProfile AssignEmployee { get; set; } = null!;
+    public virtual UserProfile AssignUser { get; set; } = null!;
 }

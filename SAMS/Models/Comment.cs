@@ -1,9 +1,10 @@
-﻿using System;
+﻿using SAMS.Models.CommonModels.Abstract;
+using System;
 using System.Collections.Generic;
 
 namespace SAMS.Models;
 
-public class Comment : EntityBase
+public class Comment : TenantEntityBase
 {
     public long Id { get; set; }
 

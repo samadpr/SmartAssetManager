@@ -1,4 +1,5 @@
 ﻿using SAMS.Data;
+using SAMS.Helpers;
 using SAMS.Helpers.Enum;
 using SAMS.Models;
 using SAMS.Services.Common.DTOs;
@@ -15,12 +16,14 @@ namespace SAMS.Services.Common
         private readonly ILogger<CommonService> _logger;
         private readonly ICommonRepository _commonRepository;
         private readonly IUserProfileRepository _userProfileRepository;
+        private readonly ICompanyContext _companyContext;
 
-        public CommonService(ILogger<CommonService> logger, ICommonRepository commonRepository, IUserProfileRepository userProfileRepository)
+        public CommonService(ILogger<CommonService> logger, ICommonRepository commonRepository, IUserProfileRepository userProfileRepository, ICompanyContext companyContext)
         {
             _logger = logger;
             _commonRepository = commonRepository;
             _userProfileRepository = userProfileRepository;
+            _companyContext = companyContext;
         }
 
         public async Task<CreatorDto> GetAdminOrCreatorInfoAsync(string currentUserEmail)
@@ -63,7 +66,7 @@ namespace SAMS.Services.Common
             }
         }
 
-        public async Task<Guid?> GetOrganizationIdAsync(string createdBy)
+        public async Task<Guid> GetOrganizationIdAsync(string createdBy)
         {
             try
             {
@@ -98,6 +101,34 @@ namespace SAMS.Services.Common
             {
                 _logger.LogError(ex, "Failed to insert login history for user: {UserName}", history.UserName);
                 return false;
+            }
+        }
+
+        public async Task<(bool IsAdmin, UserProfile? UserProfile)> GetUserWithRoleCheck(string email)
+        {
+            try
+            {
+                var user = await _userProfileRepository.GetProfileData(email);
+                if (user == null || user.RoleId == null)
+                    return (false, null);
+                if (!user.RoleId.HasValue)
+                    throw new Exception("User role is not assigned.");
+
+                var role = await _commonRepository.GetUserRoleIdWithRoleDetailsByOrgIdAsync(user.RoleId.Value);
+                if (role == null)
+                    return (false, null);
+
+                if(role.RolePermissions!.Any(p => p.RoleName == "Admin" && p.IsAllowed == true))
+                {
+                    return (true, user);
+                }
+
+                return (false, user);
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving admin or creator info for user: {Email}", email);
+                return (false, null);
             }
         }
     }

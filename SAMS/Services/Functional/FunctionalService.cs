@@ -105,7 +105,7 @@ namespace SAMS.Services.Functional
                         Area = null,
                         Site = null,
                         IsApprover = 1,
-                        EmployeeId = "SA-" + StaticData.RandomDigits(6),
+                        UserId = "SA-" + StaticData.RandomDigits(6),
                         DateOfBirth = DateTime.Now.AddYears(-22),
                         JoiningDate = DateTime.Now.AddYears(-1),
                         LeavingDate = null,

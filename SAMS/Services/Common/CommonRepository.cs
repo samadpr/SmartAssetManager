@@ -3,6 +3,7 @@ using SAMS.Data;
 using SAMS.Helpers.Enum;
 using SAMS.Models;
 using SAMS.Services.Common.Interface;
+using SAMS.Services.ManageUserRoles.DTOs;
 
 namespace SAMS.Services.Common
 {
@@ -113,6 +114,39 @@ namespace SAMS.Services.Common
         {
             await _context.LoginHistory.AddAsync(loginHistory);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<ManageUserRolesDto> GetUserRoleIdWithRoleDetailsByOrgIdAsync(long roleId)
+        {
+            var userRole = await _context.ManageUserRoles
+                .Where(ur => !ur.Cancelled && ur.Id == roleId)
+                .Include(ur => ur.ManageUserRolesDetails)
+                .Select(ur => new ManageUserRolesDto
+                {
+                    Id = ur.Id,
+                    Name = ur.Name,
+                    Description = ur.Description,
+                    CreatedBy = ur.CreatedBy,
+                    CreatedDate = ur.CreatedDate,
+                    ModifiedBy = ur.ModifiedBy,
+                    ModifiedDate = ur.ModifiedDate,
+                    RolePermissions = ur.ManageUserRolesDetails.Where(rp => !rp.Cancelled).Select(rp => new ManageUserRolesDetailsDto
+                    {
+                        Id = rp.Id,
+                        ManageRoleId = rp.ManageRoleId,
+                        RoleId = rp.RoleId,
+                        RoleName = rp.RoleName,
+                        IsAllowed = rp.IsAllowed,
+                        CreatedBy = rp.CreatedBy,
+                        CreatedDate = rp.CreatedDate,
+                        ModifiedBy = rp.ModifiedBy,
+                        ModifiedDate = rp.ModifiedDate
+                    }).ToList()
+                }).FirstOrDefaultAsync();
+
+            if (userRole == null)
+                return null!;
+            return userRole;
         }
     }
 }

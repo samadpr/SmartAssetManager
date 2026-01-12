@@ -12,6 +12,8 @@ namespace SAMS.Services.Common.Interface
 
         Task<List<string>> GetEmailsUnderAdminAsync(string targetUserEmail);
 
-        Task<Guid?> GetOrganizationIdAsync(string createdBy);
+        Task<Guid> GetOrganizationIdAsync(string createdBy);
+
+        Task<(bool IsAdmin, UserProfile? UserProfile)> GetUserWithRoleCheck(string email);
     }
 }

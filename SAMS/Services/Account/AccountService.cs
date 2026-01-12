@@ -184,7 +184,7 @@ namespace SAMS.Services.Account
                     ProfilePicture = "",
                     IsAllowLoginAccess = true,
                     RoleId = 2,
-                    EmployeeId = "GA-" + StaticData.RandomDigits(6),
+                    UserId = "GA-" + StaticData.RandomDigits(6),
                     CreatedDate = DateTime.Now,
                     ModifiedDate = DateTime.Now,
                     CreatedBy = "Admin",
@@ -206,19 +206,19 @@ namespace SAMS.Services.Account
                 }
                 _logger.LogInformation("User assigned default roles.");
 
-                // DB changes completed successfully
-                await transaction.CommitAsync();
-
 
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                 var emailSent = await SendOtpMail(requestDto.Email, code, $"{requestDto.FirstName} {requestDto.LastName}");
                 if (!emailSent)
                 {
                     _logger.LogWarning("Registration succeeded but email sending failed.");
-
+                    await transaction.RollbackAsync();
                     return (false, "Account created but verification email failed. Please resend OTP.");
                 }
                 _logger.LogInformation("OTP sent to user.");
+
+                // DB changes completed successfully
+                await transaction.CommitAsync();
 
                 //await _signInManager.SignInAsync(user, isPersistent: false);
                 //_logger.LogInformation("User signed in after registration.");
