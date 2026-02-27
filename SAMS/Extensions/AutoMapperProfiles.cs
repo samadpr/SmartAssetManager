@@ -3,6 +3,7 @@ using SAMS.API.Account.RequestObject;
 using SAMS.API.AssetAreaAPIs.RequestObject;
 using SAMS.API.AssetCategoriesAPIs.RequestObject;
 using SAMS.API.AssetCitiesAPIs.RequestObject;
+using SAMS.API.AssetIssueAPIs.RequestObject;
 using SAMS.API.AssetSitesOrBranchAPIs.RequestObject;
 using SAMS.API.AssetSubCategoriesAPIs.RequestObject;
 using SAMS.API.CompanyAPIs.RequestObject;
@@ -16,6 +17,7 @@ using SAMS.Models;
 using SAMS.Services.Account.DTOs;
 using SAMS.Services.AssetAreas.DTOs;
 using SAMS.Services.AssetCategory.DTOs;
+using SAMS.Services.AssetsIssue.DTOs;
 using SAMS.Services.AssetSitesOrBranches.DTOs;
 using SAMS.Services.AssetSubCategory.DTOs;
 using SAMS.Services.Cities.DTOs;
@@ -87,6 +89,11 @@ namespace SAMS.Extensions
             CreateMap<SuppliersRequestObject, SupplierDto>().ReverseMap();
 
             CreateMap<SupplierDto, Supplier>().ReverseMap();
+
+            CreateMap<AssetIssueRequestObject, AssetIssueDto>().ReverseMap();
+
+            CreateMap<AssetIssue, AssetIssueDto>().ReverseMap();
+
         }
     }
 }

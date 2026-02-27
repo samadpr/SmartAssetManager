@@ -68,7 +68,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.ImageFile,
-                            "AssetImages",
+                            "Assets/AssetImages",
                             FileUploadHelper.GetAllowedExtensions("image"));
 
                     if (success)
@@ -81,7 +81,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.DeliveryNoteFile,
-                            "DeliveryNotes",
+                            "Assets/DeliveryNotes",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -94,7 +94,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.PurchaseReceiptFile,
-                            "PurchaseReceipts",
+                            "Assets/PurchaseReceipts",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -107,7 +107,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.InvoiceFile,
-                            "Invoices",
+                            "Assets/Invoices",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -205,7 +205,9 @@ namespace SAMS.Services.Assets
                     createdAsset.SiteId = user.Site;
                     createdAsset.AreaId = user.Area;
 
-                    await CreateAssetAssignmentAsync(createdAsset, request, createdBy);
+                    var result = await CreateAssetAssignmentAsync(createdAsset, request, createdBy);
+                    if (result.success)
+                        createdAsset.AssetAssignedId = result.assetAssignedId;
                 }
                 else if (request.AssignTo == AssignToType.Location)
                 {
@@ -213,7 +215,9 @@ namespace SAMS.Services.Assets
                     createdAsset.AreaId = request.AreaId;
                     createdAsset.AssetStatus = request.AssetStatus;
 
-                    await CreateAssetAssignmentAsync(createdAsset, request, createdBy);
+                    var result = await CreateAssetAssignmentAsync(createdAsset, request, createdBy);
+                    if (result.success)
+                        createdAsset.AssetAssignedId = result.assetAssignedId;
                 }
 
                 // Add history
@@ -256,7 +260,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.ImageFile,
-                            "AssetImages",
+                            "Assets/AssetImages",
                             FileUploadHelper.GetAllowedExtensions("image"));
 
                     if (success)
@@ -269,7 +273,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.DeliveryNoteFile,
-                            "DeliveryNotes",
+                            "Assets/DeliveryNotes",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -282,7 +286,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.PurchaseReceiptFile,
-                            "PurchaseReceipts",
+                            "Assets/PurchaseReceipts",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -295,7 +299,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.InvoiceFile,
-                            "Invoices",
+                            "Assets/Invoices",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -650,7 +654,7 @@ namespace SAMS.Services.Assets
             }
         }
 
-        private async Task CreateAssetAssignmentAsync(Asset asset, AssetRequestObject request, string createdBy)
+        private async Task<(long assetAssignedId, bool success)> CreateAssetAssignmentAsync(Asset asset, AssetRequestObject request, string createdBy)
         {
             var orgId = asset.OrganizationId;
             var now = DateTime.Now;
@@ -746,6 +750,8 @@ namespace SAMS.Services.Assets
             // 6️⃣ Persist
             await _context.AssetAssigned.AddAsync(assignment);
             await _context.SaveChangesAsync();
+
+            return (assignment.Id, true);
         }
 
 
@@ -840,18 +846,35 @@ namespace SAMS.Services.Assets
                 // 7️⃣ Update asset snapshot ONLY if approved
                 if (approvalStatus == TransferApprovalStatus.Approved)
                 {
+                    asset.AssetAssignedId = newAssign.Id;
                     asset.AssignTo = (int)request.AssignTo;
-                    asset.AssignUserId = request.AssignUserId;
-                    asset.SiteId = request.SiteId;
-                    asset.AreaId = request.AreaId;
-                    asset.AssetType = (int)AssetType.Transferred;
-                    asset.AssetStatus = (int)AssetStatusEnum.InUse;
-                    asset.TransferAppStatus = (int)TransferApprovalStatus.Approved;
+                    if (request.AssignTo == AssignToType.User && request.AssignUserId.HasValue)
+                    {
+                        asset.AssignUserId = request.AssignUserId;
 
+                        var userDetails = await _repo.UserGetByIdAsync(request.AssignUserId.Value, orgId);
+
+                        asset.SiteId = userDetails.Site;
+                        asset.AreaId = userDetails.Area;
+                    }
+                    else if (request.AssignTo == AssignToType.Location)
+                    {
+                        asset.AssignUserId = null;
+                        asset.SiteId = request.SiteId;
+                        asset.AreaId = request.AreaId;
+                    }
+                    asset.AssetType = (int)AssetType.Transferred;
+                    asset.TransferAppStatus = (int)TransferApprovalStatus.Approved;
                     asset.ModifiedBy = user;
                     asset.ModifiedDate = now;
 
                     await _repo.UpdateAsync(asset);
+
+                    //asset.AssignUserId = request.AssignUserId;
+                    //asset.SiteId = request.SiteId;
+                    //asset.AreaId = request.AreaId;
+                    //asset.AssetStatus = (int)AssetStatusEnum.InUse;
+
                 }
 
                 // 8️⃣ Asset history
@@ -911,7 +934,7 @@ namespace SAMS.Services.Assets
                 {
                     var upload = await _fileUploadHelper.UploadFileAsync(
                         request.DisposalDocument,
-                        "DisposalDocuments",
+                        "Assets/DisposalDocuments",
                         FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (!upload.success)

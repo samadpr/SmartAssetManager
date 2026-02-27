@@ -15,5 +15,7 @@ namespace SAMS.Services.Common.Interface
         Task<Guid> GetOrganizationIdAsync(string createdBy);
 
         Task<(bool IsAdmin, UserProfile? UserProfile)> GetUserWithRoleCheck(string email);
+
+        Task<(UserProfile? UserProfile, bool success, string message)> GetUserProfileAsync(string email, Guid? orgId);
     }
 }

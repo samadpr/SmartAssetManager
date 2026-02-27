@@ -9,6 +9,8 @@ public interface IDepartmentService
     Task<(bool isSuccess, string message, DepartmentDto? result)> AddDepartmentAsync(DepartmentDto dto, string createdBy);
     Task<(bool isSuccess, string message, DepartmentDto? result)> UpdateDepartmentAsync(DepartmentDto dto, string modifiedBy);
     Task<(bool isSuccess, string message, List<Department>? data)> GetDepartmentsAsync(string targetUserEmail);
+    Task<(bool isSuccess, string message, List<Department>? data)> GetDepartmentsByOrgAsync(string userEmail);
+
     Task<IEnumerable<Department>> GetUserDepartmentsAsync(string email);
     Task<IEnumerable<Department>> GetAllDepartmentsAsync();
     Task<(bool isSuccess, string message, Department? result)> GetDepartmentByIdAsync(long id, string email);

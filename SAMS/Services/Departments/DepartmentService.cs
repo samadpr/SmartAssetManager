@@ -1,5 +1,5 @@
-using System;
 using AutoMapper;
+using SAMS.Helpers;
 using SAMS.Models;
 using SAMS.Services.Common;
 using SAMS.Services.Common.Interface;
@@ -7,6 +7,7 @@ using SAMS.Services.Departments.DTOs;
 using SAMS.Services.Departments.Interface;
 using SAMS.Services.SubDepartments.DTOs;
 using SAMS.Services.SubDepartments.Interface;
+using System;
 
 namespace SAMS.Services.Departments;
 
@@ -17,21 +18,26 @@ public class DepartmentService : IDepartmentService
     private readonly IMapper _mapper;
     private readonly ILogger<DepartmentService> _logger;
     private readonly ICommonService _commonService;
+    private readonly ICompanyContext _companyContext;
 
-    public DepartmentService(IDepartmentRepository repository, IMapper mapper, ILogger<DepartmentService> logger, ICommonService commonService, ISubDepartmentRepository subDepartmentRepository)
+    public DepartmentService(IDepartmentRepository repository, IMapper mapper, ILogger<DepartmentService> logger, ICommonService commonService, ISubDepartmentRepository subDepartmentRepository, ICompanyContext companyContext)
     {
         _repository = repository;
         _subDepartmentRepository = subDepartmentRepository;
         _mapper = mapper;
         _logger = logger;
         _commonService = commonService;
+        _companyContext = companyContext;
     }
 
     public async Task<(bool isSuccess, string message, DepartmentDto? result)> AddDepartmentAsync(DepartmentDto dto, string createdBy)
     {
         try
         {
+            var orgId = _companyContext.OrganizationId;
+
             var entity = _mapper.Map<Department>(dto);
+            entity.OrganizationId = orgId;
             entity.CreatedDate = DateTime.UtcNow;
             entity.ModifiedDate = DateTime.UtcNow;
             entity.CreatedBy = createdBy;
@@ -52,7 +58,9 @@ public class DepartmentService : IDepartmentService
     {
         try
         {
-            var entity = await _repository.GetByIdAsync(dto.Id);
+            var orgId = _companyContext.OrganizationId;
+
+            var entity = await _repository.GetByIdAsync(dto.Id, orgId);
             if (entity.result == null) return (false, entity.message, null);
 
             entity.result.Name = dto.Name;
@@ -75,6 +83,14 @@ public class DepartmentService : IDepartmentService
         var emails = await _commonService.GetEmailsUnderAdminAsync(targetUserEmail);
         if(emails == null) return (false, "No emails found", null);
         var depts = await _repository.GetDepartmentsForUserAsync(emails.ToList());
+        return (true, "Departments retrieved successfully", depts);
+    }
+
+    public async Task<(bool isSuccess, string message, List<Department>? data)> GetDepartmentsByOrgAsync(string userEmail)
+    {
+        var orgId = _companyContext.OrganizationId;
+        var depts = await _repository.GetDepartmentsByOrgIdAsync(orgId);
+        if (depts == null) return (false, "No departments found", null);
         return (true, "Departments retrieved successfully", depts);
     }
 
@@ -110,15 +126,14 @@ public class DepartmentService : IDepartmentService
     {
         try
         {
-            var emails = await _commonService.GetEmailsUnderAdminAsync(email);
+            var orgId = _companyContext.OrganizationId;
 
-            var department = await _repository.GetByIdAsync(id);
+            //var emails = await _commonService.GetEmailsUnderAdminAsync(email);
+
+            var department = await _repository.GetByIdAsync(id, orgId);
             if (department.result == null) return (false, department.message, null);
 
-            if (emails.Contains(department.result.CreatedBy))
-                return (true, department.message, department.result);
-
-            return (false, department.message, null);
+            return (true, "Department retrieved successfully", department.result);
         }
         catch (Exception ex)
         {
@@ -131,7 +146,8 @@ public class DepartmentService : IDepartmentService
     {
         try
         {
-            var dept = await _repository.GetByIdAsync(id);
+            var orgId = _companyContext.OrganizationId;
+            var dept = await _repository.GetByIdAsync(id, orgId);
             if (dept.result == null) return (false, "Department not found");
 
             dept.result.ModifiedDate = DateTime.UtcNow;
@@ -155,7 +171,8 @@ public class DepartmentService : IDepartmentService
     {
         try
         {
-            var dept = await _repository.GetByIdAsync(id);
+            var orgId = _companyContext.OrganizationId;
+            var dept = await _repository.GetByIdAsync(id, orgId);
             if (dept.result == null) return (false, "Department not found");
 
             // Soft delete department

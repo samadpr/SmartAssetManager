@@ -13,8 +13,12 @@ using SAMS.Services.AssetAreas;
 using SAMS.Services.AssetAreas.Interface;
 using SAMS.Services.AssetCategory;
 using SAMS.Services.AssetCategory.Interface;
+using SAMS.Services.AssetQrBarcodeManage;
+using SAMS.Services.AssetQrBarcodeManage.Interface;
 using SAMS.Services.Assets;
 using SAMS.Services.Assets.Interface;
+using SAMS.Services.AssetsIssue;
+using SAMS.Services.AssetsIssue.Interface;
 using SAMS.Services.AssetSitesOrBranches;
 using SAMS.Services.AssetSitesOrBranches.Interface;
 using SAMS.Services.AssetSubCategory;
@@ -25,6 +29,8 @@ using SAMS.Services.Common;
 using SAMS.Services.Common.Interface;
 using SAMS.Services.Company;
 using SAMS.Services.Company.Interface;
+using SAMS.Services.Dashboard;
+using SAMS.Services.Dashboard.Interface;
 using SAMS.Services.Departments;
 using SAMS.Services.Departments.Interface;
 using SAMS.Services.DesignationServices;
@@ -39,6 +45,8 @@ using SAMS.Services.ManageUserRoles;
 using SAMS.Services.ManageUserRoles.Interface;
 using SAMS.Services.Profile;
 using SAMS.Services.Profile.Interface;
+using SAMS.Services.Reports.AssetReports;
+using SAMS.Services.Reports.AssetReports.Interface;
 using SAMS.Services.Roles;
 using SAMS.Services.Roles.Interface;
 using SAMS.Services.SubDepartments;
@@ -93,6 +101,9 @@ namespace SAMS.Extensions
             services.AddScoped<IUserProfileService, UserProfileService>();
             services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 
+            services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<IDashboardRepository, DashboardRepository>();
+
             services.AddScoped<IDesignationService, DesignationService>();
             services.AddScoped<IDesignationRepository, DesignationRepository>();
 
@@ -137,6 +148,15 @@ namespace SAMS.Extensions
 
             services.AddScoped<IAssetStatusService, AssetStatusService>();
             services.AddScoped<IAssetStatusRepository, AssetStatusRepository>();
+
+            services.AddScoped<IAssetReportService, AssetReportService>();
+            services.AddScoped<IAssetReportRepository, AssetReportRepository>();
+
+            services.AddScoped<IAssetQrBarcodeManageService, AssetQrBarcodeManageService>();
+            services.AddScoped<IAssetQrBarcodeManageRepository, AssetQrBarcodeManageRepository>();
+
+            services.AddScoped<IAssetIssueService, AssetIssueService>();
+            services.AddScoped<IAssetIssueRepository, AssetIssueRepository>();
 
             return services;
         }

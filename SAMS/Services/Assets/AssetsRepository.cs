@@ -5,7 +5,6 @@ using SAMS.Models;
 using SAMS.Services.Assets.DTOs;
 using SAMS.Services.Assets.Interface;
 using static SAMS.Helpers.Enum.AssetEnums;
-using AssetStatus = SAMS.Helpers.Enum.AssetEnums.AssetStatusEnum;
 
 namespace SAMS.Services.Assets
 {
@@ -107,8 +106,8 @@ namespace SAMS.Services.Assets
                                    DateOfPurchase = a.DateOfPurchase,
                                    DateOfManufacture = a.DateOfManufacture,
                                    YearOfValuation = a.YearOfValuation,
-                                   AssetStatus = (AssetStatus)a.AssetStatus!,
-                                   AssetStatusDisplay = ((AssetStatus)a.AssetStatus!).ToString(),
+                                   AssetStatus = (AssetStatusEnum)a.AssetStatus!,
+                                   AssetStatusDisplay = ((AssetStatusEnum)a.AssetStatus!).ToString(),
                                    AssignTo = (AssignToType)a.AssignTo!,
                                    AssignToDisplay = ((AssignToType)a.AssignTo!).ToString(),
                                    AssetType = (AssetType)a.AssetType!,
@@ -212,8 +211,8 @@ namespace SAMS.Services.Assets
                                        DateOfPurchase = a.DateOfPurchase,
                                        DateOfManufacture = a.DateOfManufacture,
                                        YearOfValuation = a.YearOfValuation,
-                                       AssetStatus = (AssetStatus)a.AssetStatus!,
-                                       AssetStatusDisplay = ((AssetStatus)a.AssetStatus!).ToString(),
+                                       AssetStatus = (AssetStatusEnum)a.AssetStatus!,
+                                       AssetStatusDisplay = ((AssetStatusEnum)a.AssetStatus!).ToString(),
                                        AssignTo = (AssignToType)a.AssignTo!,
                                        AssignToDisplay = ((AssignToType)a.AssignTo!).ToString(),
                                        AssetType = (AssetType)a.AssetType!,
@@ -302,7 +301,7 @@ namespace SAMS.Services.Assets
                     x.AssetId == assetId &&
                     x.OrganizationId == orgId &&
                     !x.Cancelled &&
-                    x.Status == AssetEnums.AssetAssignedStatus.Assigned);
+                    x.Status == AssetEnums.AssetAssignedStatus.Assigned || x.Status == AssetEnums.AssetAssignedStatus.ReAssigned);
         }
 
         public async Task AddNewAssignmentAsync(AssetAssigned entity)

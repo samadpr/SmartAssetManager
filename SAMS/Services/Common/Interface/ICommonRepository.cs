@@ -10,5 +10,7 @@ namespace SAMS.Services.Common.Interface
         Task<List<string>> GetEmailsUnderAdminAsync(string targetUserEmail);
 
         Task<ManageUserRolesDto> GetUserRoleIdWithRoleDetailsByOrgIdAsync(long roleId);
+
+        Task<UserProfile> GetUserProfileData(string email, Guid? orgId);
     }
 }

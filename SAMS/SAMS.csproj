@@ -35,10 +35,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="API\AssetQrBarcodeManageAPIs\RequestObject\" />
     <Folder Include="API\AssetStatusAPIs\RequestObject\" />
+    <Folder Include="API\DashboardAPIs\RequestObject\" />
     <Folder Include="Services\Company\DTOs\" />
     <Folder Include="Services\Industrie\DTOs\" />
-    <Folder Include="wwwroot\uploads\profile\" />
   </ItemGroup>
 
 </Project>
