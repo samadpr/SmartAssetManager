@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using SAMS.Controllers;
-using SAMS.Services.Roles.PagesModel;
-using SAMS.Services.Profile.Interface;
-using AutoMapper;
-using SAMS.API.UserProfileAPIs.RequestObject;
-using SAMS.Services.UserProfiles.DTOs;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SAMS.API.UserProfileAPIs.RequestObject;
+using SAMS.Controllers;
+using SAMS.Helpers;
+using SAMS.Services.Profile.Interface;
+using SAMS.Services.Roles.PagesModel;
+using SAMS.Services.UserProfiles.DTOs;
 
 namespace SAMS.API.UserProfile
 {
@@ -17,12 +18,14 @@ namespace SAMS.API.UserProfile
         private readonly IUserProfileService _userProfileService;
         private readonly IMapper Mapper;
         private readonly IWebHostEnvironment _env;
+        private readonly FileUploadHelper _fileUploadHelper;
 
-        public UserProfileController(IUserProfileService userProfileService, IMapper mapper, IWebHostEnvironment env)
+        public UserProfileController(IUserProfileService userProfileService, IMapper mapper, IWebHostEnvironment env, FileUploadHelper fileUploadHelper)
         {
             _userProfileService = userProfileService;
             Mapper = mapper;
             _env = env;
+            _fileUploadHelper = fileUploadHelper;
         }
 
         [Authorize(Roles = RoleModels.UserProfile)]
@@ -73,34 +76,52 @@ namespace SAMS.API.UserProfile
         [Consumes("multipart/form-data")] // 👈 tells Swagger it's a file upload
         public async Task<IActionResult> UploadProfilePicture([FromForm] FileUploadDto dto)
         {
-            var file = dto.File;
-            if (file == null || file.Length == 0)
+            if (dto.File == null)
                 return BadRequest("No file uploaded.");
 
-            var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif" };
-            if (!allowedTypes.Contains(file.ContentType))
-                return BadRequest("Only JPG, PNG, and GIF are allowed.");
+            // Upload using helper
+            var (success, path, message) =
+                await _fileUploadHelper.UploadFileAsync(
+                    dto.File,
+                    "ProfilePictures", // Folder name inside uploads/Assets/
+                    FileUploadHelper.GetAllowedExtensions("image"),
+                    5 * 1024 * 1024 // Optional: 5MB limit
+                );
 
-            var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            if (!Directory.Exists(rootPath))
-                Directory.CreateDirectory(rootPath);
+            if (!success)
+                return BadRequest(message);
 
-            var uploadPath = Path.Combine(rootPath, "uploads", "profile");
-            if (!Directory.Exists(uploadPath))
-                Directory.CreateDirectory(uploadPath);
+            // Return relative path (recommended for DB storage)
+            return Ok(new { url = path });
 
-            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
-            var filePath = Path.Combine(uploadPath, fileName);
+            //var file = dto.File;
+            //if (file == null || file.Length == 0)
+            //    return BadRequest("No file uploaded.");
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
+            //var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif" };
+            //if (!allowedTypes.Contains(file.ContentType))
+            //    return BadRequest("Only JPG, PNG, and GIF are allowed.");
 
-            // Generate public URL (your Angular app should know how to access it)
-            var fileUrl = $"{Request.Scheme}://{Request.Host}/uploads/profile/{fileName}";
+            //var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            //if (!Directory.Exists(rootPath))
+            //    Directory.CreateDirectory(rootPath);
 
-            return Ok(new { url = fileUrl });
+            //var uploadPath = Path.Combine(rootPath, "uploads", "profile");
+            //if (!Directory.Exists(uploadPath))
+            //    Directory.CreateDirectory(uploadPath);
+
+            //var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+            //var filePath = Path.Combine(uploadPath, fileName);
+
+            //using (var stream = new FileStream(filePath, FileMode.Create))
+            //{
+            //    await file.CopyToAsync(stream);
+            //}
+
+            //// Generate public URL (your Angular app should know how to access it)
+            //var fileUrl = $"{Request.Scheme}://{Request.Host}/uploads/profile/{fileName}";
+
+            //return Ok(new { url = fileUrl });
         }
 
 

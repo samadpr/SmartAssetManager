@@ -104,6 +104,16 @@ export class SidebarComponent implements OnInit {
           icon: 'rule',
           label: 'Asset Approve',
           route: 'asset-approve'
+        },
+        {
+          icon: 'report_problem',
+          label: 'Asset Issues',
+          route: 'asset-issue'
+        },
+        {
+          icon: 'qr_code_scanner',
+          label: 'Asset Qr & Barcode',
+          route: 'asset-qr-barcode'
         }
       ]
     },
@@ -146,11 +156,11 @@ export class SidebarComponent implements OnInit {
           label: 'Login Access',
           route: 'login-access'
         },
-        {
-          icon: 'assignment_ind',
-          label: 'User Profiles',
-          route: 'user-profile'
-        },
+        // {
+        //   icon: 'assignment_ind',
+        //   label: 'User Profiles',
+        //   route: 'user-profile'
+        // },
         {
           icon: 'cases',
           label: 'Designations',
@@ -200,7 +210,14 @@ export class SidebarComponent implements OnInit {
     {
       icon: 'assignment',
       label: 'Reports',
-      route: '/reports'
+      route: '/reports',
+      subItems: [
+        {
+          icon: 'assessment',
+          label: 'Asset Reports',
+          route: 'asset-reports'
+        }
+      ]
     },
     // {
     //   icon: 'settings',

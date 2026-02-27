@@ -16,9 +16,11 @@ import { Validators } from '@angular/forms';
 import { AssetCategoriesService } from '../../../core/services/asset-categories/asset-categories.service';
 import { AssetSubCategoriesService } from '../../../core/services/asset-categories/asset-sub-categories/asset-sub-categories.service';
 import { FileUrlHelper } from '../../../core/helper/get-file-url';
-import { AssignToType, DepreciationMethod, DisposalMethod } from '../../../core/enum/asset.enums';
+import { AssetIssueStatus, AssignToType, DepreciationMethod, DisposalMethod } from '../../../core/enum/asset.enums';
 import { UserProfileService } from '../../../core/services/users/user-profile.service';
 import { AssetStatusService } from '../../../core/services/asset/asset-status/asset-status.service';
+import { AssetIssue } from '../../../core/models/interfaces/asset-manage/asset-issue.interface';
+import { AssetIssueService } from '../../../core/services/asset/asset-issues/asset-issue.service';
 
 @Component({
   selector: 'app-manage-assets',
@@ -42,6 +44,7 @@ export class ManageAssetsComponent {
   private assetSubCategoriesService = inject(AssetSubCategoriesService);
   private userService = inject(UserProfileService);
   private assetStatusService = inject(AssetStatusService);
+  private assetIssueService = inject(AssetIssueService);
 
   assets = signal<AssetResponse[]>([]);
   loading = signal(false);
@@ -252,6 +255,27 @@ export class ManageAssetsComponent {
       // }
     ],
     actions: [
+      // ✅ NEW: Create Issue Action
+      {
+        key: 'create-issue',
+        label: 'Report Issue',
+        icon: 'bug_report',
+        buttonType: 'icon',
+        color: 'warn',
+        position: 'start',
+        order: 0,
+        tooltip: 'Report an issue for this asset',
+        popup: {
+          title: 'Report Asset Issue',
+          subtitle: 'Raise a new maintenance or issue report for this asset',
+          icon: 'bug_report',
+          columns: 2,
+          maxWidth: '800px',
+          submitButtonText: 'Submit Issue',
+          fields: () => this.getCreateIssuePopupFields(),
+          onSubmit: (data, item) => this.handleCreateIssue(data, item)
+        }
+      },
       // transfer, disposel button
       {
         key: 'transfer',
@@ -315,6 +339,138 @@ export class ManageAssetsComponent {
       }
     ]
   };
+
+  // ─────────────── CREATE ISSUE POPUP FIELDS ───────────────
+  private getCreateIssuePopupFields(): PopupField[] {
+    return [
+      {
+        key: 'divider_issue',
+        label: 'Issue Information',
+        type: 'divider',
+        colSpan: 4
+      },
+      {
+        key: 'issueTitle',
+        label: 'Issue Title',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter issue title here...',
+        colSpan: 4,
+        icon: 'title',
+        validators: [Validators.minLength(2), Validators.maxLength(100)]
+      },
+      {
+        key: 'issueDescription',
+        label: 'Issue Description',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Describe the issue in detail...',
+        colSpan: 4,
+        rows: 4,
+        icon: 'description',
+        validators: [Validators.minLength(10), Validators.maxLength(1000)]
+      },
+      {
+        key: 'status',
+        label: 'Issue Status',
+        type: 'select',
+        colSpan: 2,
+        icon: 'flag',
+        options: [
+          { value: AssetIssueStatus.New, label: 'New' },
+          { value: AssetIssueStatus.InProgress, label: 'In Progress' },
+          { value: AssetIssueStatus.Resolved, label: 'Resolved' },
+          { value: AssetIssueStatus.Blocker, label: 'Blocker' },
+          { value: AssetIssueStatus.Pending, label: 'Pending' },
+          { value: AssetIssueStatus.Hold, label: 'Hold' },
+          { value: AssetIssueStatus.Rejected, label: 'Rejected' },
+          { value: AssetIssueStatus.Accepted, label: 'Accepted' },
+          { value: AssetIssueStatus.Closed, label: 'Closed' }
+
+        ],
+        value: 1
+      },
+      {
+        key: 'expectedFixDate',
+        label: 'Expected Fix Date',
+        type: 'date',
+        colSpan: 2,
+        icon: 'event'
+      },
+      {
+        key: 'repairCost',
+        label: 'Estimated Repair Cost ($)',
+        type: 'number',
+        placeholder: '0.00',
+        colSpan: 2,
+        icon: 'attach_money',
+        min: 0
+      },
+      {
+        key: 'divider_files',
+        label: 'Supporting Documents',
+        type: 'divider',
+        colSpan: 4
+      },
+      {
+        key: 'invoice',
+        label: 'Attach Document / Invoice',
+        type: 'file',
+        colSpan: 4,
+        icon: 'attach_file',
+        acceptedFileTypes: '.pdf,.jpg,.jpeg,.png',
+        maxFileSize: 10,
+        helperText: 'PDF or Image (Max 10MB)'
+      },
+      {
+        key: 'divider_comment',
+        label: 'Additional Comments',
+        type: 'divider',
+        colSpan: 4
+      },
+      {
+        key: 'comment',
+        label: 'Comment',
+        type: 'textarea',
+        placeholder: 'Any additional notes or comments...',
+        colSpan: 4,
+        rows: 3,
+        icon: 'comment'
+      }
+    ];
+  }
+
+  private handleCreateIssue(data: any, item: AssetResponse): Observable<any> {
+    const issueRequest: AssetIssue = {
+      assetId: item.id,
+      // raisedByUserId: 0, // Set from auth service if available
+      issueTitle: data.issueTitle,
+      issueDescription: data.issueDescription,
+      status: data.status ?? 1,
+      expectedFixDate: data.expectedFixDate,
+      repairCost: data.repairCost,
+      comment: data.comment
+    };
+
+    if (data.InvoiceFile instanceof File) {
+      issueRequest.invoiceFile = data.InvoiceFile;
+    }
+    // this.assetIssueService.create(issueRequest).subscribe({
+    //   next: (response) => {
+    //     if (response.success) {
+    //       this.globalService.showSnackbar('Issue raised successfully', 'success');
+    //     } else {
+    //       this.globalService.showToastr('Failed to raise issue', 'error');
+    //     }
+    //   }
+    //   , error: (error) => {
+    //     console.error('Error raising issue:', error);
+    //     this.globalService.showToastr('Failed to raise issue', 'error');
+    //   }
+    // });
+
+    return this.assetIssueService.create(issueRequest);
+  }
 
   private getTransferPopupFields(): PopupField[] {
     const dropdowns = this.dropdownData(); // ✅ ALWAYS LATEST DATA
@@ -479,7 +635,7 @@ export class ManageAssetsComponent {
   private loadDropdownData() {
     forkJoin({
       suppliers: this.supplierService.getSuppliersByOrg(),
-      departments: this.departmentService.getDepartments(),
+      departments: this.departmentService.getMyDepartments(),
       subDepartments: this.subDepartmentService.getSubDepartments(),
       sites: this.siteService.getMySites(),
       areas: this.areaService.getMyAreas(),
@@ -1486,7 +1642,7 @@ export class ManageAssetsComponent {
       department: formData.department,
       subDepartment: formData.subDepartment,
       warranetyInMonth: formData.warranetyInMonth,
-      // assetStatus: formData.assetStatus,
+      assetStatus: formData.assetStatus,
       isDepreciable: formData.isDepreciable,
       depreciableCost: formData.depreciableCost,
       salvageValue: formData.salvageValue,
@@ -1711,7 +1867,7 @@ export class ManageAssetsComponent {
       department: formData.department,
       subDepartment: formData.subDepartment,
       warranetyInMonth: formData.warranetyInMonth,
-      // assetStatus: formData.assetStatus,
+      assetStatus: formData.assetStatus,
       isDepreciable: formData.isDepreciable,
       depreciableCost: formData.depreciableCost,
       salvageValue: formData.salvageValue,

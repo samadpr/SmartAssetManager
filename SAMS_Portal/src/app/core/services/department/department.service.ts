@@ -30,18 +30,18 @@ export class DepartmentService {
   }
 
   // 🔹 Get Departments (for current user)
-  getDepartments(): Observable<ApiResponse<Department[]>> {
+  getMyDepartments(): Observable<ApiResponse<Department[]>> {
     return this.http.get<ApiResponse<Department[]>>(
-      `${this.baseUrl}/get-departments`
+      `${this.baseUrl}/get-my-departments`
     );
   }
 
   // 🔹 Get My Departments
-  getMyDepartments(): Observable<Department[]> {
-    return this.http.get<Department[]>(
-      `${this.baseUrl}/get-my-departments`
-    );
-  }
+  // getMyDepartments(): Observable<Department[]> {
+  //   return this.http.get<Department[]>(
+  //     `${this.baseUrl}/get-my-departments`
+  //   );
+  // }
 
   // 🔹 Get All Departments (SuperAdmin only)
   getAllDepartments(): Observable<ApiResponse<Department[]>> {

@@ -17,6 +17,7 @@ export interface AssetRequest {
   department?: number;
   subDepartment?: number;
   warranetyInMonth?: number;
+  assetStatus?: number;
 
   // Depreciation
   isDepreciable: boolean;
@@ -62,6 +63,7 @@ export interface AssetResponse {
   assetBrand: string;
   assetModelNo: string;
   assetSerialNo?: string;
+  description?: string;
   unitPrice?: number;
   isAvilable: boolean;
   note?: string;
@@ -74,6 +76,7 @@ export interface AssetResponse {
   areaDisplay?: string;
   departmentDisplay?: string;
   subDepartmentDisplay?: string;
+  assignUserDisplay?: string;
 
   // Files (relative or absolute)
   imageUrl?: string;

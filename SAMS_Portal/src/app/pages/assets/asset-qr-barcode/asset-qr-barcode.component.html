@@ -1,0 +1,514 @@
+<app-page-header [title]="'Asset Qr & Barcode Manage'" [breadcrumbs]="[
+    { label: 'Asset', url: '/assets' },
+    { label: 'Qr & Barcode Manage' }
+  ]">
+</app-page-header>
+
+<!-- ════════════════════════════════════════════════
+     STATS ROW  (Total • Filtered • Selected)
+════════════════════════════════════════════════ -->
+<div class="stats-row">
+
+  <!-- Total Assets -->
+  <div class="stat-card stat-card--total">
+    <div class="stat-icon-wrap">
+      <mat-icon>inventory_2</mat-icon>
+    </div>
+    <div class="stat-info">
+      <span class="stat-value">{{ totalAssets() }}</span>
+      <span class="stat-label">Total Assets</span>
+    </div>
+    <div class="stat-pill">
+      <mat-icon>all_inclusive</mat-icon> All
+    </div>
+  </div>
+
+  <!-- Filtered -->
+  <div class="stat-card stat-card--filtered" [class.stat-card--active]="hasActiveFilters">
+    <div class="stat-icon-wrap">
+      <mat-icon>filter_list</mat-icon>
+    </div>
+    <div class="stat-info">
+      <span class="stat-value">{{ filteredCount() }}</span>
+      <span class="stat-label">Filtered Results</span>
+    </div>
+    <div class="stat-pill stat-pill--accent" *ngIf="hasActiveFilters">
+      <mat-icon>tune</mat-icon> Active
+    </div>
+    <div class="stat-pill" *ngIf="!hasActiveFilters">
+      <mat-icon>check</mat-icon> All shown
+    </div>
+  </div>
+
+  <!-- Selected -->
+  <div class="stat-card stat-card--selected" [class.stat-card--has-value]="selectedCount() > 0">
+    <div class="stat-icon-wrap">
+      <mat-icon>check_box</mat-icon>
+    </div>
+    <div class="stat-info">
+      <span class="stat-value">{{ selectedCount() }}</span>
+      <span class="stat-label">Selected</span>
+    </div>
+    <div class="stat-pill stat-pill--green" *ngIf="selectedCount() > 0">
+      <mat-icon>print</mat-icon> Ready
+    </div>
+    <div class="stat-pill stat-pill--muted" *ngIf="selectedCount() === 0">
+      <mat-icon>check_box_outline_blank</mat-icon> None
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════
+     FILTER CARD
+════════════════════════════════════════════════ -->
+<mat-card class="filter-card">
+  <mat-card-content>
+
+    <div class="filter-header">
+      <div class="filter-title">
+        <span class="filter-title-icon"><mat-icon>filter_list</mat-icon></span>
+        <span>Filters & Search</span>
+        <span class="active-filter-chip" *ngIf="hasActiveFilters">
+          {{ (categoryControl.value ? 1:0)+(departmentControl.value ? 1:0)+(siteControl.value ? 1:0)+(statusControl.value ? 1:0)+(searchControl.value ? 1:0) }}
+          active
+        </span>
+      </div>
+      <button mat-stroked-button color="warn" class="clear-all-btn" (click)="clearFilters()" *ngIf="hasActiveFilters">
+        <mat-icon>clear_all</mat-icon> Clear All
+      </button>
+    </div>
+
+    <!-- Search -->
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search Assets</mat-label>
+      <input matInput [formControl]="searchControl"
+             placeholder="Search by name, ID, brand, serial, category...">
+      <mat-icon matPrefix>search</mat-icon>
+      <button matSuffix mat-icon-button aria-label="clear" (click)="searchControl.setValue('')"
+              *ngIf="searchControl.value">
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <!-- Advanced Filters Expansion -->
+    <mat-expansion-panel class="filter-expansion" [expanded]="false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>tune</mat-icon>
+          <span>Advanced Filters</span>
+        </mat-panel-title>
+        <mat-panel-description *ngIf="(categoryControl.value ? 1:0)+(departmentControl.value ? 1:0)+(siteControl.value ? 1:0)+(statusControl.value ? 1:0) as cnt">
+          <span *ngIf="cnt > 0">{{ cnt }} filter(s) active</span>
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+
+      <div class="filter-grid">
+
+        <mat-form-field appearance="outline">
+          <mat-label>Category</mat-label>
+          <mat-select [formControl]="categoryControl" [disabled]="isLoadingFilters()">
+            <mat-option value="">All Categories</mat-option>
+            <mat-option *ngFor="let c of categories()" [value]="c.id">{{ c.name }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>category</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Department</mat-label>
+          <mat-select [formControl]="departmentControl" [disabled]="isLoadingFilters()">
+            <mat-option value="">All Departments</mat-option>
+            <mat-option *ngFor="let d of departments()" [value]="d.id">{{ d.name }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>account_tree</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Site / Branch</mat-label>
+          <mat-select [formControl]="siteControl" [disabled]="isLoadingFilters()">
+            <mat-option value="">All Sites</mat-option>
+            <mat-option *ngFor="let s of sites()" [value]="s.id">{{ s.name }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>location_city</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Asset Status</mat-label>
+          <mat-select [formControl]="statusControl" [disabled]="isLoadingFilters()">
+            <mat-option value="">All Statuses</mat-option>
+            <mat-option *ngFor="let st of statuses()" [value]="st.id">{{ st.name }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>info</mat-icon>
+        </mat-form-field>
+
+      </div>
+    </mat-expansion-panel>
+
+  </mat-card-content>
+</mat-card>
+
+<!-- ════════════════════════════════════════════════
+     PRINT ACTIONS CARD
+════════════════════════════════════════════════ -->
+<mat-card class="print-actions-card">
+  <div class="print-top-accent"></div>
+  <mat-card-content>
+
+    <div class="print-row">
+
+      <!-- Info section -->
+      <div class="print-info">
+        <div class="print-title">
+          <mat-icon>print</mat-icon>
+          <span>Print Stickers</span>
+        </div>
+        <!-- Dynamic badge: changes based on selection state -->
+        <div class="print-state-badge print-state-badge--selected" *ngIf="selectedCount() > 0">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ selectedCount() }} selected — will print selected only</span>
+        </div>
+        <div class="print-state-badge print-state-badge--all" *ngIf="selectedCount() === 0 && filteredCount() > 0">
+          <mat-icon>select_all</mat-icon>
+          <span>No selection — will print all {{ filteredCount() }} {{ hasActiveFilters ? 'filtered' : '' }} assets</span>
+        </div>
+        <div class="print-state-badge print-state-badge--empty" *ngIf="filteredCount() === 0">
+          <mat-icon>info</mat-icon>
+          <span>No assets to print</span>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="print-buttons">
+
+        <!-- SINGLE SMART PRINT BUTTON (no separate Print All / Print Selected) -->
+        <button
+          class="smart-print-btn"
+          [class.smart-print-btn--active]="selectedCount() > 0"
+          [matMenuTriggerFor]="smartPrintMenu"
+          [disabled]="isLoading() || filteredCount() === 0">
+
+          <mat-icon class="btn-icon">print</mat-icon>
+
+          <span class="btn-label" *ngIf="selectedCount() > 0">
+            Print Selected &nbsp;<span class="btn-count">{{ selectedCount() }}</span>
+          </span>
+          <span class="btn-label" *ngIf="selectedCount() === 0">
+            Print {{ hasActiveFilters ? 'Filtered' : 'All' }} &nbsp;<span class="btn-count">{{ filteredCount() }}</span>
+          </span>
+
+          <mat-icon class="btn-chevron">arrow_drop_down</mat-icon>
+        </button>
+
+        <mat-menu #smartPrintMenu="matMenu">
+          <button mat-menu-item (click)="openPrintDialog('qr')">
+            <mat-icon>qr_code_2</mat-icon>
+            <span>QR Codes Only</span>
+          </button>
+          <button mat-menu-item (click)="openPrintDialog('barcode')">
+            <mat-icon fontSet="material-symbols-outlined">barcode_scanner</mat-icon>
+            <span>Barcodes Only</span>
+          </button>
+          <mat-divider></mat-divider>
+          <button mat-menu-item (click)="openPrintDialog('both')">
+            <mat-icon>receipt_long</mat-icon>
+            <span>Both QR & Barcode</span>
+          </button>
+        </mat-menu>
+
+        <!-- Clear selection button (visible only when selected) -->
+        <button
+          mat-stroked-button
+          class="clear-sel-btn"
+          (click)="clearSelection()"
+          *ngIf="selectedCount() > 0"
+          matTooltip="Clear selection">
+          <mat-icon>deselect</mat-icon>
+          <span>Clear</span>
+        </button>
+
+        <!-- Refresh -->
+        <button mat-icon-button class="refresh-btn"
+                (click)="loadAssets()" matTooltip="Refresh data"
+                [disabled]="isLoading()">
+          <mat-icon [class.spin]="isLoading()">refresh</mat-icon>
+        </button>
+
+      </div>
+    </div>
+
+  </mat-card-content>
+</mat-card>
+
+<!-- ════════════════════════════════════════════════
+     TABLE CARD
+════════════════════════════════════════════════ -->
+<mat-card class="table-card">
+  <mat-card-content>
+
+    <!-- Results bar -->
+    <div class="results-bar" *ngIf="!isLoading()">
+      <div class="results-left">
+        <span class="results-count">
+          Showing <strong>{{ displayedAssets().length }}</strong> of
+          <strong>{{ totalItems() }}</strong>
+          <span class="filtered-tag" *ngIf="hasActiveFilters"> filtered</span>
+          assets
+        </span>
+        <span class="selection-count-tag" *ngIf="selectedCount() > 0">
+          <mat-icon>check_circle</mat-icon>
+          {{ selectedCount() }} selected
+        </span>
+      </div>
+      <button mat-button class="select-all-link"
+              (click)="selectAllFiltered()"
+              *ngIf="filteredAssets().length > displayedAssets().length">
+        <mat-icon>select_all</mat-icon>
+        Select all {{ totalItems() }} filtered
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-wrap" *ngIf="isLoading()">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Loading assets...</p>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper" *ngIf="!isLoading()">
+      <table mat-table [dataSource]="displayedAssets()" class="assets-table">
+
+        <!-- ── Checkbox ─────────────────────────── -->
+        <ng-container matColumnDef="select">
+          <th mat-header-cell *matHeaderCellDef class="col-select">
+            <mat-checkbox
+              [checked]="isAllPageSelected()"
+              [indeterminate]="isPageIndeterminate()"
+              (change)="toggleAllPage()"
+              matTooltip="Select / deselect this page">
+            </mat-checkbox>
+          </th>
+          <td mat-cell *matCellDef="let row" class="col-select">
+            <mat-checkbox
+              [checked]="selection.isSelected(row)"
+              (change)="toggleRow(row)"
+              (click)="$event.stopPropagation()">
+            </mat-checkbox>
+          </td>
+        </ng-container>
+
+        <!-- ── Asset Info ────────────────────────── -->
+        <ng-container matColumnDef="asset">
+          <th mat-header-cell *matHeaderCellDef>Asset Information</th>
+          <td mat-cell *matCellDef="let asset">
+            <div class="asset-info-cell">
+              <div class="asset-thumb">
+                <img *ngIf="asset.imageUrl" [src]="asset.imageUrl" [alt]="asset.name"
+                     class="asset-thumbnail"
+                     (error)="$any($event.target).src='/assets/images/no-image.png'" />
+                <div class="asset-no-image" *ngIf="!asset.imageUrl">
+                  <mat-icon>inventory_2</mat-icon>
+                </div>
+              </div>
+              <div class="asset-details">
+                <span class="asset-name">{{ asset.name }}</span>
+                <span class="asset-meta">
+                  <mat-icon>fingerprint</mat-icon>{{ asset.assetId }}
+                </span>
+                <span class="asset-meta">
+                  <mat-icon>business</mat-icon>{{ asset.assetBrand }} · {{ asset.assetModelNo }}
+                </span>
+                <span class="asset-meta">
+                  <mat-icon>tag</mat-icon>S/N: {{ asset.assetSerialNo }}
+                </span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- ── Category & Dept ───────────────────── -->
+        <ng-container matColumnDef="category">
+          <th mat-header-cell *matHeaderCellDef>Category & Dept.</th>
+          <td mat-cell *matCellDef="let asset">
+            <div class="category-cell">
+              <span class="chip chip--primary">{{ asset.categoryDisplay }}</span>
+              <span class="chip chip--secondary" *ngIf="asset.subCategoryDisplay">
+                {{ asset.subCategoryDisplay }}
+              </span>
+              <div class="meta-row">
+                <mat-icon>groups</mat-icon>{{ asset.departmentDisplay }}
+              </div>
+              <div class="meta-row meta-row--indent" *ngIf="asset.subDepartmentDisplay">
+                <mat-icon>subdirectory_arrow_right</mat-icon>{{ asset.subDepartmentDisplay }}
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- ── Location & Assignment ─────────────── -->
+        <ng-container matColumnDef="location">
+          <th mat-header-cell *matHeaderCellDef>Location & Assignment</th>
+          <td mat-cell *matCellDef="let asset">
+            <div class="location-cell">
+              <div class="meta-row">
+                <mat-icon class="icon-primary">location_city</mat-icon>{{ asset.siteDisplay }}
+              </div>
+              <div class="meta-row" *ngIf="asset.areaDisplay">
+                <mat-icon class="icon-primary">map</mat-icon>{{ asset.areaDisplay }}
+              </div>
+              <mat-divider class="cell-divider"></mat-divider>
+              <div class="meta-row" *ngIf="asset.assignUserDisplay">
+                <mat-icon class="icon-green">person</mat-icon>
+                <strong>{{ asset.assignUserDisplay }}</strong>
+              </div>
+              <div class="meta-row meta-row--muted" *ngIf="!asset.assignUserDisplay">
+                <mat-icon>person_off</mat-icon> Unassigned
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- ── QR Code & Barcode ─────────────────── -->
+        <ng-container matColumnDef="codes">
+          <th mat-header-cell *matHeaderCellDef>QR Code & Barcode</th>
+          <td mat-cell *matCellDef="let asset">
+            <div class="codes-cell">
+
+              <!-- QR -->
+              <div class="code-panel">
+                <div class="code-img-wrap"
+                     [class.code-img-wrap--clickable]="asset.qrcodeImage"
+                     (click)="asset.qrcodeImage && openPreview(asset, 'qr'); $event.stopPropagation()">
+                  <img *ngIf="asset.qrcodeImage" [src]="asset.qrcodeImage"
+                       alt="QR" class="code-img qr-img" />
+                  <div class="code-placeholder" *ngIf="!asset.qrcodeImage">
+                    <mat-icon>qr_code_2</mat-icon><span>No QR</span>
+                  </div>
+                  <div class="code-zoom-overlay" *ngIf="asset.qrcodeImage">
+                    <mat-icon>zoom_in</mat-icon>
+                  </div>
+                </div>
+                <span class="code-lbl qr-lbl">
+                  <mat-icon>qr_code_2</mat-icon>QR
+                </span>
+              </div>
+
+              <span class="code-sep"><mat-icon>swap_horiz</mat-icon></span>
+
+              <!-- Barcode -->
+              <div class="code-panel">
+                <div class="code-img-wrap bc-wrap"
+                     [class.code-img-wrap--clickable]="asset.barcode"
+                     (click)="asset.barcode && openPreview(asset, 'barcode'); $event.stopPropagation()">
+                  <img *ngIf="asset.barcode" [src]="asset.barcode"
+                       alt="BC" class="code-img bc-img" />
+                  <div class="code-placeholder bc-ph" *ngIf="!asset.barcode">
+                    <mat-icon fontSet="material-symbols-outlined">barcode_scanner</mat-icon>
+                    <span>No BC</span>
+                  </div>
+                  <div class="code-zoom-overlay" *ngIf="asset.barcode">
+                    <mat-icon>zoom_in</mat-icon>
+                  </div>
+                </div>
+                <span class="code-lbl bc-lbl">
+                  <mat-icon fontSet="material-symbols-outlined">barcode_scanner</mat-icon>BC
+                </span>
+              </div>
+
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- ── Status & Info ─────────────────────── -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status & Info</th>
+          <td mat-cell *matCellDef="let asset">
+            <div class="status-cell">
+              <div class="status-badge" [ngClass]="getStatusBadgeClass(asset.assetStatusDisplay || '')">
+                <span class="status-dot"></span>
+                {{ asset.assetStatusDisplay || 'Unknown' }}
+              </div>
+              <div class="meta-row">
+                <mat-icon>layers</mat-icon>Qty: {{ asset.quantity }}
+              </div>
+              <div class="meta-row" *ngIf="asset.warranetyInMonth">
+                <mat-icon>verified_user</mat-icon>{{ asset.warranetyInMonth }}mo warranty
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- ── Actions ───────────────────────────── -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="col-actions">Actions</th>
+          <td mat-cell *matCellDef="let asset" class="col-actions">
+            <div class="actions-cell" (click)="$event.stopPropagation()">
+              <button mat-icon-button *ngIf="asset.qrcodeImage"
+                      matTooltip="Preview QR" class="act-btn act-qr"
+                      (click)="openPreview(asset, 'qr')">
+                <mat-icon>qr_code_2</mat-icon>
+              </button>
+              <button mat-icon-button *ngIf="asset.barcode"
+                      matTooltip="Preview Barcode" class="act-btn act-bc"
+                      (click)="openPreview(asset, 'barcode')">
+                <mat-icon fontSet="material-symbols-outlined">barcode_scanner</mat-icon>
+              </button>
+              <button mat-icon-button [matMenuTriggerFor]="rowPrintMenu"
+                      matTooltip="Print" class="act-btn act-print">
+                <mat-icon>print</mat-icon>
+              </button>
+              <mat-menu #rowPrintMenu="matMenu" xPosition="before">
+                <button mat-menu-item (click)="printSingle(asset,'qr')" *ngIf="asset.qrcodeImage">
+                  <mat-icon>qr_code_2</mat-icon><span>Print QR Code</span>
+                </button>
+                <button mat-menu-item (click)="printSingle(asset,'barcode')" *ngIf="asset.barcode">
+                  <mat-icon fontSet="material-symbols-outlined">barcode_scanner</mat-icon>
+                  <span>Print Barcode</span>
+                </button>
+                <mat-divider *ngIf="asset.qrcodeImage && asset.barcode"></mat-divider>
+                <button mat-menu-item (click)="printSingle(asset,'both')"
+                        *ngIf="asset.qrcodeImage && asset.barcode">
+                  <mat-icon>receipt_long</mat-icon><span>Print Both</span>
+                </button>
+              </mat-menu>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+            [class.row-selected]="selection.isSelected(row)"
+            (click)="toggleRow(row)">
+        </tr>
+
+        <!-- Empty state -->
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+            <div class="empty-state">
+              <mat-icon>qr_code_scanner</mat-icon>
+              <h3>No assets found</h3>
+              <p>{{ hasActiveFilters
+                    ? 'Try adjusting or clearing your filters.'
+                    : 'No assets with QR / Barcode data available.' }}</p>
+              <button mat-flat-button color="primary" (click)="clearFilters()" *ngIf="hasActiveFilters">
+                <mat-icon>filter_list_off</mat-icon> Clear Filters
+              </button>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Paginator -->
+    <mat-paginator
+      *ngIf="!isLoading()"
+      [length]="totalItems()"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageIndex()"
+      [pageSizeOptions]="[5, 10, 25, 50, 100]"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+      class="table-paginator">
+    </mat-paginator>
+
+  </mat-card-content>
+</mat-card>

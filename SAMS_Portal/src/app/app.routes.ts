@@ -26,6 +26,10 @@ import { LoginAccessComponent } from './pages/users/login-access/login-access.co
 import { UserPasswordSetupComponent } from './pages/users/user-password-setup/user-password-setup.component';
 import { SupplierComponent } from './pages/assets/supplier/supplier.component';
 import { AssetApproveComponent } from './pages/assets/asset-approve/asset-approve.component';
+import { ReportsComponent } from './pages/reports/reports/reports.component';
+import { AssetReportComponent } from './pages/reports/asset-report/asset-report.component';
+import { AssetQrBarcodeComponent } from './pages/assets/asset-qr-barcode/asset-qr-barcode.component';
+import { AssetsIssueComponent } from './pages/assets-issue/assets-issue.component';
 
 export const routes: Routes = [
     {
@@ -78,6 +82,14 @@ export const routes: Routes = [
             {
                 path: 'assets/asset-approve',
                 component: AssetApproveComponent
+            },
+            {
+                path: 'assets/asset-issue',
+                component: AssetsIssueComponent
+            },
+            {
+                path: 'assets/asset-qr-barcode',
+                component: AssetQrBarcodeComponent
             },
             {
                 path: 'asset-category',
@@ -138,6 +150,14 @@ export const routes: Routes = [
             {
                 path: 'company',
                 component: CompanyComponent
+            },
+            {
+                path: 'reports',
+                component: ReportsComponent
+            },
+            {
+                path: 'reports/asset-reports',
+                component: AssetReportComponent
             }
         ]
     }

@@ -19,6 +19,7 @@ import { ManageRolesService } from '../../../core/services/roles-manager/manage-
 import { PopupField } from '../../../core/models/interfaces/popup-widget.interface';
 import { Validators } from '@angular/forms';
 import { LoginAccessRequest } from '../../../core/models/interfaces/account/userProfile';
+import { FileUrlHelper } from '../../../core/helper/get-file-url';
 
 interface UserCard {
   userProfileId: number;
@@ -116,7 +117,7 @@ export class LoginAccessComponent implements OnInit {
               email: u.email,
               designation: u.designationDisplay,
               department: u.departmentDisplay,
-              profilePicture: u.profilePicture,
+              profilePicture: u.profilePicture ? FileUrlHelper.getFullUrl(u.profilePicture) : null,
               phoneNumber: u.phoneNumber,
               isEmailVerified: u.isEmailVerified,
               hasLoginAccess: u.isAllowLoginAccess || false,

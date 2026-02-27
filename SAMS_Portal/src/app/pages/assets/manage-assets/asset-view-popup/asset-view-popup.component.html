@@ -1,0 +1,507 @@
+<div class="asset-view-container">
+
+  <!-- ══════════════════════════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="popup-header">
+    <div class="header-inner">
+
+      <div class="asset-avatar">
+        <img *ngIf="assetData.imageUrl" [src]="assetData.imageUrl"
+             [alt]="assetData.name" class="avatar-image" />
+        <div *ngIf="!assetData.imageUrl" class="avatar-placeholder">
+          <mat-icon>inventory_2</mat-icon>
+        </div>
+      </div>
+
+      <div class="header-text">
+        <div class="header-chips">
+          <span class="chip-id">{{ assetData.assetId }}</span>
+          <span class="chip-avail chip-avail--yes" *ngIf="assetData.isAvilable">
+            <mat-icon>check_circle</mat-icon>Available
+          </span>
+          <span class="chip-avail chip-avail--no" *ngIf="!assetData.isAvilable">
+            <mat-icon>cancel</mat-icon>Unavailable
+          </span>
+          <span class="chip-status" *ngIf="assetData.assetStatusDisplay">
+            {{ assetData.assetStatusDisplay }}
+          </span>
+        </div>
+
+        <h2 class="header-title">{{ assetData.name }}</h2>
+
+        <div class="header-meta">
+          <span class="meta-item" *ngIf="assetData.assetBrand">
+            <mat-icon>branding_watermark</mat-icon>{{ assetData.assetBrand }}
+          </span>
+          <span class="meta-dot" *ngIf="assetData.assetBrand && assetData.assetModelNo">·</span>
+          <span class="meta-item" *ngIf="assetData.assetModelNo">
+            <mat-icon>tag</mat-icon>{{ assetData.assetModelNo }}
+          </span>
+          <span class="meta-dot" *ngIf="assetData.assetSerialNo">·</span>
+          <span class="meta-item" *ngIf="assetData.assetSerialNo">
+            <mat-icon>qr_code_2</mat-icon>{{ assetData.assetSerialNo }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button mat-icon-button matTooltip="Edit Asset" (click)="onEdit()">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button mat-icon-button matTooltip="Close" (click)="onClose()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB GROUP
+  ═══════════════════════════════════════════════════════════════ -->
+  <mat-tab-group class="popup-tabs" animationDuration="220ms"
+                 (selectedIndexChange)="onTabChange($event)">
+
+    <!-- ────────────────── TAB 1 · OVERVIEW ────────────────── -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">info_outline</mat-icon>
+        Asset Overview
+      </ng-template>
+
+      <div class="tab-scroll">
+
+        <!-- ── Stat cards ── -->
+        <div class="stat-cards-grid">
+
+          <mat-card class="stat-card stat-primary">
+            <mat-card-content>
+              <div class="stat-icon-wrap"><mat-icon>payments</mat-icon></div>
+              <div class="stat-body">
+                <span class="stat-label">Unit Price</span>
+                <span class="stat-value">{{ formatCurrency(assetData.unitPrice) }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card stat-success">
+            <mat-card-content>
+              <div class="stat-icon-wrap"><mat-icon>inventory</mat-icon></div>
+              <div class="stat-body">
+                <span class="stat-label">Quantity</span>
+                <span class="stat-value">{{ assetData.quantity ?? '—' }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card stat-warning">
+            <mat-card-content>
+              <div class="stat-icon-wrap"><mat-icon>verified_user</mat-icon></div>
+              <div class="stat-body">
+                <span class="stat-label">Warranty</span>
+                <span class="stat-value">
+                  {{ assetData.warranetyInMonth ? assetData.warranetyInMonth + ' mo' : '—' }}
+                </span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card stat-info">
+            <mat-card-content>
+              <div class="stat-icon-wrap"><mat-icon>assignment_ind</mat-icon></div>
+              <div class="stat-body">
+                <span class="stat-label">Assigned To</span>
+                <span class="stat-value">{{ assignToLabel }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+        </div>
+
+        <!-- ── Basic Information ── -->
+        <mat-card class="info-card">
+          <mat-card-content>
+            <div class="section-header">
+              <mat-icon>description</mat-icon>
+              <span>Basic Information</span>
+            </div>
+            <div class="info-grid">
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>qr_code_2</mat-icon>Serial Number</span>
+                <span class="info-value mono-val">{{ assetData.assetSerialNo || '—' }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>category</mat-icon>Category</span>
+                <span class="info-value">{{ assetData.categoryDisplay || '—' }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>label</mat-icon>Sub Category</span>
+                <span class="info-value">{{ assetData.subCategoryDisplay || '—' }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>business</mat-icon>Supplier</span>
+                <span class="info-value">{{ assetData.supplierDisplay || '—' }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>business_center</mat-icon>Department</span>
+                <span class="info-value">{{ assetData.departmentDisplay || '—' }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>account_tree</mat-icon>Sub Department</span>
+                <span class="info-value">{{ assetData.subDepartmentDisplay || '—' }}</span>
+              </div>
+
+              <div class="info-item info-item--full" *ngIf="assetData.description">
+                <span class="info-label"><mat-icon>notes</mat-icon>Description</span>
+                <span class="info-value info-value--muted">{{ assetData.description }}</span>
+              </div>
+
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- ── Assignment Details ── -->
+        <mat-card class="info-card">
+          <mat-card-content>
+            <div class="section-header">
+              <mat-icon>assignment_ind</mat-icon>
+              <span>Assignment Details</span>
+            </div>
+            <div class="info-grid">
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>person</mat-icon>Assigned User</span>
+                <span class="info-value">{{ assetData.assignUserDisplay || '—' }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>location_city</mat-icon>Site</span>
+                <span class="info-value">{{ assetData.siteDisplay || '—' }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>map</mat-icon>Area</span>
+                <span class="info-value">{{ assetData.areaDisplay || '—' }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>swap_horiz</mat-icon>Assign Type</span>
+                <span class="info-value">
+                  <span class="badge-primary">{{ assignToLabel }}</span>
+                </span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>info</mat-icon>Current Status</span>
+                <span class="info-value">{{ assetData.assetStatusDisplay || '—' }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>inventory_2</mat-icon>Asset Type</span>
+                <span class="info-value">{{ assetData.assetTypeDisplay || '—' }}</span>
+              </div>
+
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- ── Important Dates ── -->
+        <mat-card class="info-card">
+          <mat-card-content>
+            <div class="section-header">
+              <mat-icon>event</mat-icon>
+              <span>Important Dates</span>
+            </div>
+            <div class="info-grid">
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>shopping_cart</mat-icon>Purchase Date</span>
+                <span class="info-value">{{ formatDate(assetData.dateOfPurchase) }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>factory</mat-icon>Manufacturing Date</span>
+                <span class="info-value">{{ formatDate(assetData.dateOfManufacture) }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>calendar_today</mat-icon>Date Acquired</span>
+                <span class="info-value">{{ formatDate(assetData.dateAquired) }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label"><mat-icon>assessment</mat-icon>Year of Valuation</span>
+                <span class="info-value">{{ formatDate(assetData.yearOfValuation) }}</span>
+              </div>
+
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- ── Documents ── -->
+        <mat-card class="info-card"
+          *ngIf="assetData.deliveryNote || assetData.purchaseReceipt || assetData.invoice">
+          <mat-card-content>
+            <div class="section-header">
+              <mat-icon>folder_open</mat-icon>
+              <span>Documents &amp; Files</span>
+            </div>
+            <div class="documents-row">
+
+              <button mat-stroked-button class="doc-btn"
+                      *ngIf="assetData.deliveryNote"
+                      (click)="openFile(assetData.deliveryNote)">
+                <mat-icon>local_shipping</mat-icon>
+                Delivery Note
+                <mat-icon class="doc-open-icon">open_in_new</mat-icon>
+              </button>
+
+              <button mat-stroked-button class="doc-btn"
+                      *ngIf="assetData.purchaseReceipt"
+                      (click)="openFile(assetData.purchaseReceipt)">
+                <mat-icon>receipt</mat-icon>
+                Purchase Receipt
+                <mat-icon class="doc-open-icon">open_in_new</mat-icon>
+              </button>
+
+              <button mat-stroked-button class="doc-btn"
+                      *ngIf="assetData.invoice"
+                      (click)="openFile(assetData.invoice)">
+                <mat-icon>receipt_long</mat-icon>
+                Invoice
+                <mat-icon class="doc-open-icon">open_in_new</mat-icon>
+              </button>
+
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- ── Notes ── -->
+        <mat-card class="info-card" *ngIf="assetData.note">
+          <mat-card-content>
+            <div class="section-header">
+              <mat-icon>note</mat-icon>
+              <span>Notes</span>
+            </div>
+            <p class="notes-text">{{ assetData.note }}</p>
+          </mat-card-content>
+        </mat-card>
+
+      </div><!-- /tab-scroll -->
+    </mat-tab>
+
+    <!-- ────────────────── TAB 2 · DEPRECIATION ────────────────── -->
+    <mat-tab [disabled]="!hasDepreciation">
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">trending_down</mat-icon>
+        Depreciation
+        <span class="tab-badge" *ngIf="hasDepreciation">{{ depreciationSchedule.length }}Y</span>
+      </ng-template>
+
+      <div class="tab-scroll" *ngIf="hasDepreciation; else noDepreciation">
+
+        <!-- ── Depreciation stat cards ── -->
+        <div class="dep-stat-grid">
+
+          <mat-card class="stat-card stat-primary">
+            <mat-card-content>
+              <div class="stat-icon-wrap"><mat-icon>payments</mat-icon></div>
+              <div class="stat-body">
+                <span class="stat-label">Depreciable Cost</span>
+                <span class="stat-value">{{ formatCurrency(assetData.depreciableCost) }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card stat-danger">
+            <mat-card-content>
+              <div class="stat-icon-wrap"><mat-icon>arrow_downward</mat-icon></div>
+              <div class="stat-body">
+                <span class="stat-label">Total Depreciated</span>
+                <span class="stat-value">{{ formatCurrency(totalDepreciation) }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card stat-success">
+            <mat-card-content>
+              <div class="stat-icon-wrap"><mat-icon>account_balance</mat-icon></div>
+              <div class="stat-body">
+                <span class="stat-label">Salvage Value</span>
+                <span class="stat-value">{{ formatCurrency(assetData.salvageValue) }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card stat-warning">
+            <mat-card-content>
+              <div class="stat-icon-wrap"><mat-icon>calculate</mat-icon></div>
+              <div class="stat-body">
+                <span class="stat-label">Method</span>
+                <span class="stat-value stat-value--sm">{{ depreciationMethodLabel }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card stat-info">
+            <mat-card-content>
+              <div class="stat-icon-wrap"><mat-icon>schedule</mat-icon></div>
+              <div class="stat-body">
+                <span class="stat-label">Period</span>
+                <span class="stat-value">{{ assetData.depreciationInMonth }} mo</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+        </div>
+
+        <!-- ── Progress ── -->
+        <mat-card class="info-card">
+          <mat-card-content>
+            <div class="section-header">
+              <mat-icon>percent</mat-icon>
+              <span>Overall Depreciation Progress</span>
+              <span class="progress-pct-badge">{{ depreciationProgress.toFixed(1) }}%</span>
+            </div>
+            <mat-progress-bar mode="determinate" [value]="depreciationProgress"
+                              color="warn" class="dep-progress">
+            </mat-progress-bar>
+            <div class="progress-ends">
+              <span>Start: {{ formatCurrency(assetData.depreciableCost) }}</span>
+              <span>Remaining: {{ formatCurrency(lastBookValue) }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- ── Line chart ── -->
+        <mat-card class="info-card chart-card">
+          <mat-card-content>
+            <div class="section-header">
+              <mat-icon>show_chart</mat-icon>
+              <span>Book Value Trend Over Time</span>
+            </div>
+            <div class="chart-wrap" style="height:260px">
+              <canvas #lineChartCanvas></canvas>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- ── Bar + Doughnut ── -->
+        <div class="charts-two-col">
+          <mat-card class="info-card chart-card">
+            <mat-card-content>
+              <div class="section-header">
+                <mat-icon>bar_chart</mat-icon>
+                <span>Annual Depreciation</span>
+              </div>
+              <div class="chart-wrap" style="height:230px">
+                <canvas #barChartCanvas></canvas>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="info-card chart-card">
+            <mat-card-content>
+              <div class="section-header">
+                <mat-icon>donut_large</mat-icon>
+                <span>Depreciated vs Remaining</span>
+              </div>
+              <div class="chart-wrap" style="height:230px">
+                <canvas #doughnutChartCanvas></canvas>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- ── Schedule table ── -->
+        <mat-card class="info-card table-card">
+          <mat-card-content>
+            <div class="section-header">
+              <mat-icon>table_chart</mat-icon>
+              <span>Year-wise Depreciation Schedule</span>
+            </div>
+            <div class="dep-table-scroll">
+              <table mat-table [dataSource]="depreciationSchedule" class="dep-table">
+
+                <ng-container matColumnDef="year">
+                  <th mat-header-cell *matHeaderCellDef>Year</th>
+                  <td mat-cell *matCellDef="let row">
+                    <span class="year-badge">Year {{ row.year }}</span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="bookValueYearBegining">
+                  <th mat-header-cell *matHeaderCellDef class="text-right">Beginning Value</th>
+                  <td mat-cell *matCellDef="let row" class="text-right currency-cell">
+                    {{ formatCurrency(row.bookValueYearBegining) }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="depreciation">
+                  <th mat-header-cell *matHeaderCellDef class="text-right">Depreciation</th>
+                  <td mat-cell *matCellDef="let row" class="text-right">
+                    <span class="dep-amount">
+                      <mat-icon class="dep-arrow">arrow_downward</mat-icon>
+                      {{ formatCurrency(row.depreciation) }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="bookValueYearEnd">
+                  <th mat-header-cell *matHeaderCellDef class="text-right">Ending Value</th>
+                  <td mat-cell *matCellDef="let row" class="text-right ending-val">
+                    {{ formatCurrency(row.bookValueYearEnd) }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="depreciationPercent">
+                  <th mat-header-cell *matHeaderCellDef>% of Cost</th>
+                  <td mat-cell *matCellDef="let row">
+                    <div class="pct-wrap">
+                      <span class="pct-label">{{ getDepreciationPercent(row) }}%</span>
+                      <div class="pct-track">
+                        <div class="pct-fill" [style.width.%]="getDepreciationPercent(row)"></div>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="depreciationColumns; sticky:true"></tr>
+                <tr mat-row *matRowDef="let row; columns: depreciationColumns;"></tr>
+              </table>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+      </div><!-- /tab-scroll depreciation -->
+
+      <ng-template #noDepreciation>
+        <div class="empty-state">
+          <mat-icon>trending_flat</mat-icon>
+          <p>This asset is not configured for depreciation.</p>
+        </div>
+      </ng-template>
+
+    </mat-tab>
+
+  </mat-tab-group>
+
+  <!-- ══════════════════════════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="popup-footer">
+    <button mat-stroked-button (click)="onClose()">
+      <mat-icon>close</mat-icon> Close
+    </button>
+    <button mat-raised-button color="primary" (click)="onEdit()">
+      <mat-icon>edit</mat-icon> Edit Asset
+    </button>
+  </div>
+
+</div>

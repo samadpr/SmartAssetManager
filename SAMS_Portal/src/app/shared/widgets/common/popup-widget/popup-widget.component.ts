@@ -20,7 +20,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { FilesUploadService } from '../../../../core/services/common/files-upload.service';
 import { Country, CountryService } from '../../../../core/services/account/country/country.service';
-import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject, takeUntil, tap } from 'rxjs';
 import { MatDividerModule } from '@angular/material/divider';
 import { GlobalService } from '../../../../core/services/global/global.service';
 import { FilePreviewComponent } from '../list-widget/file-preview/file-preview.component';
@@ -264,9 +264,32 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+ * 🔥 Deep clone field configuration while preserving functions (validators, etc.)
+ */
+  private cloneFields(fields: PopupField[]): PopupField[] {
+    return fields.map(field => {
+      const cloned: PopupField = {
+        ...field,
+        // Preserve arrays by creating new references
+        options: field.options ? [...field.options] : undefined,
+        validators: field.validators ? [...field.validators] : undefined,
+        // Preserve nested objects
+        quickAdd: field.quickAdd ? { ...field.quickAdd } : undefined,
+        showIf: field.showIf ? { ...field.showIf } : undefined,
+        conditionalRequired: field.conditionalRequired ? { ...field.conditionalRequired } : undefined,
+        // parentContext: field.parentContext ? { ...field.parentContext } : undefined
+      };
+      return cloned;
+    });
+  }
+
   private initializeForm() {
     const cfg = this.formConfig;
     if (!cfg) return;
+
+    // 🔥 DEBUG: Log initial data
+    console.log('🔧 Initializing form with data:', this.data?.data);
 
     const controls: { [k: string]: FormControl } = {};
 
@@ -336,6 +359,15 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         }
       }
 
+      // 🔥 Lock parent field in quick add popup
+      if (
+        this.data?.data &&
+        field.key.endsWith('Id') &&
+        this.data.data[field.key] !== undefined
+      ) {
+        isDisabled = true;
+      }
+
       // Country field
       if (field.key === 'country' && field.type === 'select') {
         field.options = this.countries().map(country => ({
@@ -353,6 +385,29 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
           newMap.set(field.key, field.options || []);
           return newMap;
         });
+      }
+
+      // 🔥 NEW: For cascading child fields, also store the complete dataset
+      if (field.cascadeFrom && field.options) {
+        // 🔥 FIXED: Use plural form to match component state
+        let cacheKey: string;
+
+        if (field.key === 'subDepartment') {
+          cacheKey = 'allSubDepartments'; // Match what component uses
+        } else if (field.key === 'area') {
+          cacheKey = 'allAreas'; // Match what component uses
+        } else {
+          // Fallback for other fields
+          cacheKey = `all${field.key.charAt(0).toUpperCase() + field.key.slice(1)}s`;
+        }
+
+        this.fieldOptionsMap.update(map => {
+          const newMap = new Map(map);
+          newMap.set(cacheKey, [...field.options!]);
+          return newMap;
+        });
+
+        console.log(`📦 Initialized cache: ${cacheKey} with ${field.options.length} items`);
       }
 
       // 🔥 NEW: Store original validators for dynamic management
@@ -760,36 +815,51 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
     if (!field.quickAdd || this.isQuickAddLoading(field.key)) return;
 
-    // Check if Quick Add should be disabled
     if (this.isQuickAddDisabled(field)) {
       console.warn('Quick Add is disabled for field:', field.key);
       return;
     }
 
     const quickAddConfig = field.quickAdd;
+    let parentFieldValue: any = null;
+    let parentFieldKey: string | null = null;
 
-    // 🔥 NEW: Handle parent context (auto-populate and lock)
+    // 🔥 CRITICAL FIX: Use proper cloning that preserves validators
+    const fieldsClone: PopupField[] = this.cloneFields(quickAddConfig.fields);
+
+    // 🔥 Handle parent context (auto-populate and lock)
     if (quickAddConfig.parentContext) {
-      const parentFieldKey = quickAddConfig.parentContext.field;
-      const parentValue = this.form?.get(parentFieldKey)?.value;
+      parentFieldKey = quickAddConfig.parentContext.field;
+      parentFieldValue = this.form?.get(parentFieldKey)?.value;
 
       console.log('🎯 Parent context:', {
         parentField: parentFieldKey,
-        parentValue: parentValue,
+        parentValue: parentFieldValue,
         autoPopulate: quickAddConfig.parentContext.autoPopulate,
         lockParent: quickAddConfig.parentContext.lockParent
       });
 
-      if (parentValue) {
-        // Find parent field in Quick Add popup
-        const parentFieldInPopup = quickAddConfig.fields.find(
+      if (parentFieldValue) {
+        const parentFieldInPopup = fieldsClone.find(
           f => f.key === `${parentFieldKey}Id` || f.key === parentFieldKey
         );
 
         if (parentFieldInPopup) {
+          // 🔥 CRITICAL FIX: Get FRESH options from the current fieldOptionsMap
+          const currentParentOptions = this.getFieldOptions(parentFieldKey);
+
+          console.log('🔍 Current parent options:', currentParentOptions.length);
+          console.log('🔍 Looking for value:', parentFieldValue);
+
+          // 🔥 Update the cloned field's options with fresh data
+          if (currentParentOptions.length > 0) {
+            parentFieldInPopup.options = [...currentParentOptions];
+            console.log('✅ Updated field options with', currentParentOptions.length, 'items');
+          }
+
           if (quickAddConfig.parentContext.autoPopulate) {
-            parentFieldInPopup.value = parentValue;
-            console.log('✅ Auto-populated parent field:', parentFieldKey, '=', parentValue);
+            parentFieldInPopup.value = parentFieldValue;
+            console.log('✅ Auto-populated parent field:', parentFieldKey, '=', parentFieldValue);
           }
 
           if (quickAddConfig.parentContext.lockParent) {
@@ -799,19 +869,25 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
         }
       }
     }
-
-    // 🔥 LEGACY: Support old enableWhen logic (backward compatibility)
+    // 🔥 LEGACY: Support old enableWhen logic
     else if (quickAddConfig.enableWhen) {
-      const parentFieldKey = quickAddConfig.enableWhen.field;
-      const parentValue = this.form?.get(parentFieldKey)?.value;
+      parentFieldKey = quickAddConfig.enableWhen.field;
+      parentFieldValue = this.form?.get(parentFieldKey)?.value;
 
-      if (parentValue) {
-        const parentFieldInPopup = quickAddConfig.fields.find(
+      if (parentFieldValue) {
+        const parentFieldInPopup = fieldsClone.find(
           f => f.key === `${parentFieldKey}Id` || f.key === parentFieldKey
         );
 
         if (parentFieldInPopup) {
-          parentFieldInPopup.value = parentValue;
+          // 🔥 Get FRESH options
+          const currentParentOptions = this.getFieldOptions(parentFieldKey);
+
+          if (currentParentOptions.length > 0) {
+            parentFieldInPopup.options = [...currentParentOptions];
+          }
+
+          parentFieldInPopup.value = parentFieldValue;
           parentFieldInPopup.disabled = true;
         }
       }
@@ -821,17 +897,27 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       title: quickAddConfig.popupTitle,
       subtitle: `Add new ${field.label.toLowerCase()} and continue`,
       icon: quickAddConfig.popupIcon || 'add_circle_outline',
-      fields: quickAddConfig.fields,
+      fields: fieldsClone, // 🔥 Use the properly cloned fields
       columns: 2,
       maxWidth: '650px',
       submitButtonText: 'Add & Select',
       cancelButtonText: 'Cancel'
     };
 
+    // 🔥 Pass parent value in data object
+    const initialData: any = {};
+
+    if (parentFieldKey && parentFieldValue) {
+      initialData[parentFieldKey] = parentFieldValue;
+      initialData[`${parentFieldKey}Id`] = parentFieldValue;
+
+      console.log('📦 Initial data for nested popup:', initialData);
+    }
+
     const nestedPopupData: PopupData = {
       type: 'form',
       config: nestedPopupConfig,
-      data: {}
+      data: initialData
     };
 
     const dialogRef = this.dialog.open(PopupWidgetComponent, {
@@ -847,6 +933,88 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result && result.action === 'submit' && quickAddConfig.onAdd) {
+        // 🔥 Store original refresh function
+        const originalRefreshOptions = quickAddConfig.refreshOptions;
+
+        // 🔥 Wrap refresh to update parent cache CORRECTLY
+        if (originalRefreshOptions) {
+          quickAddConfig.refreshOptions = (response: any) => {
+            return originalRefreshOptions(response).pipe(
+              tap((filteredOptions: any[]) => {
+                // Extract response data
+                const newItemId = response?.data?.id || response?.id;
+                const newItemName = response?.data?.name || response?.name;
+                const parentDeptId = response?.data?.departmentId || response?.departmentId;
+                const siteId = response?.data?.siteId || response?.siteId;
+
+                console.log('🔍 Quick add response:', { newItemId, newItemName, parentDeptId, siteId });
+
+                // 🔥 FOR SUBDEPARTMENTS
+                if (field.key === 'subDepartment' && newItemId && parentDeptId) {
+                  console.log('🔄 Updating parent form allSubDepartments cache');
+
+                  // Get current COMPLETE cache (not filtered options!)
+                  const currentAllSubs = this.getFieldOptions('allSubDepartments') || [];
+
+                  console.log('📊 Current cache size:', currentAllSubs.length);
+
+                  // Check if already exists
+                  const exists = currentAllSubs.some(sub => sub.value === newItemId);
+
+                  if (!exists) {
+                    // Add new subdepartment to complete cache
+                    const newSubDept = {
+                      value: newItemId,
+                      label: newItemName,
+                      departmentId: parentDeptId
+                    };
+
+                    const updatedAllSubs = [...currentAllSubs, newSubDept];
+
+                    // Update the complete cache
+                    this.updateFieldOptions('allSubDepartments', updatedAllSubs);
+
+                    console.log('✅ Added to cache. New total:', updatedAllSubs.length);
+                    console.log('📦 New item:', newSubDept);
+                  } else {
+                    console.log('ℹ️ Item already in cache');
+                  }
+                }
+
+                // 🔥 FOR AREAS
+                if (field.key === 'area' && newItemId && siteId) {
+                  console.log('🔄 Updating parent form allAreas cache');
+
+                  const currentAllAreas = this.getFieldOptions('allAreas') || [];
+
+                  console.log('📊 Current cache size:', currentAllAreas.length);
+
+                  const exists = currentAllAreas.some(area => area.value === newItemId);
+
+                  if (!exists) {
+                    const newArea = {
+                      value: newItemId,
+                      label: newItemName,
+                      siteId: siteId
+                    };
+
+                    const updatedAllAreas = [...currentAllAreas, newArea];
+
+                    this.updateFieldOptions('allAreas', updatedAllAreas);
+
+                    console.log('✅ Added to cache. New total:', updatedAllAreas.length);
+                    console.log('📦 New item:', newArea);
+                  } else {
+                    console.log('ℹ️ Item already in cache');
+                  }
+                }
+
+                console.log('✅ Cache update complete');
+              })
+            );
+          };
+        }
+
         this.handleQuickAddSubmit(field, result.data, quickAddConfig);
       }
     });
@@ -916,6 +1084,28 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
 
               // 🔥 CRITICAL: Update the field options in the map
               this.updateFieldOptions(field.key, newOptions);
+
+              // 🔥 NEW: Update parent form's cached data if this is a cascading field
+              if (this.formConfig) {
+                const parentField = this.formConfig.fields.find(f => f.key === field.key);
+
+                if (parentField && parentField.cascadeFrom) {
+                  // This is a child field - update the parent form's ALL items cache
+                  const cacheKey = `all${field.key.charAt(0).toUpperCase() + field.key.slice(1)}`;
+                  console.log('🔄 Updating parent form cache:', cacheKey);
+
+                  // Get all items (not just filtered ones)
+                  this.updateParentFormCache(field.key, response);
+                }
+              }
+
+              if (field.key === 'department') {
+                this.updateFieldOptions('department', newOptions);
+              }
+
+              if (field.key === 'subDepartment') {
+                this.updateFieldOptions('subDepartment', newOptions);
+              }
 
               // Extract the newly created item's ID
               const newItemId = response?.data?.id || response?.id;
@@ -987,6 +1177,17 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     });
   }
 
+  private updateParentFormCache(fieldKey: string, response: any) {
+    // This is a nested popup - we need to send the new data back to parent
+    // We'll emit it through the dialog result when closing, but we also need
+    // to update any listening parent forms
+
+    console.log('📤 Sending cache update for:', fieldKey, response);
+
+    // The parent popup will handle this in the dialogRef.afterClosed() handler
+    // For now, just log it - the real fix is in Step 3
+  }
+
   /**
    * 🆕 NEW: Trigger cascade update for child fields
    */
@@ -1028,9 +1229,12 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
     if (field.pattern) {
       validators.push(Validators.pattern(field.pattern));
     }
-    if (field.validators) {
-      validators.push(...field.validators);
+    // 🔥 NULL CHECK: Only add validators if they exist and are valid
+    if (field.validators && Array.isArray(field.validators)) {
+      const validValidators = field.validators.filter(v => v != null && typeof v === 'function');
+      validators.push(...validValidators);
     }
+
 
     return validators;
   }

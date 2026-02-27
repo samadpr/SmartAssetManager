@@ -1,0 +1,215 @@
+<div class="print-dialog">
+  <!-- Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <mat-icon>print</mat-icon>
+      </div>
+      <div>
+        <h2>Print QR / Barcode Stickers</h2>
+        <span class="mode-label">{{ getModeLabel() }}</span>
+      </div>
+    </div>
+    <button mat-icon-button (click)="close()" class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="dialog-body">
+    <!-- Left: Settings -->
+    <div class="settings-panel">
+      <h3 class="settings-title">Print Options</h3>
+
+      <!-- Print Type -->
+      <div class="setting-group">
+        <label class="setting-label">
+          <mat-icon>receipt_long</mat-icon>
+          Code Type
+        </label>
+        <div class="type-options">
+          <button class="type-btn" [class.active]="printType() === 'qr'" (click)="printType.set('qr')">
+            <mat-icon>qr_code_2</mat-icon>
+            <span>QR Code</span>
+          </button>
+          <button class="type-btn" [class.active]="printType() === 'barcode'" (click)="printType.set('barcode')">
+            <mat-icon fontSet="material-symbols-outlined">barcode_scanner</mat-icon>
+            <span>Barcode</span>
+          </button>
+          <button class="type-btn type-btn--both" [class.active]="printType() === 'both'" (click)="printType.set('both')">
+            <mat-icon>receipt_long</mat-icon>
+            <span>Both</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sticker Size -->
+      <div class="setting-group">
+        <label class="setting-label">
+          <mat-icon>straighten</mat-icon>
+          Sticker Size
+        </label>
+        <div class="size-options">
+          <button class="size-btn" [class.active]="stickerSize() === 'small'" (click)="stickerSize.set('small')">
+            <div class="size-preview size-preview--sm"></div>
+            <span>Small</span>
+          </button>
+          <button class="size-btn" [class.active]="stickerSize() === 'medium'" (click)="stickerSize.set('medium')">
+            <div class="size-preview size-preview--md"></div>
+            <span>Medium</span>
+          </button>
+          <button class="size-btn" [class.active]="stickerSize() === 'large'" (click)="stickerSize.set('large')">
+            <div class="size-preview size-preview--lg"></div>
+            <span>Large</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Columns per row -->
+      <div class="setting-group">
+        <label class="setting-label">
+          <mat-icon>grid_view</mat-icon>
+          Stickers per Row
+        </label>
+        <div class="col-options">
+          @for (col of [2, 3, 4]; track col) {
+            <button class="col-btn" [class.active]="columns() === col" (click)="columns.set($any(col))">
+              {{ col }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <mat-divider class="section-divider"></mat-divider>
+
+      <!-- Customization Section -->
+      <h3 class="settings-title customization-title">
+        <mat-icon>tune</mat-icon>
+        <span>Customize Labels</span>
+      </h3>
+
+      <!-- Custom Heading -->
+      <div class="setting-group">
+        <label class="setting-label">
+          <mat-icon>title</mat-icon>
+          Custom Heading
+        </label>
+        <mat-form-field appearance="outline" class="custom-heading-field">
+          <mat-label>Optional heading (e.g., "Property of XYZ Corp")</mat-label>
+          <input matInput [formControl]="customHeadingControl" maxlength="50" />
+          <mat-hint align="end">{{ customHeadingControl.value?.length || 0 }}/50</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- Additional Labels -->
+      <div class="setting-group">
+        <label class="setting-label">
+          <mat-icon>label</mat-icon>
+          Additional Information
+        </label>
+        <div class="labels-toggle-list">
+          @for (label of availableLabels(); track label.id) {
+            <div class="label-toggle-item" [class.enabled]="label.enabled" (click)="toggleLabel(label)">
+              <mat-icon class="toggle-icon">{{ label.enabled ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+              <span class="label-name">{{ label.label }}</span>
+            </div>
+          }
+        </div>
+        <small class="labels-hint">
+          <mat-icon>info</mat-icon>
+          Click to add/remove information on stickers
+        </small>
+      </div>
+
+      <!-- Summary -->
+      <div class="print-summary">
+        <div class="summary-title">
+          <mat-icon>summarize</mat-icon>
+          <span>Print Summary</span>
+        </div>
+        <div class="summary-row">
+          <mat-icon>print</mat-icon>
+          <span>{{ selectedCount() }} sticker(s) will print</span>
+        </div>
+        <div class="summary-row">
+          <mat-icon>receipt_long</mat-icon>
+          <span>{{ printType() === 'both' ? 'QR Code + Barcode' : printType() === 'qr' ? 'QR Code only' : 'Barcode only' }}</span>
+        </div>
+        <div class="summary-row">
+          <mat-icon>straighten</mat-icon>
+          <span>{{ stickerSize() | titlecase }} size · {{ columns() }} per row</span>
+        </div>
+        @if (customHeadingControl.value) {
+          <div class="summary-row">
+            <mat-icon>title</mat-icon>
+            <span>With heading: "{{ customHeadingControl.value }}"</span>
+          </div>
+        }
+        @if (enabledLabelsCount() > 0) {
+          <div class="summary-row">
+            <mat-icon>label</mat-icon>
+            <span>{{ enabledLabelsCount() }} extra label(s)</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <mat-divider vertical class="vertical-divider"></mat-divider>
+
+    <!-- Right: Asset List -->
+    <div class="assets-panel">
+      <div class="assets-panel-header">
+        <h3 class="settings-title">
+          Assets to Print
+          <span class="count-badge">{{ selectedCount() }}</span>
+        </h3>
+        <mat-checkbox
+          [checked]="isAllSelected()"
+          [indeterminate]="isIndeterminate()"
+          (change)="toggleAll()"
+          class="select-all-cb">
+          Select All
+        </mat-checkbox>
+      </div>
+
+      <div class="asset-list">
+        @for (asset of data.assets; track asset.id) {
+          <div class="asset-item" [class.selected]="selection.isSelected(asset)" (click)="selection.toggle(asset)">
+            <mat-checkbox
+              [checked]="selection.isSelected(asset)"
+              (click)="$event.stopPropagation();"
+              (change)="selection.toggle(asset)">
+            </mat-checkbox>
+            <div class="asset-item-codes">
+              @if (asset.qrcodeImage) {
+                <img [src]="asset.qrcodeImage" alt="QR" class="mini-qr" />
+              }
+              @if (asset.barcode) {
+                <img [src]="asset.barcode" alt="BC" class="mini-bc" />
+              }
+            </div>
+            <div class="asset-item-info">
+              <span class="asset-item-name">{{ asset.name }}</span>
+              <span class="asset-item-id">{{ asset.assetId }}</span>
+              <span class="asset-item-brand">{{ asset.assetBrand }} · {{ asset.categoryDisplay }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Actions -->
+  <mat-divider></mat-divider>
+  <div class="dialog-actions">
+    <button mat-stroked-button (click)="close()">
+      <mat-icon>close</mat-icon>
+      Cancel
+    </button>
+    <button mat-flat-button color="primary" (click)="executePrint()" [disabled]="selectedCount() === 0">
+      <mat-icon>print</mat-icon>
+      Print {{ selectedCount() }} Sticker{{ selectedCount() !== 1 ? 's' : '' }}
+    </button>
+  </div>
+</div>

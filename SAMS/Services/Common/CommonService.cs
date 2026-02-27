@@ -131,5 +131,25 @@ namespace SAMS.Services.Common
                 return (false, null);
             }
         }
+
+        public async Task<(UserProfile? UserProfile, bool success, string message)> GetUserProfileAsync(string email, Guid? orgId)
+        {
+            try
+            {
+                var userProfile = await _commonRepository.GetUserProfileData(email, orgId);
+
+                if (userProfile == null)
+                {
+                    return (null, false, "User not found.");
+                }
+
+                return (userProfile, true, "User found.");
+            }
+            catch (Exception ex) {
+                _logger.LogError(ex, "Error retrieving user profile for user: {Email}", email);
+                return (null, false, "Error retrieving user profile.");
+            }
+            
+        }
     }
 }

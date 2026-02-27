@@ -11,6 +11,10 @@
         container-background-color: var(--mat-sys-surface),
         container-text-color: var(--mat-sys-on-primary-container),
     ));
+
+    .toggleMenuBtn{
+        cursor: ew-resize;
+    }
 }
 
 .navbar-header {

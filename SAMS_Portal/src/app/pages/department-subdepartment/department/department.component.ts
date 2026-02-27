@@ -126,7 +126,7 @@ export class DepartmentComponent implements OnInit {
   private loadDepartments() {
     this.loading.set(true);
     // Simulate API call
-    this.departmentsService.getDepartments().subscribe({
+    this.departmentsService.getMyDepartments().subscribe({
       next: (response) => {
         if (!response.success) {
           this.globalSevice.showToastr('Failed to load departments.', 'error')

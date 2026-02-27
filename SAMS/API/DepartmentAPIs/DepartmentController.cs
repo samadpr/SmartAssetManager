@@ -51,11 +51,11 @@ namespace SAMS.API.DepartmentAPIs
         }
 
         [Authorize(Roles = RoleModels.Department)]
-        [HttpGet("department/get-departments")]
+        [HttpGet("department/get-my-departments")]
         public async Task<IActionResult> GetDepartments()
         {
             var user = HttpContext.User.Identity?.Name ?? "System";
-            var result = await _departmentService.GetDepartmentsAsync(user);
+            var result = await _departmentService.GetDepartmentsByOrgAsync(user);
             if (!result.isSuccess)
             {
                 return NotFound(new { success = false, message = "No departments found" });
@@ -67,17 +67,17 @@ namespace SAMS.API.DepartmentAPIs
             return Ok(new { success = true, message = "Departments found", data = result.data });
         }
 
-        [Authorize(Roles = RoleModels.Department)]
-        [HttpGet("department/get-my-departments")]
-        public async Task<IActionResult> GetMyDepartments()
-        {
-            var user = HttpContext.User.Identity?.Name ?? "System";
-            if (user == null) return Forbid();
-            var result = await _departmentService.GetUserDepartmentsAsync(user);
-            if (result == null || !result.Any())
-                return NotFound($"No department found");
-            return Ok(result);
-        }
+        //[Authorize(Roles = RoleModels.Department)]
+        //[HttpGet("department/get-my-departments")]
+        //public async Task<IActionResult> GetMyDepartments()
+        //{
+        //    var user = HttpContext.User.Identity?.Name ?? "System";
+        //    if (user == null) return Forbid();
+        //    var result = await _departmentService.GetUserDepartmentsAsync(user);
+        //    if (result == null || !result.Any())
+        //        return NotFound($"No department found");
+        //    return Ok(result);
+        //}
 
         [Authorize(Roles = RoleModels.SuperAdmin)]
         [HttpGet("department/get-all-departments")]

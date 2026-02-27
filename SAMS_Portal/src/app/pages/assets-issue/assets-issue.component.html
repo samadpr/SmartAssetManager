@@ -1,0 +1,19 @@
+<app-page-header [title]="'Asset Issues'" [breadcrumbs]="[
+    { label: 'Asset', url: '/assets' },
+    { label: 'Asset Issues' }
+  ]">
+</app-page-header>
+
+<div class="assets-issue-page">
+  <app-list-widget
+    [config]="listConfig"
+    [data]="issues()"
+    [loading]="loading()"
+    (actionClick)="onActionClick($event)"
+    (addClick)="onAddIssue()"
+    (refreshClick)="onRefresh()"
+    (selectionChange)="onSelectionChange($event)"
+    (selectionAction)="onSelectionAction($event)"
+    (rowClick)="onRowClick($event)">
+  </app-list-widget>
+</div>

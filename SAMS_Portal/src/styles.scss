@@ -357,3 +357,42 @@ html {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
+
+
+// QR Preview Dialog Panel
+.qr-preview-dialog-panel {
+  .mat-mdc-dialog-container {
+    border-radius: 16px !important;
+    padding: 0 !important;
+    overflow: hidden;
+
+    .mat-mdc-dialog-surface {
+      border-radius: 16px !important;
+    }
+
+    .mat-mdc-dialog-content {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-height: none !important;
+    }
+  }
+}
+
+// Print Dialog Panel
+.print-dialog-panel {
+  .mat-mdc-dialog-container {
+    border-radius: 16px !important;
+    padding: 0 !important;
+    overflow: hidden;
+
+    .mat-mdc-dialog-surface {
+      border-radius: 16px !important;
+    }
+
+    .mat-mdc-dialog-content {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-height: none !important;
+    }
+  }
+}

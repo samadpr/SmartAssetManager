@@ -36,7 +36,7 @@
 
                 // Get root path
                 var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                var uploadPath = Path.Combine(rootPath, "uploads", "Assets", folderName);
+                var uploadPath = Path.Combine(rootPath, "uploads", folderName);
 
                 // Create directory if not exists
                 if (!Directory.Exists(uploadPath))
@@ -62,7 +62,7 @@
                 }
 
                 // Return relative path for database storage
-                var relativePath = $"/uploads/Assets/{folderName}/{finalFileName}";
+                var relativePath = $"/uploads/{folderName}/{finalFileName}";
                 return (true, relativePath, "File uploaded successfully");
             }
             catch (Exception ex)

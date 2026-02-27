@@ -148,5 +148,10 @@ namespace SAMS.Services.Common
                 return null!;
             return userRole;
         }
+
+        public async Task<UserProfile> GetUserProfileData(string email, Guid? orgId)
+        {
+            return await _context.UserProfiles.FirstOrDefaultAsync(u => u.Email == email & !u.Cancelled & u.OrganizationId == orgId);
+        }
     }
 }

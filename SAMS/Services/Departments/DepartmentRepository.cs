@@ -34,9 +34,9 @@ public class DepartmentRepository : IDepartmentRepository
         return (true, "Department updated successfully", department);
     }
 
-    public async Task<(bool isSuccess, string message, Department? result)> GetByIdAsync(long id)
+    public async Task<(bool isSuccess, string message, Department? result)> GetByIdAsync(long id, Guid? orgId)
     {
-        var department = await _context.Department.FirstOrDefaultAsync(d => d.Id == id && !d.Cancelled);
+        var department = await _context.Department.FirstOrDefaultAsync(d => d.Id == id && d.OrganizationId == orgId && !d.Cancelled);
         if (department == null) return (false, "Department not found", null);
         return (true, "Department found", department);
     }
@@ -72,5 +72,12 @@ public class DepartmentRepository : IDepartmentRepository
             .Include(d => d.SubDepartments)   // EF navigation property
             .Where(d => !d.Cancelled && emails.Contains(d.CreatedBy))
             .ToListAsync();
+    }
+
+    public async Task<List<Department>> GetDepartmentsByOrgIdAsync(Guid? orgId)
+    {
+        return await _context.Department
+                .Where(x => x.OrganizationId == orgId && !x.Cancelled)
+                .ToListAsync();
     }
 }
