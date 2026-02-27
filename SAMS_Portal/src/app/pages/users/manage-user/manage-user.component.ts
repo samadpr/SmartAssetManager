@@ -20,6 +20,7 @@ import { SitesOrBranchesService } from '../../../core/services/sites-or-branchs/
 import { AssetAreaService } from '../../../core/services/sites-or-branchs/areas/asset-area.service';
 import { CitiesService } from '../../../core/services/sites-or-branchs/cities/cities.service';
 import { SiteOrBranch } from '../../../core/models/interfaces/sites-or-branchs/asset-site.interface';
+import { FileUrlHelper } from '../../../core/helper/get-file-url';
 
 export interface UserProfile {
   userProfileId: number;
@@ -314,7 +315,7 @@ export class ManageUserComponent implements OnInit {
     forkJoin({
       designations: this.designationService.getDesignations(),
       roles: this.rolesService.getUserRoles(),
-      departments: this.departmentService.getDepartments(),
+      departments: this.departmentService.getMyDepartments(),
       subDepartments: this.subDepartmentService.getSubDepartments(),
       sites: this.siteOrBaranchService.getMySites(),
       areas: this.areaService.getMyAreas(),
@@ -586,6 +587,7 @@ export class ManageUserComponent implements OnInit {
       next: (response) => {
         if (response.success) {
           const mapped = response.data.map((u: UserProfileDetails) => this.mapToUserProfile(u));
+
           this.userProfiles.set(mapped);
         }
         this.loading.set(false);
@@ -626,7 +628,7 @@ export class ManageUserComponent implements OnInit {
       isEmailVerified: data.isEmailVerified,
       address: data.address,
       country: data.country,
-      profilePicture: data.profilePicture
+      profilePicture: data.profilePicture ? FileUrlHelper.getFullUrl(data.profilePicture) : undefined,
     };
   }
 
@@ -948,7 +950,30 @@ export class ManageUserComponent implements OnInit {
       // 🔹 Save department
       onAdd: (departmentData) => {
         return this.departmentService.createDepartment(departmentData).pipe(
-          tap(() => {
+          tap((response) => {
+            if (!response.success) {
+              this.globalService.showSnackbar('Failed to create department', 'error');
+              return;
+            }
+            console.log('✅ Department created:', departmentData);
+
+            // this.departmentService.getMyDepartments().subscribe(res => {
+            //   console.log('🔄 Refreshing departments after add:', res);
+
+            //   if (res.success && res.data) {
+            //     const options = res.data.map(d => ({
+            //       value: d.id,
+            //       label: d.name
+            //     }));
+
+            //     this.dropdownData.update(current => ({
+            //       ...current,
+            //       departments: options
+            //     }));
+
+            //     console.log('✅ Departments refreshed:', this.dropdownData().departments);
+            //   }
+            // });
             this.globalService.showSnackbar('Department created successfully', 'success');
           })
         );
@@ -956,7 +981,7 @@ export class ManageUserComponent implements OnInit {
 
       // 🔹 Refresh department dropdown
       refreshOptions: () => {
-        return this.departmentService.getDepartments().pipe(
+        return this.departmentService.getMyDepartments().pipe(
           map(res => {
             if (res.success && res.data) {
               const options = res.data.map(d => ({
@@ -970,7 +995,129 @@ export class ManageUserComponent implements OnInit {
                 departments: options
               }));
 
+              console.log('✅ Departments refreshed:', this.dropdownData().departments);
+
               return options;
+            }
+            return [];
+          })
+        );
+      },
+      // 🔥 THIS IS THE KEY FIX
+      // afterAdd: (response, parentForm) => {
+      //   const newDeptId = response?.data?.id;
+
+      //   if (newDeptId) {
+      //     parentForm.patchValue({
+      //       department: newDeptId
+      //     });
+
+      //     // Optional: trigger cascade refresh
+      //     parentForm.get('department')?.markAsDirty();
+      //     parentForm.get('department')?.updateValueAndValidity();
+      //   }
+      // }
+    };
+  }
+
+  private getSubDepartmentQuickAddConfig(): QuickAddConfig {
+    const dropdowns = this.dropdownData();
+
+    return {
+      enabled: true,
+      buttonLabel: 'Add New Sub Department',
+      buttonIcon: 'add_circle',
+      popupTitle: 'Add New Sub Department',
+      popupIcon: 'account_tree',
+
+      enableWhen: {
+        field: 'department',
+        hasValue: true
+      },
+
+      parentContext: {
+        field: 'department',
+        autoPopulate: true,
+        lockParent: false // Changed to false so you can see it's working
+      },
+
+      fields: [
+        {
+          key: 'departmentId', // 🔥 This MUST match what your backend expects
+          label: 'Department',
+          type: 'select',
+          required: true,
+          colSpan: 2,
+          icon: 'business',
+          options: dropdowns.departments, // This will be overridden by initialData
+          placeholder: 'Select department',
+          validators: [Validators.required]
+        },
+        {
+          key: 'name',
+          label: 'Sub Department Name',
+          type: 'text',
+          required: true,
+          colSpan: 2,
+          icon: 'account_tree',
+          placeholder: 'Enter sub department name',
+          validators: [Validators.minLength(2), Validators.maxLength(100)]
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          colSpan: 4,
+          rows: 3,
+          icon: 'description',
+          validators: [Validators.maxLength(500)]
+        }
+      ],
+
+      onAdd: (data) => {
+        console.log('💾 Creating Sub Department:', data);
+        return this.subDepartmentService.createSubDepartment(data).pipe(
+          tap((response) => {
+            console.log('✅ Sub Department created:', response);
+            this.globalService.showSnackbar(
+              'Sub Department created successfully',
+              'success'
+            );
+          })
+        );
+      },
+
+      refreshOptions: (response) => {
+        console.log('🔄 Refreshing subdepartments after add:', response);
+
+        const newSubDeptName = response?.data?.name || response?.name || 'Sub Department';
+        const parentDeptId = response?.data?.departmentId || response?.departmentId;
+
+        this.globalService.showSnackbar(`"${newSubDeptName}" added successfully!`, 'success');
+
+        return this.subDepartmentService.getSubDepartments().pipe(
+          map(apiResponse => {
+            if (apiResponse.success && apiResponse.data) {
+              const allSubDepartments = apiResponse.data.map(sd => ({
+                value: sd.id,
+                label: sd.name ?? '',
+                departmentId: sd.departmentId
+              }));
+
+              console.log('✅ All subdepartments loaded:', allSubDepartments.length);
+
+              this.dropdownData.update(current => ({
+                ...current,
+                allSubDepartments: allSubDepartments
+              }));
+
+              const filteredOptions = allSubDepartments.filter(
+                sd => sd.departmentId === parentDeptId
+              );
+
+              console.log('🎯 Filtered options for department', parentDeptId, ':', filteredOptions.length);
+
+              return filteredOptions;
             }
             return [];
           })
@@ -1239,121 +1386,6 @@ export class ManageUserComponent implements OnInit {
           }),
           tap(newOptions => {
             console.log('🎯 Options ready for dropdown:', newOptions);
-          })
-        );
-      }
-    };
-  }
-
-  private getSubDepartmentQuickAddConfig(): QuickAddConfig {
-    const dropdowns = this.dropdownData();
-
-    return {
-      enabled: true,
-      buttonLabel: 'Add New Sub Department',
-      buttonIcon: 'add_circle',
-      popupTitle: 'Add New Sub Department',
-      popupIcon: 'account_tree',
-
-      // 🔥 Enable Quick Add only when department is selected
-      enableWhen: {
-        field: 'department',
-        hasValue: true
-      },
-
-      // 🔥 NEW: Parent context configuration
-      parentContext: {
-        field: 'department',
-        autoPopulate: true,
-        lockParent: true
-      },
-
-      fields: [
-        {
-          key: 'departmentId',
-          label: 'Department',
-          type: 'select',
-          required: true,
-          colSpan: 2,
-          icon: 'business',
-          options: dropdowns.departments,
-          placeholder: 'Select department',
-          validators: [Validators.required],
-          quickAdd: this.getDepartmentQuickAddConfig()
-        },
-        {
-          key: 'name',
-          label: 'Sub Department Name',
-          type: 'text',
-          required: true,
-          colSpan: 2,
-          icon: 'account_tree',
-          placeholder: 'Enter sub department name',
-          validators: [Validators.minLength(2), Validators.maxLength(100)]
-        },
-        {
-          key: 'description',
-          label: 'Description',
-          type: 'textarea',
-          colSpan: 4,
-          rows: 3,
-          icon: 'description',
-          validators: [Validators.maxLength(500)]
-        }
-      ],
-
-      onAdd: (data) => {
-        console.log('💾 Creating Sub Department:', data);
-        return this.subDepartmentService.createSubDepartment(data).pipe(
-          tap((response) => {
-            console.log('✅ Sub Department created:', response);
-            this.globalService.showSnackbar(
-              'Sub Department created successfully',
-              'success'
-            );
-          })
-        );
-      },
-
-      // 🔥 CRITICAL FIX: Refresh with parent context awareness
-      refreshOptions: (response) => {
-        console.log('🔄 Refreshing subdepartments after add:', response);
-
-        const newSubDeptName = response?.data?.name || response?.name || 'Sub Department';
-        const newSubDeptId = response?.data?.id || response?.id;
-        const parentDeptId = response?.data?.departmentId || response?.departmentId;
-
-        this.globalService.showSnackbar(`"${newSubDeptName}" added successfully!`, 'success');
-
-        // 🔥 CRITICAL: Fetch ALL subdepartments from API
-        return this.subDepartmentService.getSubDepartments().pipe(
-          map(apiResponse => {
-            if (apiResponse.success && apiResponse.data) {
-              // Map ALL subdepartments with parent reference
-              const allSubDepartments = apiResponse.data.map(sd => ({
-                value: sd.id,
-                label: sd.name ?? '',
-                departmentId: sd.departmentId // 🔥 CRITICAL: Store parent reference
-              }));
-
-              console.log('✅ All subdepartments loaded:', allSubDepartments.length);
-
-              // 🔥 Update component's complete subdepartment cache
-              this.dropdownData.update(current => ({
-                ...current,
-                allSubDepartments: allSubDepartments
-              }));
-
-              // 🔥 Return ONLY subdepartments for current parent department
-              const filteredOptions = allSubDepartments.filter(
-                sd => sd.departmentId === parentDeptId
-              );
-
-              console.log('🎯 Filtered options for department', parentDeptId, ':', filteredOptions.length);
-
-              return filteredOptions;
-            }
-            return [];
           })
         );
       }

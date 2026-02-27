@@ -1,0 +1,109 @@
+<div class="preview-dialog">
+  <!-- Header -->
+  <div class="dialog-header">
+    <div class="header-asset-info">
+      <div class="header-icon">
+        <mat-icon>qr_code_scanner</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2>{{ data.asset.name }}</h2>
+        <span class="asset-id-label">{{ data.asset.assetId }}</span>
+      </div>
+    </div>
+    <button mat-icon-button (click)="close()" class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Tab Switcher -->
+  <div class="tab-switcher">
+    <button class="tab-btn" [class.active]="activeTab() === 'qr'" (click)="switchTab('qr')">
+      <mat-icon>qr_code_2</mat-icon>
+      QR Code
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'barcode'" (click)="switchTab('barcode')">
+      <mat-icon fontSet="material-symbols-outlined">barcode_scanner</mat-icon>
+      Barcode
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="preview-content">
+    @if (activeTab() === 'qr') {
+      <div class="code-preview-area qr-preview">
+        <div class="watermark-wrapper">
+          <div class="watermark-text">INFOASSET</div>
+          <div class="code-image-box">
+            <img [src]="data.asset.qrcodeImage" alt="QR Code" class="preview-code-img qr-large" />
+          </div>
+        </div>
+        <div class="code-asset-label">
+          <span class="preview-asset-name">{{ data.asset.name }}</span>
+          <span class="preview-asset-id">{{ data.asset.assetId }}</span>
+        </div>
+      </div>
+    }
+
+    @if (activeTab() === 'barcode') {
+      <div class="code-preview-area bc-preview">
+        <div class="watermark-wrapper">
+          <div class="watermark-text">INFOASSET</div>
+          <div class="code-image-box">
+            <img [src]="data.asset.barcode" alt="Barcode" class="preview-code-img bc-large" />
+          </div>
+        </div>
+        <div class="code-asset-label">
+          <span class="preview-asset-name">{{ data.asset.name }}</span>
+          <span class="preview-asset-id">{{ data.asset.assetId }}</span>
+        </div>
+      </div>
+    }
+
+    <!-- Asset Details Strip -->
+    <div class="asset-details-strip">
+      <div class="detail-item">
+        <mat-icon>business</mat-icon>
+        <div>
+          <span class="detail-label">Brand / Model</span>
+          <span class="detail-value">{{ data.asset.assetBrand }} · {{ data.asset.assetModelNo }}</span>
+        </div>
+      </div>
+      <div class="detail-item">
+        <mat-icon>category</mat-icon>
+        <div>
+          <span class="detail-label">Category</span>
+          <span class="detail-value">{{ data.asset.categoryDisplay }} / {{ data.asset.subCategoryDisplay }}</span>
+        </div>
+      </div>
+      <div class="detail-item">
+        <mat-icon>location_city</mat-icon>
+        <div>
+          <span class="detail-label">Location</span>
+          <span class="detail-value">{{ data.asset.siteDisplay }}, {{ data.asset.areaDisplay }}</span>
+        </div>
+      </div>
+      <div class="detail-item">
+        <mat-icon>tag</mat-icon>
+        <div>
+          <span class="detail-label">Serial No.</span>
+          <span class="detail-value">{{ data.asset.assetSerialNo }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <mat-divider></mat-divider>
+  <div class="dialog-actions">
+    <button mat-stroked-button (click)="downloadImage(activeTab())" class="download-btn">
+      <mat-icon>download</mat-icon>
+      Download {{ activeTab() === 'qr' ? 'QR Code' : 'Barcode' }}
+    </button>
+    <button mat-flat-button color="primary" (click)="close()">
+      <mat-icon>close</mat-icon>
+      Close
+    </button>
+  </div>
+</div>

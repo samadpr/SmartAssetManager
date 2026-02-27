@@ -544,9 +544,9 @@ export class AssetApproveComponent implements OnInit {
 
   getProfileImage(item: AssetApprovalListItem, type: 'requester' | 'assignee'): string {
     if (type === 'requester') {
-      return item.requestedByProfilePicture || '/assets/images/ProfilePic.png';
+      return item.requestedByProfilePicture ? FileUrlHelper.getFullUrl(item.requestedByProfilePicture) : '/assets/images/ProfilePic.png';
     } else {
-      return item.assignProfilePicture || '/assets/images/ProfilePic.png';
+      return item.assignProfilePicture ? FileUrlHelper.getFullUrl(item.assignProfilePicture) : '/assets/images/ProfilePic.png';
     }
   }
 

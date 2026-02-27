@@ -1,0 +1,171 @@
+<div class="depreciation-dialog">
+  
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="header-content">
+      <mat-icon class="header-icon">analytics</mat-icon>
+      <div class="header-text">
+        <h2 mat-dialog-title>Depreciation Schedule</h2>
+        <p class="asset-name">{{ asset.name }}</p>
+      </div>
+    </div>
+    <button mat-icon-button (click)="close()" class="close-button">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Dialog Content -->
+  <mat-dialog-content>
+    
+    <!-- Asset Details Card -->
+    <mat-card class="details-card">
+      <mat-card-content>
+        <h3>Asset Information</h3>
+        
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="label">Asset ID:</span>
+            <span class="value">{{ asset.assetId }}</span>
+          </div>
+          
+          <div class="detail-item">
+            <span class="label">Name:</span>
+            <span class="value">{{ asset.name }}</span>
+          </div>
+          
+          <div class="detail-item">
+            <span class="label">Category:</span>
+            <span class="value">{{ asset.categoryDisplay || '-' }}</span>
+          </div>
+          
+          <div class="detail-item">
+            <span class="label">Department:</span>
+            <span class="value">{{ asset.departmentDisplay || '-' }}</span>
+          </div>
+          
+          <div class="detail-item">
+            <span class="label">Date Acquired:</span>
+            <span class="value">{{ formatDate(asset.dateAquired) }}</span>
+          </div>
+          
+          <div class="detail-item">
+            <span class="label">Depreciation Method:</span>
+            <mat-chip class="method-chip">{{ getDepreciationMethodName() }}</mat-chip>
+          </div>
+        </div>
+
+        <mat-divider style="margin: 20px 0;"></mat-divider>
+
+        <div class="financial-grid">
+          <div class="financial-item">
+            <div class="financial-label">Depreciable Cost</div>
+            <div class="financial-value primary">{{ formatCurrency(asset.depreciableCost) }}</div>
+          </div>
+          
+          <div class="financial-item">
+            <div class="financial-label">Salvage Value</div>
+            <div class="financial-value success">{{ formatCurrency(asset.salvageValue) }}</div>
+          </div>
+          
+          <div class="financial-item">
+            <div class="financial-label">Total Depreciation</div>
+            <div class="financial-value warning">
+              {{ formatCurrency((asset.depreciableCost || 0) - (asset.salvageValue || 0)) }}
+            </div>
+          </div>
+          
+          <div class="financial-item" *ngIf="asset.depreciationInMonth">
+            <div class="financial-label">Depreciation Period</div>
+            <div class="financial-value info">{{ asset.depreciationInMonth }} months</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Depreciation Chart -->
+    <mat-card class="chart-card" *ngIf="asset.depreciationSchedule && asset.depreciationSchedule.length > 0">
+      <mat-card-content>
+        <h3>Depreciation Over Time</h3>
+        <div class="chart-container">
+          <canvas 
+            baseChart
+            [data]="lineChartData"
+            [options]="lineChartOptions"
+            [type]="'line'">
+          </canvas>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Depreciation Schedule Table -->
+    <mat-card class="table-card" *ngIf="asset.depreciationSchedule && asset.depreciationSchedule.length > 0">
+      <mat-card-content>
+        <h3>Depreciation Schedule</h3>
+        
+        <div class="table-wrapper">
+          <table mat-table [dataSource]="dataSource" class="schedule-table">
+            
+            <!-- Year Column -->
+            <ng-container matColumnDef="year">
+              <th mat-header-cell *matHeaderCellDef>Year</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="year-badge">Year {{ row.year }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Book Value (Beginning) Column -->
+            <ng-container matColumnDef="bookValueYearBegining">
+              <th mat-header-cell *matHeaderCellDef class="text-right">Book Value (Beginning)</th>
+              <td mat-cell *matCellDef="let row" class="text-right">
+                <span class="currency-value">{{ formatCurrency(row.bookValueYearBegining) }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Depreciation Column -->
+            <ng-container matColumnDef="depreciation">
+              <th mat-header-cell *matHeaderCellDef class="text-right">Depreciation</th>
+              <td mat-cell *matCellDef="let row" class="text-right">
+                <span class="currency-value depreciation">{{ formatCurrency(row.depreciation) }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Book Value (End) Column -->
+            <ng-container matColumnDef="bookValueYearEnd">
+              <th mat-header-cell *matHeaderCellDef class="text-right">Book Value (End)</th>
+              <td mat-cell *matCellDef="let row" class="text-right">
+                <span class="currency-value">{{ formatCurrency(row.bookValueYearEnd) }}</span>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- No Schedule Data -->
+    <mat-card class="no-data-card" *ngIf="!asset.depreciationSchedule || asset.depreciationSchedule.length === 0">
+      <mat-card-content>
+        <div class="no-data-message">
+          <mat-icon>info</mat-icon>
+          <p>No depreciation schedule available for this asset.</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+  </mat-dialog-content>
+
+  <!-- Dialog Actions -->
+  <mat-dialog-actions>
+    <button mat-button (click)="close()">Close</button>
+    <button mat-raised-button color="accent" (click)="print()">
+      <mat-icon>print</mat-icon>
+      Print
+    </button>
+  </mat-dialog-actions>
+
+</div>

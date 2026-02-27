@@ -129,7 +129,7 @@ export class SubDepartmentComponent implements OnInit {
 
   private loadDropdownData() {
     forkJoin({
-      departments: this.departmentService.getDepartments()
+      departments: this.departmentService.getMyDepartments()
     }).subscribe({
       next: (responses) => {
         this.dropdownData.update(current => ({
@@ -228,7 +228,7 @@ export class SubDepartmentComponent implements OnInit {
 
       // 🔹 Refresh department dropdown
       refreshOptions: () => {
-        return this.departmentService.getDepartments().pipe(
+        return this.departmentService.getMyDepartments().pipe(
           map(res => {
             if (res.success && res.data) {
               const options = res.data.map(d => ({

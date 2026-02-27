@@ -1,0 +1,319 @@
+.depreciation-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+
+  .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .header-icon {
+        font-size: 40px;
+        width: 40px;
+        height: 40px;
+      }
+
+      .header-text {
+        h2 {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 600;
+        }
+
+        .asset-name {
+          margin: 4px 0 0 0;
+          font-size: 0.875rem;
+          opacity: 0.9;
+        }
+      }
+    }
+
+    .close-button {
+      color: white;
+    }
+  }
+
+  mat-dialog-content {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+
+    h3 {
+      margin: 0 0 16px 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--mat-sys-on-surface);
+    }
+
+    // Details Card
+    .details-card {
+      margin-bottom: 24px;
+      border-radius: 12px;
+
+      .details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+
+        .detail-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          .label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--mat-sys-on-surface-variant);
+          }
+
+          .value {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--mat-sys-on-surface);
+          }
+
+          .method-chip {
+            background: var(--mat-sys-primary-container);
+            color: var(--mat-sys-on-primary-container);
+            font-weight: 600;
+            width: fit-content;
+          }
+        }
+      }
+
+      .financial-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+
+        .financial-item {
+          background: var(--mat-sys-surface-container-highest);
+          padding: 16px;
+          border-radius: 8px;
+          text-align: center;
+
+          .financial-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--mat-sys-on-surface-variant);
+            margin-bottom: 8px;
+          }
+
+          .financial-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+
+            &.primary {
+              color: #673ab7;
+            }
+
+            &.success {
+              color: #4caf50;
+            }
+
+            &.warning {
+              color: #ff9800;
+            }
+
+            &.info {
+              color: #2196f3;
+            }
+          }
+        }
+      }
+    }
+
+    // Chart Card
+    .chart-card {
+      margin-bottom: 24px;
+      border-radius: 12px;
+
+      .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+      }
+    }
+
+    // Table Card
+    .table-card {
+      border-radius: 12px;
+
+      .table-wrapper {
+        overflow-x: auto;
+        border-radius: 8px;
+
+        .schedule-table {
+          width: 100%;
+          background: var(--mat-sys-surface);
+
+          th {
+            background: var(--mat-sys-surface-container-highest);
+            color: var(--mat-sys-on-surface);
+            font-weight: 700;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 16px 20px;
+            border-bottom: 2px solid var(--mat-sys-outline-variant);
+
+            &.text-right {
+              text-align: right;
+            }
+          }
+
+          td {
+            padding: 16px 20px;
+            color: var(--mat-sys-on-surface);
+            font-size: 0.9375rem;
+            border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+            &.text-right {
+              text-align: right;
+            }
+          }
+
+          .table-row {
+            transition: background-color 0.2s ease;
+
+            &:hover {
+              background: var(--mat-sys-surface-container);
+            }
+          }
+
+          .year-badge {
+            display: inline-block;
+            background: var(--mat-sys-tertiary-container);
+            color: var(--mat-sys-on-tertiary-container);
+            padding: 6px 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 0.875rem;
+          }
+
+          .currency-value {
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 600;
+            color: var(--mat-sys-on-surface);
+
+            &.depreciation {
+              color: #f44336;
+            }
+          }
+        }
+      }
+    }
+
+    // No Data Card
+    .no-data-card {
+      border-radius: 12px;
+      background: var(--mat-sys-surface-container);
+
+      .no-data-message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 40px 20px;
+        color: var(--mat-sys-on-surface-variant);
+
+        mat-icon {
+          font-size: 64px;
+          width: 64px;
+          height: 64px;
+          opacity: 0.3;
+        }
+
+        p {
+          margin: 0;
+          font-size: 1.125rem;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  mat-dialog-actions {
+    padding: 16px 24px;
+    border-top: 1px solid var(--mat-sys-outline-variant);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+
+    button {
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .depreciation-dialog {
+    .dialog-header {
+      .header-content {
+        .header-icon {
+          font-size: 32px;
+          width: 32px;
+          height: 32px;
+        }
+
+        .header-text h2 {
+          font-size: 1.25rem;
+        }
+      }
+    }
+
+    mat-dialog-content {
+      padding: 16px;
+
+      .details-card .details-grid,
+      .details-card .financial-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-card .chart-container {
+        height: 250px;
+      }
+    }
+  }
+}
+
+// Print Styles
+@media print {
+  .depreciation-dialog {
+    .dialog-header .close-button,
+    mat-dialog-actions {
+      display: none !important;
+    }
+
+    .chart-card {
+      page-break-inside: avoid;
+    }
+
+    .table-card {
+      page-break-inside: auto;
+
+      table tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+      }
+    }
+  }
+}

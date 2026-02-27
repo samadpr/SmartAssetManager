@@ -1,5 +1,5 @@
 // popup-widget.interface.ts - Complete with all field types
-import { ValidatorFn } from '@angular/forms';
+import { FormGroup, ValidatorFn } from '@angular/forms';
 import { Observable } from 'rxjs';
 
 export interface PopupFieldOption {
@@ -19,6 +19,7 @@ export interface QuickAddConfig {
   fields: PopupField[];
   onAdd?: (data: any) => Observable<any>;
   refreshOptions?: (newData: any) => Observable<PopupFieldOption[]>;
+  afterAdd?: (response: any, parentForm: FormGroup) => void;
 
   // 🆕 NEW: Conditional enabling based on parent field
   enableWhen?: {

@@ -23,7 +23,6 @@ export class ManageAssetsService {
     );
   }
 
-
   // UPDATE
   updateAsset(request: AssetRequest): Observable<ApiResponse<AssetDetail>> {
     const formData = this.toFormData(request);

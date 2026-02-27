@@ -1,0 +1,235 @@
+.preview-dialog {
+  display: flex;
+  flex-direction: column;
+  background: var(--mat-sys-surface);
+  border-radius: 16px;
+  overflow: hidden;
+  max-height: 90vh;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+
+.header-asset-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 15%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon {
+    color: var(--mat-sys-primary);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.header-text {
+  h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--mat-sys-on-surface);
+    line-height: 1.2;
+  }
+}
+
+.asset-id-label {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-family: monospace;
+}
+
+.close-btn {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// Tab Switcher
+.tab-switcher {
+  display: flex;
+  gap: 4px;
+  padding: 12px 20px 4px;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+
+  &.active {
+    background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+    color: var(--mat-sys-primary);
+    border-color: var(--mat-sys-primary);
+    font-weight: 600;
+  }
+}
+
+// Preview Content
+.preview-content {
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.code-preview-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.watermark-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.watermark-text {
+  position: absolute;
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: rgba(0, 0, 0, 0.06);
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 1;
+  white-space: nowrap;
+  transform: rotate(-30deg);
+}
+
+.code-image-box {
+  position: relative;
+  z-index: 2;
+  background: white;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+}
+
+.preview-code-img {
+  display: block;
+  object-fit: contain;
+
+  &.qr-large {
+    width: 180px;
+    height: 180px;
+  }
+
+  &.bc-large {
+    width: 260px;
+    height: 100px;
+  }
+}
+
+.code-asset-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.preview-asset-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.preview-asset-id {
+  font-size: 0.78rem;
+  font-family: monospace;
+  color: var(--mat-sys-on-surface-variant);
+  letter-spacing: 0.05em;
+}
+
+// Asset Details Strip
+.asset-details-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--mat-sys-primary);
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+}
+
+.detail-label {
+  font-size: 0.68rem;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.detail-value {
+  font-size: 0.8rem;
+  color: var(--mat-sys-on-surface);
+  font-weight: 500;
+}
+
+// Dialog Actions
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+}
+
+.download-btn {
+  color: var(--mat-sys-primary);
+  border-color: var(--mat-sys-primary);
+}

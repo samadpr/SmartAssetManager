@@ -2,3 +2,704 @@
     { label: 'Dashboard' }
   ]">
 </app-page-header>
+
+<div class="dashboard-wrapper" [@dashFade]>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ROW 0  KPI CARDS  — 4 cols desktop / 2 cols tablet+mobile
+       ═══════════════════════════════════════════════════════════ -->
+  <section class="kpi-row">
+    @for (card of kpiCards(); track card.key; let i = $index) {
+      <mat-card class="kpi-card kpi-card--{{ card.color }}"
+                [style.animation-delay]="(i * 60) + 'ms'">
+        <mat-card-content>
+          <div class="kpi-inner">
+            <div class="kpi-info">
+              <span class="kpi-label">{{ card.label }}</span>
+              <span class="kpi-value">
+                @if (kpiLoading()) {
+                  <span class="sk sk--val"></span>
+                } @else if (card.isCurrency) {
+                  {{ formatKpi(card.value) }}
+                } @else {
+                  {{ card.value | number }}
+                }
+              </span>
+              @if (!kpiLoading()) {
+                <span class="kpi-trend" [class.up]="card.trend >= 0" [class.dn]="card.trend < 0">
+                  <mat-icon>{{ card.trend >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+                  {{ card.trend >= 0 ? '+' : '' }}{{ card.trend }}% this month
+                </span>
+              }
+            </div>
+            <div class="kpi-icon">
+              <mat-icon>{{ card.icon }}</mat-icon>
+            </div>
+          </div>
+          <div class="kpi-spark">
+            @if (kpiLoading()) {
+              <span class="sk sk--spark"></span>
+            } @else {
+              @for (b of card.sparkline; track $index) {
+                <div class="spark-b" [style.height.%]="b || 5"></div>
+              }
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ROW 1  Asset Status Donut (35%)  +  Growth Line (65%)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="row row--3565">
+
+    <!-- Asset Status -->
+    <mat-card class="dc">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">donut_large</mat-icon>
+          <span class="ct">Asset Status</span>
+        </div>
+        <span class="sp"></span>
+        <mat-button-toggle-group [(value)]="assetStatusFilter" class="mtg" (change)="rebuildStatusChart()">
+          <mat-button-toggle value="all">All</mat-button-toggle>
+          <mat-button-toggle value="active">Active</mat-button-toggle>
+        </mat-button-toggle-group>
+      </mat-card-header>
+      <mat-card-content>
+        @if (chartLoading()) {
+          <div class="sk sk--donut"></div>
+        } @else if (donutTotal() === 0) {
+          <div class="empty-chart"><mat-icon>donut_large</mat-icon><p>No data</p></div>
+        } @else {
+          <div class="cw cw--donut">
+            <canvas baseChart [data]="assetStatusChartData()" [options]="doughnutOpts" type="doughnut"></canvas>
+            <div class="dc-center">
+              <span class="dc-num">{{ donutTotal() }}</span>
+              <span class="dc-lbl">Total</span>
+            </div>
+          </div>
+          <div class="leg">
+            @for (item of assetStatusLegend(); track item.label) {
+              <div class="leg-row">
+                <span class="leg-dot" [style.background]="item.color"></span>
+                <span class="leg-lbl">{{ item.label }}</span>
+                <span class="leg-val">{{ item.value }}</span>
+              </div>
+            }
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Asset Growth -->
+    <mat-card class="dc">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">show_chart</mat-icon>
+          <span class="ct">Asset Growth Trend</span>
+        </div>
+        <span class="sp"></span>
+        <mat-form-field appearance="outline" class="mf">
+          <mat-select [(value)]="assetTrendPeriod" (selectionChange)="rebuildGrowthChart()">
+            <mat-option value="3m">3 Months</mat-option>
+            <mat-option value="6m">6 Months</mat-option>
+            <mat-option value="1y">1 Year</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </mat-card-header>
+      <mat-card-content>
+        @if (chartLoading()) { <div class="sk sk--chart"></div> }
+        @else {
+          <div class="cw">
+            <canvas baseChart [data]="assetGrowthData()" [options]="lineOpts" type="line"></canvas>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ROW 2  Category Bar (65%)  +  Depreciation Bar (35%)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="row row--6535">
+
+    <!-- Category Value -->
+    <mat-card class="dc">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">account_balance_wallet</mat-icon>
+          <span class="ct">Asset Value by Category</span>
+        </div>
+        <span class="sp"></span>
+        <mat-button-toggle-group [(value)]="categorySort" class="mtg" (change)="rebuildCategoryChart()">
+          <mat-button-toggle value="value">Value</mat-button-toggle>
+          <mat-button-toggle value="count">Count</mat-button-toggle>
+        </mat-button-toggle-group>
+      </mat-card-header>
+      <mat-card-content>
+        @if (chartLoading()) { <div class="sk sk--chart"></div> }
+        @else {
+          <div class="cw">
+            <canvas baseChart [data]="categoryChartData()" [options]="barOpts" type="bar"></canvas>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Depreciation -->
+    <mat-card class="dc">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">analytics</mat-icon>
+          <span class="ct">Depreciation Overview</span>
+        </div>
+        <span class="sp"></span>
+        <mat-form-field appearance="outline" class="mf">
+          <mat-select [(value)]="depreciationSort" (selectionChange)="rebuildDepreciationChart()">
+            <mat-option value="method">By Method</mat-option>
+            <mat-option value="category">By Category</mat-option>
+            <mat-option value="dept">By Dept</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </mat-card-header>
+      <mat-card-content>
+        @if (chartLoading()) { <div class="sk sk--chart"></div> }
+        @else {
+          <div class="cw">
+            <canvas baseChart [data]="depreciationChartData()" [options]="barOpts" type="bar"></canvas>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ROW 3  Issues HBar (33%)  +  User Polar (33%)  +  Approval (33%)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="row row--333">
+
+    <!-- Issues -->
+    <mat-card class="dc">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">report_problem</mat-icon>
+          <span class="ct">Asset Issues</span>
+        </div>
+        <span class="sp"></span>
+        <mat-button-toggle-group [(value)]="issueSort" class="mtg" (change)="rebuildIssueChart()">
+          <mat-button-toggle value="status">Status</mat-button-toggle>
+          <mat-button-toggle value="month">Monthly</mat-button-toggle>
+        </mat-button-toggle-group>
+      </mat-card-header>
+      <mat-card-content>
+        @if (chartLoading()) { <div class="sk sk--chart"></div> }
+        @else {
+          <div class="cw cw--hbar">
+            <canvas baseChart [data]="issueChartData()" [options]="hBarOpts" type="bar"></canvas>
+          </div>
+          @if (issuePills().length > 0) {
+            <div class="issue-pills">
+              @for (p of issuePills(); track p.label) {
+                <div class="ipill" [style.border-color]="p.color">
+                  <span class="ipill-n" [style.color]="p.color">{{ p.value }}</span>
+                  <span class="ipill-l">{{ p.label }}</span>
+                </div>
+              }
+            </div>
+          }
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- User Distribution -->
+    <mat-card class="dc">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">people_alt</mat-icon>
+          <span class="ct">User Distribution</span>
+        </div>
+        <span class="sp"></span>
+        <mat-form-field appearance="outline" class="mf">
+          <mat-select [(value)]="userChartView" (selectionChange)="rebuildUserChart()">
+            <mat-option value="department">Department</mat-option>
+            <mat-option value="designation">Designation</mat-option>
+            <mat-option value="site">Site</mat-option>
+            <mat-option value="role">Role</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </mat-card-header>
+      <mat-card-content>
+        @if (chartLoading()) { <div class="sk sk--donut"></div> }
+        @else {
+          <div class="cw cw--polar">
+            <canvas baseChart [data]="userChartData()" [options]="polarOpts" type="polarArea"></canvas>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Approval Pipeline -->
+    <mat-card class="dc">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">rule</mat-icon>
+          <span class="ct">Approval Pipeline</span>
+        </div>
+        <span class="sp"></span>
+        <button mat-icon-button routerLink="/assets/asset-approve" matTooltip="View all">
+          <mat-icon>open_in_new</mat-icon>
+        </button>
+      </mat-card-header>
+      <mat-card-content>
+        @if (chartLoading()) { <div class="sk sk--donut"></div> }
+        @else {
+          <div class="cw cw--donut">
+            <canvas baseChart [data]="approvalChartData()" [options]="doughnutOpts" type="doughnut"></canvas>
+          </div>
+          <div class="appr-bars">
+            @for (s of approvalBars(); track s.label) {
+              <div class="appr-row">
+                <span class="appr-lbl">{{ s.label }}</span>
+                <div class="appr-track">
+                  <div class="appr-fill" [style.width.%]="s.pct" [style.background]="s.color"></div>
+                </div>
+                <span class="appr-num" [style.color]="s.color">{{ s.value }}</span>
+              </div>
+            }
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ROW 4  Sites / Branches  (full width, auto-fill grid)
+       ═══════════════════════════════════════════════════════════ -->
+  <mat-card class="dc dc--full">
+    <mat-card-header>
+      <div class="ch-left">
+        <mat-icon class="ci">location_city</mat-icon>
+        <span class="ct">Assets by Site / Branch</span>
+      </div>
+      <span class="sp"></span>
+      <mat-form-field appearance="outline" class="mf">
+        <mat-select [(value)]="siteFilter" (selectionChange)="onSiteFilterChange()">
+          <mat-option value="all">All</mat-option>
+          <mat-option value="1">Sites</mat-option>
+          <mat-option value="2">Branches</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <button mat-icon-button routerLink="/sites-branchs" matTooltip="Manage sites">
+        <mat-icon>open_in_new</mat-icon>
+      </button>
+    </mat-card-header>
+    <mat-card-content>
+      @if (siteLoading()) {
+        <div class="site-grid">
+          @for (i of [1,2,3,4]; track i) { <div class="sk sk--site"></div> }
+        </div>
+      } @else if (filteredSites().length === 0) {
+        <div class="empty-state"><mat-icon>location_off</mat-icon><p>No sites found</p></div>
+      } @else {
+        <div class="site-grid">
+          @for (site of filteredSites(); track site.siteId) {
+            <div class="stile">
+              <div class="stile-head">
+                <div class="stile-ico stile-ico--{{ site.type === 1 ? 'site' : 'branch' }}">
+                  <mat-icon>{{ site.type === 1 ? 'domain' : 'account_tree' }}</mat-icon>
+                </div>
+                <div class="stile-meta">
+                  <span class="stile-name">{{ site.name }}</span>
+                  <span class="stile-city"><mat-icon class="pin">place</mat-icon>{{ site.city }}</span>
+                </div>
+                <div class="stile-badge stile-badge--{{ site.type === 1 ? 'site' : 'branch' }}">
+                  {{ site.type === 1 ? 'Site' : 'Branch' }}
+                </div>
+              </div>
+              <div class="stile-stats">
+                <div class="ss">
+                  <span class="ss-n">{{ site.assetCount }}</span>
+                  <span class="ss-l">Assets</span>
+                </div>
+                <div class="ss-sep"></div>
+                <div class="ss">
+                  <span class="ss-n ss-n--g">{{ formatKpi(site.totalValue) }}</span>
+                  <span class="ss-l">Value</span>
+                </div>
+              </div>
+              <div class="stile-list">
+                @if (site.assets.length === 0) {
+                  <div class="stile-empty">No assets assigned</div>
+                } @else {
+                  @for (a of site.assets; track a.assetId) {
+                    <div class="sa-row">
+                      <span class="sdot sdot--{{ a.statusKey }}"></span>
+                      <span class="sa-nm">{{ a.name }}</span>
+                      <span class="sa-id">{{ a.assetId }}</span>
+                      <span class="schip schip--{{ a.statusKey }}">{{ a.status }}</span>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ROW 5  Recent Assets (60%)  +  Recent Users (40%)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="row row--6040">
+
+    <!-- ── Recent Assets ────────────────────────────────────── -->
+    <mat-card class="dc dc--table">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">inventory_2</mat-icon>
+          <span class="ct">Recent Assets</span>
+        </div>
+        <span class="sp"></span>
+        <mat-form-field appearance="outline" class="mf mf--search">
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput placeholder="Search…" [(ngModel)]="assetSearch" (ngModelChange)="filterAssets()">
+        </mat-form-field>
+        <button mat-stroked-button class="va-btn" routerLink="/assets">
+          View All<mat-icon iconPositionEnd>chevron_right</mat-icon>
+        </button>
+      </mat-card-header>
+      <mat-card-content class="np">
+        @if (tableLoading()) {
+          <div class="tskel">
+            @for (i of [1,2,3,4,5,6]; track i) { <div class="sk sk--row"></div> }
+          </div>
+        } @else {
+          <div class="tscroll">
+            <table mat-table [dataSource]="recentAssetsDS" class="dt">
+
+              <!-- Asset column: show real image OR category-icon fallback -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef>Asset</th>
+                <td mat-cell *matCellDef="let r">
+                  <div class="ta-cell">
+
+                    <!-- Thumb wrapper — always present -->
+                    <div class="thumb thumb--asset">
+                      @if (hasImg(r.imageUrl)) {
+                        <!-- Real image from API -->
+                        <img class="thumb-img"
+                             [src]="r.imageUrl"
+                             [alt]="r.name"
+                             (error)="onImgError($event)" />
+                        <!-- Icon fallback shown via JS when img errors -->
+                        <div class="img-fb at" [style.background]="catColor(r.category)">
+                          <mat-icon>{{ catIcon(r.category) }}</mat-icon>
+                        </div>
+                      } @else {
+                        <!-- No image at all — show category icon -->
+                        <div class="at" [style.background]="catColor(r.category)">
+                          <mat-icon>{{ catIcon(r.category) }}</mat-icon>
+                        </div>
+                      }
+                    </div>
+
+                    <div class="cell-text">
+                      <div class="tp">{{ r.name }}</div>
+                      <div class="ts">{{ r.assetId }}</div>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="category">
+                <th mat-header-cell *matHeaderCellDef>Category</th>
+                <td mat-cell *matCellDef="let r">
+                  <span class="ctag">{{ r.category || '—' }}</span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let r">
+                  <span class="schip schip--{{ r.statusKey }}">{{ r.status }}</span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="value">
+                <th mat-header-cell *matHeaderCellDef>Value</th>
+                <td mat-cell *matCellDef="let r" class="tm">
+                  {{ r.value | currency:'USD':'symbol':'1.0-0' }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="site">
+                <th mat-header-cell *matHeaderCellDef>Site</th>
+                <td mat-cell *matCellDef="let r"><span class="ts">{{ r.site }}</span></td>
+              </ng-container>
+
+              <ng-container matColumnDef="date">
+                <th mat-header-cell *matHeaderCellDef>Added</th>
+                <td mat-cell *matCellDef="let r">
+                  <span class="ts">{{ r.date | date:'dd MMM yy' }}</span>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="assetCols; sticky: true"></tr>
+              <tr mat-row *matRowDef="let r; columns: assetCols;" class="dr"
+                  routerLink="/assets"></tr>
+            </table>
+            @if (recentAssetsDS.data.length === 0) {
+              <div class="empty-state"><mat-icon>inventory_2</mat-icon><p>No recent assets</p></div>
+            }
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- ── Recent Users ──────────────────────────────────────── -->
+    <mat-card class="dc dc--table">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">group</mat-icon>
+          <span class="ct">Recent Users</span>
+        </div>
+        <span class="sp"></span>
+        <button mat-stroked-button class="va-btn" routerLink="/manage-users">
+          View All<mat-icon iconPositionEnd>chevron_right</mat-icon>
+        </button>
+      </mat-card-header>
+      <mat-card-content class="np">
+        @if (tableLoading()) {
+          <div class="tskel">
+            @for (i of [1,2,3,4,5]; track i) { <div class="sk sk--row"></div> }
+          </div>
+        } @else {
+          <div class="tscroll">
+            <table mat-table [dataSource]="recentUsersDS" class="dt">
+
+              <!-- User column: show profile picture OR first+last initials -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef>User</th>
+                <td mat-cell *matCellDef="let r">
+                  <div class="tu-cell">
+
+                    <!-- Avatar wrapper -->
+                    <div class="thumb thumb--user">
+                      @if (hasImg(r.profilePic)) {
+                        <!-- Real profile picture -->
+                        <img class="thumb-img thumb-img--round"
+                             [src]="r.profilePic"
+                             [alt]="r.fullName"
+                             (error)="onImgError($event)" />
+                        <!-- Initials fallback shown via JS when img errors -->
+                        <div class="img-fb ua" [style.background]="userColor(r.fullName)">
+                          {{ initials(r.firstName, r.lastName) }}
+                        </div>
+                      } @else {
+                        <!-- No picture — initials circle using firstName + lastName -->
+                        <div class="ua" [style.background]="userColor(r.fullName)">
+                          {{ initials(r.firstName, r.lastName) }}
+                        </div>
+                      }
+                    </div>
+
+                    <div class="cell-text">
+                      <div class="tp">{{ r.fullName }}</div>
+                      <div class="ts">{{ r.email }}</div>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="dept">
+                <th mat-header-cell *matHeaderCellDef>Department</th>
+                <td mat-cell *matCellDef="let r">
+                  <span class="ts">{{ r.department }}</span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="role">
+                <th mat-header-cell *matHeaderCellDef>Role</th>
+                <td mat-cell *matCellDef="let r">
+                  <span class="rtag">{{ r.role }}</span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="date">
+                <th mat-header-cell *matHeaderCellDef>Joined</th>
+                <td mat-cell *matCellDef="let r">
+                  <span class="ts">{{ r.date | date:'dd MMM yy' }}</span>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="userCols; sticky: true"></tr>
+              <tr mat-row *matRowDef="let r; columns: userCols;" class="dr"
+                  routerLink="/manage-users"></tr>
+            </table>
+            @if (recentUsersDS.data.length === 0) {
+              <div class="empty-state"><mat-icon>people_outline</mat-icon><p>No recent users</p></div>
+            }
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ROW 6  Alerts Triptych  (3 equal columns → 2 → 1)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="alerts-row">
+
+    <!-- Pending Approvals -->
+    <mat-card class="dc ap-card">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci ci--warn">pending_actions</mat-icon>
+          <span class="ct">Pending Approvals</span>
+          <span class="abadge abadge--warn">{{ pendingApprovals().length }}</span>
+        </div>
+        <span class="sp"></span>
+        <button mat-icon-button routerLink="/assets/asset-approve" matTooltip="View all">
+          <mat-icon>open_in_new</mat-icon>
+        </button>
+      </mat-card-header>
+      <mat-card-content class="ap-content">
+        @if (alertLoading()) {
+          @for (i of [1,2,3]; track i) { <div class="sk sk--arow"></div> }
+        } @else if (pendingApprovals().length === 0) {
+          <div class="empty"><mat-icon>check_circle</mat-icon><p>All clear</p></div>
+        } @else {
+          @for (item of pendingApprovals(); track item.assignmentId) {
+            <div class="aitem aitem--warn">
+
+              <!-- Asset thumb: show assetImageUrl if present, else icon -->
+              <div class="thumb thumb--alert">
+                @if (hasImg(item.assetImageUrl)) {
+                  <img class="thumb-img" [src]="item.assetImageUrl" [alt]="item.assetId"
+                       (error)="onImgError($event)" />
+                  <div class="img-fb alert-ico alert-ico--warn">
+                    <mat-icon>inventory_2</mat-icon>
+                  </div>
+                } @else {
+                  <div class="alert-ico alert-ico--warn">
+                    <mat-icon>inventory_2</mat-icon>
+                  </div>
+                }
+              </div>
+
+              <div class="ai-body">
+                <div class="tp">{{ item.assetName }}</div>
+                <div class="ts">
+                  <!-- Requester: show profile pic if available, else initials -->
+                  @if (hasImg(item.requesterPic)) {
+                    <img class="req-pic" [src]="item.requesterPic"
+                         [alt]="item.requesterName" (error)="onImgError($event)" />
+                  } @else {
+                    <span class="req-ini"
+                          [style.background]="userColor(item.requesterName)">
+                      {{ item.requesterName[0].toUpperCase() }}
+                    </span>
+                  }
+                  {{ item.requesterName }} · {{ item.requestedDate | date:'dd MMM' }}
+                </div>
+                @if (item.siteName) {
+                  <div class="ts site-hint">
+                    <mat-icon class="pin-xs">place</mat-icon>{{ item.siteName }}
+                  </div>
+                }
+              </div>
+              <span class="schip schip--maintenance">Pending</span>
+            </div>
+          }
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Open Issues -->
+    <mat-card class="dc ap-card">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci ci--error">report_problem</mat-icon>
+          <span class="ct">Open Issues</span>
+          <span class="abadge abadge--error">{{ openIssues().length }}</span>
+        </div>
+        <span class="sp"></span>
+        <button mat-icon-button routerLink="/assets/asset-issue" matTooltip="View all">
+          <mat-icon>open_in_new</mat-icon>
+        </button>
+      </mat-card-header>
+      <mat-card-content class="ap-content">
+        @if (alertLoading()) {
+          @for (i of [1,2,3]; track i) { <div class="sk sk--arow"></div> }
+        } @else if (openIssues().length === 0) {
+          <div class="empty"><mat-icon>check_circle</mat-icon><p>No open issues</p></div>
+        } @else {
+          @for (issue of openIssues(); track issue.id) {
+            <div class="aitem aitem--error">
+              <div class="alert-ico alert-ico--error">
+                <mat-icon>warning_amber</mat-icon>
+              </div>
+              <div class="ai-body">
+                <div class="tp">{{ issue.assetName }}</div>
+                <div class="ts">
+                  {{ (issue.description || issue.title) | slice:0:52 }}{{ (issue.description || '').length > 52 ? '…' : '' }}
+                </div>
+                @if (issue.priorityLabel) {
+                  <span class="pri-tag {{ priorityClass(issue.priorityKey) }}">
+                    {{ issue.priorityLabel }}
+                  </span>
+                }
+              </div>
+              <span class="schip schip--{{ issue.statusKey }}">{{ issue.statusLabel }}</span>
+            </div>
+          }
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Warranty Expiring -->
+    <mat-card class="dc ap-card">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci ci--info">schedule</mat-icon>
+          <span class="ct">Warranty Expiring</span>
+          <span class="abadge abadge--info">{{ warrantyExpiring().length }}</span>
+        </div>
+      </mat-card-header>
+      <mat-card-content class="ap-content">
+        @if (alertLoading()) {
+          @for (i of [1,2,3]; track i) { <div class="sk sk--arow"></div> }
+        } @else if (warrantyExpiring().length === 0) {
+          <div class="empty"><mat-icon>verified</mat-icon><p>All warranties valid</p></div>
+        } @else {
+          @for (item of warrantyExpiring(); track item.id) {
+            <div class="aitem aitem--info">
+              <div class="alert-ico alert-ico--info">
+                <mat-icon>event_available</mat-icon>
+              </div>
+              <div class="ai-body">
+                <div class="tp">{{ item.name }}</div>
+                <div class="ts">
+                  {{ item.site ? item.site + ' · ' : '' }}Expires in <strong>{{ item.daysLeft }} days</strong>
+                </div>
+              </div>
+              <div class="wbadge" [class.wbadge--urgent]="item.daysLeft <= 30">
+                {{ item.daysLeft }}d
+              </div>
+            </div>
+          }
+        }
+      </mat-card-content>
+    </mat-card>
+
+  </div><!-- /alerts-row -->
+
+</div><!-- /dashboard-wrapper -->

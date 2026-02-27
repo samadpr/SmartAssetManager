@@ -45,3 +45,15 @@ export enum DisposalMethod {
   Destroyed = 4,
   Other = 5
 }
+
+export enum AssetIssueStatus {
+  New = 1,
+  InProgress = 2,
+  Resolved = 3,
+  Blocker = 4,
+  Pending = 5,
+  Hold = 6,
+  Rejected = 7,
+  Accepted = 8,
+  Closed = 9
+}
