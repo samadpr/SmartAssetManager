@@ -1,0 +1,50 @@
+<div class="admin-sidenav-header" [class.collapsed]="sideNavCollapsed()">
+
+  <!-- Avatar -->
+  <div class="admin-avatar-wrap">
+    <div class="admin-avatar-circle" [class.avatar-sm]="sideNavCollapsed()">
+      <mat-icon [style.fontSize]="sideNavCollapsed() ? '20px' : '36px'"
+                [style.width]="sideNavCollapsed() ? '20px' : '36px'"
+                [style.height]="sideNavCollapsed() ? '20px' : '36px'">
+        manage_accounts
+      </mat-icon>
+    </div>
+    <div class="admin-badge-ring" [class.badge-sm]="sideNavCollapsed()"></div>
+  </div>
+
+  <!-- Name & Role — hidden when collapsed -->
+  <div class="admin-info-text" [class.hide-info-text]="sideNavCollapsed()">
+    <h2 class="admin-name">{{ adminName | titlecase }}</h2>
+    <div class="admin-role-tag">
+      <mat-icon>verified_user</mat-icon>
+      <span>Super Admin</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Divider -->
+<div class="sidenav-divider"></div>
+
+<!-- Nav List -->
+<mat-nav-list class="admin-nav-list">
+  @for (item of menuItems(); track item.label) {
+    <app-menu-items
+      [item]="item"
+      [collapsed]="sideNavCollapsed()"
+      [openedItemLabel]="openedItem"
+      (menuClicked)="onMenuClicked($event)">
+    </app-menu-items>
+  }
+</mat-nav-list>
+
+<!-- Footer: Sign Out -->
+<div class="sidenav-footer" [class.footer-collapsed]="sideNavCollapsed()">
+  <div class="sidenav-divider"></div>
+  <button class="footer-logout-btn" [class.centered]="sideNavCollapsed()" (click)="logout()">
+    <mat-icon>logout</mat-icon>
+    @if (!sideNavCollapsed()) {
+      <span>Sign Out</span>
+    }
+  </button>
+</div>

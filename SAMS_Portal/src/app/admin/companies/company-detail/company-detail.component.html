@@ -1,0 +1,557 @@
+<app-admin-page-header
+  [title]="company()?.name ?? 'Company Details'"
+  [breadcrumbs]="breadcrumbs()">
+</app-admin-page-header>
+
+<!-- ══ LOADING ══ -->
+<div class="cd-loading" *ngIf="isLoading()">
+  <mat-progress-bar mode="indeterminate" color="primary"></mat-progress-bar>
+  <div class="cd-skeleton-grid">
+    <div class="sk-block sk-tall"></div>
+    <div class="sk-block sk-tall"></div>
+    <div class="sk-block sk-wide"></div>
+    <div class="sk-block sk-short"></div>
+    <div class="sk-block sk-short"></div>
+    <div class="sk-block sk-short"></div>
+  </div>
+</div>
+
+<!-- ══ ERROR ══ -->
+<div class="cd-error" *ngIf="!isLoading() && error()">
+  <mat-icon>error_outline</mat-icon>
+  <h3>{{ error() }}</h3>
+  <button mat-flat-button color="primary" (click)="loadDetail()">
+    <mat-icon>refresh</mat-icon> Retry
+  </button>
+</div>
+
+<!-- ══ MAIN CONTENT ══ -->
+<div class="cd-page" *ngIf="!isLoading() && !error() && company()">
+
+  <!-- ── TOP ACTION BAR ── -->
+  <div class="cd-topbar">
+    <button mat-icon-button class="back-btn" (click)="goBack()" matTooltip="Back to Companies">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+
+    <div class="topbar-spacer"></div>
+
+    <button mat-stroked-button class="tb-btn" (click)="contactAdmin()" matTooltip="Email Admin">
+      <mat-icon>mail_outline</mat-icon>
+      <span class="tb-btn-label">Email Admin</span>
+    </button>
+
+    <button mat-stroked-button class="tb-btn sub-btn"
+            (click)="openSubscriptionDialog()"
+            [matTooltip]="company()?.subscriptionId ? 'Edit Subscription' : 'Assign Subscription'">
+      <mat-icon>{{ company()?.subscriptionId ? 'edit_note' : 'add_card' }}</mat-icon>
+      <span class="tb-btn-label">{{ company()?.subscriptionId ? 'Edit Plan' : 'Add Plan' }}</span>
+    </button>
+
+    <!-- Toggle button: disabled unless subscriptionStatus === 'active' -->
+    <button mat-flat-button class="tb-btn toggle-btn"
+            [class.btn-suspend]="isActive()"
+            [class.btn-activate]="!isActive()"
+            [disabled]="!canToggleActive()"
+            [matTooltip]="toggleTooltip()"
+            (click)="onToggleActive()">
+      <mat-icon>{{ isActive() ? 'pause_circle_outline' : 'play_circle_outline' }}</mat-icon>
+      <span class="tb-btn-label">{{ isActive() ? 'Suspend' : 'Activate' }}</span>
+    </button>
+  </div>
+
+  <!-- ══ SECTION 1 — COMPANY + ADMIN ══ -->
+  <div class="cd-section-title">
+    <mat-icon>business</mat-icon>
+    <span>Company Overview</span>
+  </div>
+
+  <div class="cd-row cd-row--6040">
+
+    <!-- Company Info Card -->
+    <mat-card class="cd-card info-card" appearance="outlined">
+      <div class="info-card-head">
+        <div class="co-logo-wrap">
+          <img *ngIf="company()?.logo" [src]="company()!.logo" [alt]="company()!.name" class="co-logo" />
+          <div *ngIf="!company()?.logo" class="co-avatar">{{ getInitials(company()?.name) }}</div>
+        </div>
+
+        <div class="co-identity">
+          <h2 class="co-name">{{ company()?.name }}</h2>
+          <div class="co-org-id">
+            <mat-icon>fingerprint</mat-icon>
+            <span>{{ company()?.organizationId }}</span>
+          </div>
+          <div class="co-badges">
+            <!-- Subscription status badge — 4 variants -->
+            <span class="co-badge" [ngClass]="subscriptionBadge().css">
+              <mat-icon>{{ subscriptionBadge().icon }}</mat-icon>
+              {{ subscriptionBadge().label }}
+            </span>
+
+            <!-- Running / Suspended -->
+            <span class="co-badge" [class.badge-running]="isActive()" [class.badge-suspended]="!isActive()">
+              <mat-icon>{{ isActive() ? 'play_circle' : 'pause_circle' }}</mat-icon>
+              {{ isActive() ? 'Running' : 'Suspended' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subscription warning banners inside card -->
+      <div class="cd-info-banner cd-info-banner--expired"
+           *ngIf="subscriptionStatus() === 'expired'">
+        <mat-icon>event_busy</mat-icon>
+        <span>Subscription expired — renew plan to re-activate this company</span>
+      </div>
+      <div class="cd-info-banner cd-info-banner--assigned"
+           *ngIf="subscriptionStatus() === 'plan-assigned'">
+        <mat-icon>pending</mat-icon>
+        <span>Plan assigned — subscription dates required before activating</span>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <div class="info-grid">
+        <div class="ig-item" *ngIf="company()?.email">
+          <div class="ig-icon"><mat-icon>email</mat-icon></div>
+          <div class="ig-body">
+            <span class="ig-label">Email</span>
+            <span class="ig-value">{{ company()?.email }}</span>
+          </div>
+        </div>
+        <div class="ig-item" *ngIf="company()?.phone">
+          <div class="ig-icon"><mat-icon>phone</mat-icon></div>
+          <div class="ig-body">
+            <span class="ig-label">Phone</span>
+            <span class="ig-value">{{ company()?.phone }}</span>
+          </div>
+        </div>
+        <div class="ig-item" *ngIf="company()?.fax">
+          <div class="ig-icon"><mat-icon>fax</mat-icon></div>
+          <div class="ig-body">
+            <span class="ig-label">Fax</span>
+            <span class="ig-value">{{ company()?.fax }}</span>
+          </div>
+        </div>
+        <div class="ig-item" *ngIf="company()?.website">
+          <div class="ig-icon"><mat-icon>language</mat-icon></div>
+          <div class="ig-body">
+            <span class="ig-label">Website</span>
+            <a [href]="company()?.website" target="_blank" class="ig-link">{{ company()?.website }}</a>
+          </div>
+        </div>
+        <div class="ig-item" *ngIf="company()?.city || company()?.country">
+          <div class="ig-icon"><mat-icon>location_on</mat-icon></div>
+          <div class="ig-body">
+            <span class="ig-label">Location</span>
+            <span class="ig-value">{{ location() }}</span>
+          </div>
+        </div>
+        <div class="ig-item" *ngIf="company()?.address">
+          <div class="ig-icon"><mat-icon>maps_home_work</mat-icon></div>
+          <div class="ig-body">
+            <span class="ig-label">Address</span>
+            <span class="ig-value">{{ company()?.address }}</span>
+          </div>
+        </div>
+        <div class="ig-item" *ngIf="company()?.currency">
+          <div class="ig-icon"><mat-icon>payments</mat-icon></div>
+          <div class="ig-body">
+            <span class="ig-label">Currency</span>
+            <span class="ig-value">{{ company()?.currency }}</span>
+          </div>
+        </div>
+        <div class="ig-item" *ngIf="company()?.industryName">
+          <div class="ig-icon"><mat-icon>factory</mat-icon></div>
+          <div class="ig-body">
+            <span class="ig-label">Industry</span>
+            <span class="ig-value">{{ company()?.industryName }}</span>
+          </div>
+        </div>
+        <div class="ig-item">
+          <div class="ig-icon"><mat-icon>calendar_today</mat-icon></div>
+          <div class="ig-body">
+            <span class="ig-label">Registered</span>
+            <span class="ig-value">{{ company()?.createdDate | date:'longDate' }}</span>
+          </div>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Admin User Card -->
+    <mat-card class="cd-card admin-card" appearance="outlined" *ngIf="adminUser()">
+      <div class="admin-head">
+        <div class="admin-avatar-wrap">
+          <img *ngIf="adminUser()?.profilePicture" [src]="adminUser()!.profilePicture" class="admin-pic" [alt]="adminUser()?.firstName" />
+          <div *ngIf="!adminUser()?.profilePicture" class="admin-avatar">
+            {{ getUserInitials(adminUser()!) }}
+          </div>
+          <div class="email-verify-dot"
+               [class.verified]="adminUser()?.isEmailConfirmed"
+               [class.unverified]="!adminUser()?.isEmailConfirmed"
+               [matTooltip]="adminUser()?.isEmailConfirmed ? 'Email Verified' : 'Email Not Verified'">
+            <mat-icon>{{ adminUser()?.isEmailConfirmed ? 'check' : 'close' }}</mat-icon>
+          </div>
+        </div>
+        <div class="admin-identity">
+          <h3 class="admin-name">{{ adminUser()?.firstName }} {{ adminUser()?.lastName }}</h3>
+          <div class="admin-role-row">
+            <span class="admin-role-chip">{{ adminUser()?.roleName || 'Admin' }}</span>
+            <span class="admin-desig" *ngIf="adminUser()?.designationName">{{ adminUser()?.designationName }}</span>
+          </div>
+          <div class="admin-email" *ngIf="adminUser()?.email">
+            <mat-icon>alternate_email</mat-icon>
+            <span>{{ adminUser()?.email }}</span>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <div class="info-grid">
+        <div class="ig-item" *ngIf="adminUser()?.phoneNumber">
+          <div class="ig-icon"><mat-icon>smartphone</mat-icon></div>
+          <div class="ig-body"><span class="ig-label">Phone</span><span class="ig-value">{{ adminUser()?.phoneNumber }}</span></div>
+        </div>
+        <div class="ig-item" *ngIf="adminUser()?.departmentName">
+          <div class="ig-icon"><mat-icon>account_tree</mat-icon></div>
+          <div class="ig-body"><span class="ig-label">Department</span><span class="ig-value">{{ adminUser()?.departmentName }}</span></div>
+        </div>
+        <div class="ig-item" *ngIf="adminUser()?.subDepartmentName">
+          <div class="ig-icon"><mat-icon>device_hub</mat-icon></div>
+          <div class="ig-body"><span class="ig-label">Sub-Department</span><span class="ig-value">{{ adminUser()?.subDepartmentName }}</span></div>
+        </div>
+        <div class="ig-item" *ngIf="adminUser()?.siteName">
+          <div class="ig-icon"><mat-icon>location_city</mat-icon></div>
+          <div class="ig-body"><span class="ig-label">Site</span><span class="ig-value">{{ adminUser()?.siteName }}</span></div>
+        </div>
+        <div class="ig-item" *ngIf="adminUser()?.areaName">
+          <div class="ig-icon"><mat-icon>place</mat-icon></div>
+          <div class="ig-body"><span class="ig-label">Area</span><span class="ig-value">{{ adminUser()?.areaName }}</span></div>
+        </div>
+        <div class="ig-item" *ngIf="adminUser()?.joiningDate">
+          <div class="ig-icon"><mat-icon>event</mat-icon></div>
+          <div class="ig-body"><span class="ig-label">Joined</span><span class="ig-value">{{ adminUser()?.joiningDate | date:'mediumDate' }}</span></div>
+        </div>
+        <div class="ig-item">
+          <div class="ig-icon">
+            <mat-icon [class.email-ok]="adminUser()?.isEmailConfirmed" [class.email-ng]="!adminUser()?.isEmailConfirmed">
+              {{ adminUser()?.isEmailConfirmed ? 'mark_email_read' : 'mark_email_unread' }}
+            </mat-icon>
+          </div>
+          <div class="ig-body">
+            <span class="ig-label">Email Status</span>
+            <span class="ig-value" [class.text-green]="adminUser()?.isEmailConfirmed" [class.text-red]="!adminUser()?.isEmailConfirmed">
+              {{ adminUser()?.isEmailConfirmed ? 'Verified' : 'Not Verified' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- No Admin Card -->
+    <mat-card class="cd-card no-admin-card" appearance="outlined" *ngIf="!adminUser()">
+      <div class="no-admin-state">
+        <mat-icon>person_off</mat-icon>
+        <h3>No Admin User Assigned</h3>
+        <p>This company has no admin user profile linked yet.</p>
+      </div>
+    </mat-card>
+
+  </div><!-- /cd-row -->
+
+  <!-- ══ SECTION 2 — SUBSCRIPTION ══ -->
+  <div class="cd-section-title">
+    <mat-icon>workspace_premium</mat-icon>
+    <span>Subscription Plan</span>
+  </div>
+
+  <!-- Has Subscription -->
+  <div class="sub-block" *ngIf="subscription()">
+    <mat-card class="cd-card sub-info-card" appearance="outlined"
+              [style.--sc1]="subscription()?.cardColor || '#7c3aed'"
+              [style.--sc2]="subscription()?.cardColorSecondary || '#a855f7'">
+      <div class="sub-stripe"></div>
+      <div class="sub-card-body">
+        <div class="sub-left">
+          <div class="sub-plan-name-row">
+            <h3 class="sub-plan-name">{{ subscription()?.planName }}</h3>
+            <span class="sub-type-tag" [class.custom-tag]="subscription()?.isPlanActive">
+              {{ subscription()?.isPlanActive ? 'Custom' : 'Standard' }}
+            </span>
+            <!-- Expiry status badge in subscription card -->
+            <span class="sub-status-pill" [ngClass]="subscriptionBadge().css">
+              <mat-icon>{{ subscriptionBadge().icon }}</mat-icon>
+              {{ subscriptionBadge().label }}
+            </span>
+          </div>
+
+          <div class="sub-price-row">
+            <span class="sub-currency">AED</span>
+            <span class="sub-amount">{{ subscription()?.planAmount | number }}</span>
+            <span class="sub-per">/ {{ subscription()?.durationDays }} days</span>
+          </div>
+
+          <div class="sub-dates-row">
+            <div class="sub-date-item">
+              <mat-icon>event_available</mat-icon>
+              <div>
+                <span class="sub-date-lbl">Start Date</span>
+                <span class="sub-date-val">{{ subscription()?.startDate | date:'mediumDate' }}</span>
+              </div>
+            </div>
+            <mat-icon class="sub-date-arrow">arrow_forward</mat-icon>
+            <div class="sub-date-item">
+              <mat-icon [class.expiry-icon]="isExpiringSoon(subscription()?.endDate)"
+                        [class.expiry-past-icon]="subscriptionStatus() === 'expired'">event_busy</mat-icon>
+              <div>
+                <span class="sub-date-lbl">End Date</span>
+                <span class="sub-date-val"
+                      [class.text-red]="subscriptionStatus() === 'expired'"
+                      [class.text-warning]="isExpiringSoon(subscription()?.endDate)">
+                  {{ subscription()?.endDate | date:'mediumDate' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sub-progress-wrap" *ngIf="subscriptionStatus() !== 'expired'">
+            <div class="sub-progress-labels">
+              <span>Subscription Usage</span>
+              <span class="sub-days-left" [style.color]="daysRemainingColor()">
+                {{ subscription()?.daysRemaining }} days remaining
+              </span>
+            </div>
+            <mat-progress-bar
+              mode="determinate"
+              [value]="subscriptionUsedPct()"
+              [color]="subscriptionProgressColor()">
+            </mat-progress-bar>
+            <div class="sub-progress-pct">{{ subscriptionUsedPct() }}% used</div>
+          </div>
+
+          <!-- Expired notice inside subscription card -->
+          <div class="sub-expired-notice" *ngIf="subscriptionStatus() === 'expired'">
+            <mat-icon>event_busy</mat-icon>
+            <span>This subscription has expired. Edit the plan to set new dates and renew access.</span>
+          </div>
+        </div>
+
+        <div class="sub-limits">
+          <div class="sub-limit-item">
+            <div class="sub-limit-icon"><mat-icon>inventory_2</mat-icon></div>
+            <div class="sub-limit-body">
+              <span class="sub-limit-val">{{ (stats()?.totalAssets ?? 0) | number }} / {{ subscription()?.assetLimit | number }}</span>
+              <span class="sub-limit-lbl">Assets Used</span>
+              <mat-progress-bar mode="determinate"
+                [value]="((stats()?.totalAssets ?? 0) / (subscription()?.assetLimit || 1)) * 100"
+                color="primary" class="sub-mini-bar">
+              </mat-progress-bar>
+            </div>
+          </div>
+          <div class="sub-limit-item">
+            <div class="sub-limit-icon"><mat-icon>group</mat-icon></div>
+            <div class="sub-limit-body">
+              <span class="sub-limit-val">{{ (stats()?.totalUsers ?? 0) | number }} / {{ subscription()?.totalUserLimit | number }}</span>
+              <span class="sub-limit-lbl">Total Users</span>
+              <mat-progress-bar mode="determinate"
+                [value]="((stats()?.totalUsers ?? 0) / (subscription()?.totalUserLimit || 1)) * 100"
+                color="primary" class="sub-mini-bar">
+              </mat-progress-bar>
+            </div>
+          </div>
+          <div class="sub-limit-item">
+            <div class="sub-limit-icon"><mat-icon>manage_accounts</mat-icon></div>
+            <div class="sub-limit-body">
+              <span class="sub-limit-val">{{ (stats()?.systemUsers ?? 0) | number }} / {{ subscription()?.systemUserLimit | number }}</span>
+              <span class="sub-limit-lbl">System Users</span>
+              <mat-progress-bar mode="determinate"
+                [value]="((stats()?.systemUsers ?? 0) / (subscription()?.systemUserLimit || 1)) * 100"
+                color="accent" class="sub-mini-bar">
+              </mat-progress-bar>
+            </div>
+          </div>
+          <button mat-stroked-button class="edit-plan-btn" (click)="openSubscriptionDialog()">
+            <mat-icon>edit_note</mat-icon> Edit Plan
+          </button>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- No Subscription -->
+  <div class="no-sub-block" *ngIf="!subscription()">
+    <mat-card class="cd-card" appearance="outlined">
+      <div class="no-sub-state">
+        <div class="no-sub-icon"><mat-icon>workspace_off</mat-icon></div>
+        <h3>No Subscription Plan Assigned</h3>
+        <p>This company doesn't have any subscription plan. Assign one to grant access.</p>
+        <button mat-flat-button class="assign-plan-btn" (click)="openSubscriptionDialog()">
+          <mat-icon>add_card</mat-icon> Assign Plan
+        </button>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- ══ SECTION 3 — KPI STATS ══ -->
+  <div class="cd-section-title">
+    <mat-icon>analytics</mat-icon>
+    <span>Company Statistics</span>
+  </div>
+
+  <div class="kpi-grid" *ngIf="stats()">
+    <mat-card class="kpi-card kpi-card--primary" appearance="outlined">
+      <div class="kpi-icon"><mat-icon>inventory_2</mat-icon></div>
+      <div class="kpi-value">{{ stats()?.totalAssets | number }}</div>
+      <div class="kpi-label">Total Assets</div>
+      <div class="kpi-sub-row"><span class="ks-chip ks-info">Registered in system</span></div>
+    </mat-card>
+    <mat-card class="kpi-card kpi-card--accent" appearance="outlined">
+      <div class="kpi-icon"><mat-icon>group</mat-icon></div>
+      <div class="kpi-value">{{ stats()?.totalUsers | number }}</div>
+      <div class="kpi-label">Total Users</div>
+      <div class="kpi-sub-row"><span class="ks-chip ks-info">Employee profiles</span></div>
+    </mat-card>
+    <mat-card class="kpi-card kpi-card--purple" appearance="outlined">
+      <div class="kpi-icon"><mat-icon>manage_accounts</mat-icon></div>
+      <div class="kpi-value">{{ stats()?.systemUsers | number }}</div>
+      <div class="kpi-label">System Users</div>
+      <div class="kpi-sub-row"><span class="ks-chip ks-active">Have login access</span></div>
+    </mat-card>
+    <mat-card class="kpi-card kpi-card--info" appearance="outlined">
+      <div class="kpi-icon"><mat-icon>location_city</mat-icon></div>
+      <div class="kpi-value">{{ (stats()?.sites ?? 0) + (stats()?.branches ?? 0) }}</div>
+      <div class="kpi-label">Sites & Branches</div>
+      <div class="kpi-sub-row">
+        <span class="ks-chip ks-active">{{ stats()?.sites }} Sites</span>
+        <span class="ks-chip ks-info">{{ stats()?.branches }} Branches</span>
+      </div>
+    </mat-card>
+    <mat-card class="kpi-card kpi-card--success" appearance="outlined">
+      <div class="kpi-icon"><mat-icon>account_tree</mat-icon></div>
+      <div class="kpi-value">{{ stats()?.departments | number }}</div>
+      <div class="kpi-label">Departments</div>
+      <div class="kpi-sub-row"><span class="ks-chip ks-info">{{ stats()?.subDepartments }} Sub-Depts</span></div>
+    </mat-card>
+    <mat-card class="kpi-card kpi-card--warn" appearance="outlined">
+      <div class="kpi-icon"><mat-icon>local_shipping</mat-icon></div>
+      <div class="kpi-value">{{ stats()?.suppliers | number }}</div>
+      <div class="kpi-label">Suppliers</div>
+      <div class="kpi-sub-row"><span class="ks-chip ks-info">{{ stats()?.assetCategories }} Categories</span></div>
+    </mat-card>
+  </div>
+
+  <!-- ══ SECTION 4 — CHARTS ══ -->
+  <div class="cd-section-title">
+    <mat-icon>bar_chart</mat-icon>
+    <span>Data Insights</span>
+  </div>
+
+  <div class="charts-row">
+    <mat-card class="cd-card chart-card" appearance="outlined">
+      <div class="chart-head">
+        <mat-icon class="ci">people_alt</mat-icon>
+        <span class="ct">User Distribution</span>
+      </div>
+      <div class="chart-wrap chart-wrap--donut">
+        <canvas baseChart [data]="userSplitChart()" [options]="doughnutOpts" type="doughnut"></canvas>
+      </div>
+    </mat-card>
+    <mat-card class="cd-card chart-card chart-card--wide" appearance="outlined">
+      <div class="chart-head">
+        <mat-icon class="ci">layers</mat-icon>
+        <span class="ct">Module Overview</span>
+      </div>
+      <div class="chart-wrap chart-wrap--bar">
+        <canvas baseChart [data]="masterCountChart()" [options]="barOpts" type="bar"></canvas>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- ══ SECTION 5 — LOGIN USERS ══ -->
+  <div class="cd-section-title">
+    <mat-icon>manage_accounts</mat-icon>
+    <span>Login Access Users</span>
+    <span class="section-badge">{{ loginUsers().length }}</span>
+  </div>
+
+  <mat-card class="cd-card login-users-card" appearance="outlined">
+    <div class="login-empty" *ngIf="!loginUsers().length">
+      <mat-icon>no_accounts</mat-icon>
+      <h3>No Login Access Users</h3>
+      <p>No users have been granted login access for this company yet.</p>
+    </div>
+
+    <div class="login-users-grid" *ngIf="loginUsers().length">
+      <div class="lu-card" *ngFor="let user of loginUsers()">
+        <div class="lu-avatar-wrap">
+          <img *ngIf="user.profilePicture" [src]="user.profilePicture" [alt]="user.firstName" class="lu-pic" />
+          <div *ngIf="!user.profilePicture" class="lu-avatar"
+               [style.background]="userColor((user.firstName ?? '') + ' ' + (user.lastName ?? ''))">
+            {{ getInitials((user.firstName ?? '') + ' ' + (user.lastName ?? '')) }}
+          </div>
+          <span class="lu-status-dot"
+                [class.dot-online]="isCurrentlyLoggedIn(user)"
+                [class.dot-offline]="!isCurrentlyLoggedIn(user)"
+                [matTooltip]="isCurrentlyLoggedIn(user) ? 'Currently logged in' : 'Offline'">
+          </span>
+        </div>
+
+        <div class="lu-info">
+          <div class="lu-name">{{ user.firstName }} {{ user.lastName }}</div>
+          <div class="lu-email">{{ user.email }}</div>
+          <div class="lu-chips">
+            <span class="lu-chip lu-role"  *ngIf="user.roleName">{{ user.roleName }}</span>
+            <span class="lu-chip lu-desig" *ngIf="user.designationName">{{ user.designationName }}</span>
+          </div>
+          <div class="lu-meta" *ngIf="user.departmentName">
+            <mat-icon>account_tree</mat-icon>{{ user.departmentName }}
+          </div>
+        </div>
+
+        <div class="lu-session">
+          <div class="lu-session-row" [class.session-active]="isCurrentlyLoggedIn(user)">
+            <mat-icon>login</mat-icon>
+            <div class="lu-session-body">
+              <span class="lu-session-lbl">Last Login</span>
+              <span class="lu-session-val">{{ user.lastLoginDate ? (user.lastLoginDate | date:'dd MMM yyyy, HH:mm') : '—' }}</span>
+            </div>
+          </div>
+          <div class="lu-session-row">
+            <mat-icon>logout</mat-icon>
+            <div class="lu-session-body">
+              <span class="lu-session-lbl">Last Logout</span>
+              <span class="lu-session-val">{{ user.lastLogoutDate ? (user.lastLogoutDate | date:'dd MMM yyyy, HH:mm') : (isCurrentlyLoggedIn(user) ? 'Active session' : '—') }}</span>
+            </div>
+          </div>
+          <div class="lu-session-row">
+            <mat-icon>repeat</mat-icon>
+            <div class="lu-session-body">
+              <span class="lu-session-lbl">Total Logins</span>
+              <span class="lu-session-val lu-login-count">{{ user.totalLoginCount }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="lu-right">
+          <span class="lu-status-badge" [class.active-badge]="user.isActive" [class.inactive-badge]="!user.isActive">
+            {{ user.isActive ? 'Active' : 'Inactive' }}
+          </span>
+          <span class="lu-online-badge" *ngIf="isCurrentlyLoggedIn(user)">
+            <mat-icon>circle</mat-icon> Online
+          </span>
+          <span class="lu-email-badge" [class.verified]="user.isEmailConfirmed" [class.unverified]="!user.isEmailConfirmed">
+            <mat-icon>{{ user.isEmailConfirmed ? 'mark_email_read' : 'mark_email_unread' }}</mat-icon>
+            {{ user.isEmailConfirmed ? 'Verified' : 'Unverified' }}
+          </span>
+          <div class="lu-joined">
+            <mat-icon>calendar_today</mat-icon>
+            Access since {{ user.createdDate | date:'mediumDate' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </mat-card>
+
+</div><!-- /cd-page -->

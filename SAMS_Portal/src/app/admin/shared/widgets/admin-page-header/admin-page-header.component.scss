@@ -1,0 +1,66 @@
+.page-header-toolbar {
+  // Use Material theme system tokens (adapts to light/dark themes)
+  background-color: var(--mat-sys-color-surface);
+  color: var(--mat-sys-color-on-surface);
+  box-shadow: var(--mat-sys-elevation-level1); // uses theme elevation shadow
+  padding: 0 1rem;
+  border-radius: var(--mat-sys-shape-corner-medium); // Material radius token
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.page-title {
+  font-size: var(--mat-sys-headline-small-size);
+  font-weight: var(--mat-sys-headline-small-weight);
+  margin: 0;
+  color: var(--mat-sys-color-on-surface);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  font-size: var(--mat-sys-label-medium-size);
+  color: var(--mat-sys-color-on-surface-variant);
+  margin-bottom: 0px;
+
+  a {
+    color: var(--mat-sys-color-primary);
+    text-decoration: none;
+    padding: 0 0.3rem;
+
+    // &:hover {
+    //   text-decoration: underline;
+    // }
+  }
+
+  .active {
+    padding-left: 0.3rem;
+    font-weight: 600;
+    color: var(--mat-sys-color-on-surface);
+  }
+
+  .separator {
+    margin: 0 0.2rem;
+    color: var(--mat-sys-color-outline);
+    font-size: 1.2rem;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    color: var(--mat-sys-color-outline);
+  }
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    // flex-direction: column;
+    align-items: flex-start;
+  }
+}

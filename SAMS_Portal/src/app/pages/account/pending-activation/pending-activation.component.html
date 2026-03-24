@@ -1,0 +1,104 @@
+<div class="pending-wrapper" [@fadeIn]>
+
+  <!-- Ambient orbs (same style as onboarding) -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="brand">
+      <mat-icon class="brand-icon">domain</mat-icon>
+      <span class="brand-name">INFOASSET</span>
+    </div>
+    <button mat-button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon> Sign Out
+    </button>
+  </div>
+
+  <!-- Card -->
+  <div class="card-area">
+    <mat-card class="pending-card" [@slideUp]>
+      <mat-card-content class="card-body">
+
+        <!-- Icon -->
+        <div class="icon-ring" [class.icon-ring--active]="isActive()">
+          @if (isActive()) {
+            <mat-icon class="status-icon active-icon">check_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending-icon">hourglass_top</mat-icon>
+          }
+        </div>
+
+        <!-- Heading -->
+        @if (isActive()) {
+          <h1 class="card-title">You're all set!</h1>
+          <p class="card-sub">
+            Your account has been activated. Redirecting you to the dashboard…
+          </p>
+        } @else {
+          <h1 class="card-title">Pending Admin Activation</h1>
+          <p class="card-sub">
+            Thank you for registering with <strong>INFOASSET</strong>.<br>
+            Your account is under review. An administrator will activate it shortly.
+          </p>
+        }
+
+        <!-- Status chip -->
+        <div class="status-chip" [class.chip--active]="isActive()" [class.chip--pending]="!isActive()">
+          <span class="chip-dot"></span>
+          {{ isActive() ? 'Account Activated' : 'Awaiting Activation' }}
+        </div>
+
+        <!-- Info cards -->
+        @if (!isActive()) {
+          <div class="info-grid">
+            <div class="info-tile">
+              <mat-icon>email</mat-icon>
+              <span>You'll receive an email once your account is activated.</span>
+            </div>
+            <div class="info-tile">
+              <mat-icon>support_agent</mat-icon>
+              <span>Need help? Contact your administrator or support team.</span>
+            </div>
+            <div class="info-tile">
+              <mat-icon>schedule</mat-icon>
+              <span>Activation typically takes 1–2 business days.</span>
+            </div>
+          </div>
+        }
+
+        <!-- Pulse / progress -->
+        @if (!isActive()) {
+          <div class="poll-row">
+            <mat-progress-spinner
+              [diameter]="20"
+              mode="indeterminate"
+              color="primary">
+            </mat-progress-spinner>
+            <span class="poll-text">
+              Checking status{{ pollDots() }}
+              <span class="poll-timer">(next check in {{ countdown() }}s)</span>
+            </span>
+          </div>
+        }
+
+        <!-- CTA when active -->
+        @if (isActive()) {
+          <button mat-flat-button class="go-btn" (click)="goToDashboard()">
+            <mat-icon>dashboard</mat-icon> Go to Dashboard
+          </button>
+        }
+
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Footer note -->
+    <p class="footer-note">
+      Wrong account?
+      <button mat-button color="primary" class="inline-btn" (click)="logout()">Sign out</button>
+      and log in with a different one.
+    </p>
+  </div>
+
+</div>

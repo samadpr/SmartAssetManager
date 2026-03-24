@@ -1,0 +1,78 @@
+@use '@angular/material' as mat;
+
+// ── Host fills exactly the viewport height, nothing more ──
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden; // prevent host itself from scrolling
+}
+
+// ── Sidenav container fills the remaining height after the 64px header ──
+mat-sidenav-container.admin-shell {
+    flex: 1; // take all remaining height
+    height: calc(100vh - 64px);
+    max-height: calc(100vh - 64px); // hard cap — never grow beyond this
+    overflow: hidden; // container itself must NOT scroll
+    width: 100%;
+    max-width: 100vw; // prevent horizontal overflow
+}
+
+// ── Sidenav panel ──
+.admin-sidenav {
+    border-right: 2px solid var(--mat-sys-primary-container) !important;
+    @include mat.sidenav-overrides((container-divider-color: rgba(0, 0, 0, 0.1),
+            container-shape: 0px,
+            container-background-color: var(--mat-sys-surface),
+        ));
+    overflow: hidden; // sidebar itself doesn't scroll — inner container does
+}
+
+// ── Main content area: only this scrolls vertically ──
+.admin-content {
+    padding: 24px;
+    background: var(--mat-sys-background-custom-color, var(--mat-sys-surface-variant));
+
+    // Fill available height exactly — do NOT use min-height here
+    height: 100%;
+    box-sizing: border-box;
+
+    overflow-y: auto; // vertical scroll lives HERE only
+    overflow-x: hidden; // never scroll horizontally
+}
+
+// ── Smooth transitions ──
+mat-sidenav-content,
+mat-sidenav {
+    transition: all 500ms ease-in-out !important;
+}
+
+// ── Sidebar internal scroll container ──
+.sidebar-scroll-container {
+    height: 100%;
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    &::-webkit-scrollbar {
+        width: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--mat-sys-outline-variant);
+        border-radius: 0;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    scrollbar-width: thin;
+    scrollbar-color: var(--mat-sys-outline-variant) transparent;
+
+    &:hover::-webkit-scrollbar-thumb {
+        background-color: var(--mat-sys-primary);
+    }
+
+    transition: all 0.3s ease;
+}

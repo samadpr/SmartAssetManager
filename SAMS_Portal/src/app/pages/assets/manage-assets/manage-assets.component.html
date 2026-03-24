@@ -4,6 +4,99 @@
 </app-page-header>
 
 <div class="assets-page">
+   
+  <!-- ═══ STATS CARDS — only render when assets exist ═══ -->
+  <div class="stats-grid" *ngIf="totalAssets() > 0">
+ 
+    <!-- Total Assets -->
+    <div class="stat-card stat-total">
+      <div class="stat-icon-wrap">
+        <mat-icon>inventory_2</mat-icon>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ totalAssets() }}</span>
+        <span class="stat-label">Total Assets</span>
+      </div>
+      <div class="stat-trend" *ngIf="availableAssets() > 0">
+        <mat-icon class="trend-icon trend-up">check_circle</mat-icon>
+        <span>{{ availableAssets() }} Available</span>
+      </div>
+    </div>
+ 
+    <!-- Total Value — only when > 0 -->
+    <div class="stat-card stat-value-card" *ngIf="totalValue() > 0">
+      <div class="stat-icon-wrap">
+        <mat-icon>payments</mat-icon>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">
+          <span class="currency-sym">{{ currencySymbolDisplay() }}</span>
+          <span class="currency-amt">{{ formatAmount(totalValue()) }}</span>
+        </span>
+        <span class="stat-label">Total Asset Value</span>
+      </div>
+      <div class="stat-trend">
+        <mat-icon class="trend-icon">trending_up</mat-icon>
+        <span>Portfolio worth</span>
+      </div>
+    </div>
+ 
+    <!-- Depreciable Assets — only when > 0 -->
+    <div class="stat-card stat-depreciation" *ngIf="depreciableCount() > 0">
+      <div class="stat-icon-wrap">
+        <mat-icon>trending_down</mat-icon>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ depreciableCount() }}</span>
+        <span class="stat-label">Depreciable Assets</span>
+      </div>
+      <div class="stat-trend">
+        <mat-icon class="trend-icon">calculate</mat-icon>
+        <span>{{ nonDepreciableCount() }} non-depreciable</span>
+      </div>
+    </div>
+ 
+    <!-- Total Depreciable Cost — only when > 0 -->
+    <div class="stat-card stat-dep-value" *ngIf="totalDepreciableCost() > 0">
+      <div class="stat-icon-wrap">
+        <mat-icon>account_balance</mat-icon>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">
+          <span class="currency-sym">{{ currencySymbolDisplay() }}</span>
+          <span class="currency-amt">{{ formatAmount(totalDepreciableCost()) }}</span>
+        </span>
+        <span class="stat-label">Total Depreciable Cost</span>
+      </div>
+      <div class="stat-trend" *ngIf="totalSalvageValue() > 0">
+        <mat-icon class="trend-icon">donut_large</mat-icon>
+        <span>Salvage: {{ currencySymbolDisplay() }}&nbsp;{{ formatAmount(totalSalvageValue()) }}</span>
+      </div>
+    </div>
+ 
+    <!-- Assigned to Site / Branch — only when > 0 -->
+    <div class="stat-card stat-site" *ngIf="assignedToSiteCount() > 0">
+      <div class="stat-icon-wrap">
+        <mat-icon>location_city</mat-icon>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ assignedToSiteCount() }}</span>
+        <span class="stat-label">Assigned to Site / Branch</span>
+      </div>
+      <div class="stat-trend">
+        <button mat-icon-button
+                class="site-nav-btn"
+                (click)="goToSiteOverview()"
+                matTooltip="View Site & Branch Asset Overview">
+          <mat-icon>open_in_new</mat-icon>
+        </button>
+        <span>View site breakdown</span>
+      </div>
+    </div>
+ 
+  </div>
+ 
+  <!-- ═══ ASSET LIST TABLE ═══ -->
   <app-list-widget 
     [config]="listConfig" 
     [data]="assets()" 
@@ -15,4 +108,35 @@
     (selectionAction)="onSelectionAction($event)"
     (rowClick)="onRowClick($event)">
   </app-list-widget>
+
+  <div class="bulk-upload-bar" (click)="goToBulkUpload()">
+    <div class="bulk-bar-left">
+      <div class="bulk-bar-icon-wrap">
+        <mat-icon>upload_file</mat-icon>
+      </div>
+      <div class="bulk-bar-text">
+        <span class="bulk-bar-title">Bulk Asset Upload</span>
+        <span class="bulk-bar-desc">Upload multiple assets at once using an Excel template — download the template, fill in asset details, then import.</span>
+      </div>
+    </div>
+    <div class="bulk-bar-actions" (click)="$event.stopPropagation()">
+      <button mat-stroked-button class="bulk-btn-template" (click)="downloadTemplate()">
+        <mat-icon>download</mat-icon>
+        Download Template
+      </button>
+      <button mat-raised-button color="primary" class="bulk-btn-upload" (click)="goToBulkUpload()">
+        <mat-icon>cloud_upload</mat-icon>
+        Upload Assets
+      </button>
+    </div>
+  </div>
+  
+  <!-- Download animation overlay — add inside the same host -->
+  <div class="download-overlay" *ngIf="downloadingTemplate()" [@fadeInOut]>
+    <div class="download-overlay-inner">
+      <div class="download-spinner-ring"></div>
+      <mat-icon class="download-icon-anim">table_chart</mat-icon>
+      <span>Generating Excel Template…</span>
+    </div>
+  </div>
 </div>

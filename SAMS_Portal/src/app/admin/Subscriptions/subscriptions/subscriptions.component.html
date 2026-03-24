@@ -1,0 +1,184 @@
+<app-admin-page-header [title]="'Manage Subscriptions'" [breadcrumbs]="[
+    { label: 'Manage Subscriptions' }
+  ]">
+</app-admin-page-header>
+<!-- 
+<div class="sub-page">
+
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="stat-pill">
+        <mat-icon>layers</mat-icon>
+        <span>{{ plans().length }}</span>
+        <span class="pill-label">Total</span>
+      </div>
+      <div class="stat-pill accent-primary">
+        <mat-icon>public</mat-icon>
+        <span>{{ standardCount() }}</span>
+        <span class="pill-label">Standard</span>
+      </div>
+      <div class="stat-pill accent-secondary">
+        <mat-icon>diamond</mat-icon>
+        <span>{{ customCount() }}</span>
+        <span class="pill-label">Custom</span>
+      </div>
+    </div>
+
+    <div class="top-bar-right">
+      <button mat-stroked-button class="btn-custom" (click)="openCreateDialog(true)"
+        matTooltip="Tailored plan for a specific customer">
+        <mat-icon>diamond</mat-icon> Custom Plan
+      </button>
+      <button mat-flat-button class="btn-primary" (click)="openCreateDialog(false)"
+        matTooltip="Standard plan visible to all">
+        <mat-icon>add_circle</mat-icon> New Plan
+      </button>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <button class="ftab" [class.active]="filterType()==='all'"      (click)="filterType.set('all')">
+      <mat-icon>grid_view</mat-icon> All
+    </button>
+    <button class="ftab" [class.active]="filterType()==='standard'" (click)="filterType.set('standard')">
+      <mat-icon>public</mat-icon> Standard
+    </button>
+    <button class="ftab" [class.active]="filterType()==='custom'"   (click)="filterType.set('custom')">
+      <mat-icon>diamond</mat-icon> Custom
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="center-state">
+      <mat-spinner diameter="46"></mat-spinner>
+      <p>Loading plans…</p>
+    </div>
+  }
+
+  @if (!loading() && filteredPlans().length === 0) {
+    <div class="center-state empty">
+      <div class="empty-orb"><mat-icon>workspace_premium</mat-icon></div>
+      <h3>No Plans Yet</h3>
+      <p>Create your first subscription plan to get started.</p>
+      <button mat-flat-button class="btn-primary" (click)="openCreateDialog()">
+        <mat-icon>add_circle</mat-icon> Create Plan
+      </button>
+    </div>
+  }
+
+  @if (!loading() && filteredPlans().length > 0) {
+    <div class="plans-grid">
+
+      @for (plan of filteredPlans(); track plan.id) {
+        <div class="plan-card"
+          [style.--c1]="plan.cardColor || '#7c3aed'"
+          [style.--c2]="plan.cardColorSecondary || '#a855f7'">
+
+          <div class="card-stripe"></div>
+
+          <div class="card-head">
+
+            <div class="head-badges">
+              @if (plan.isCustom) {
+                <span class="type-badge custom-badge">
+                  <mat-icon>diamond</mat-icon> Custom
+                </span>
+              } @else {
+                <span class="type-badge standard-badge">
+                  <mat-icon>public</mat-icon> Standard
+                </span>
+              }
+
+              @if (plan.badgeLabel) {
+                <span class="promo-badge">
+                  <mat-icon>{{ plan.badgeIcon || 'star' }}</mat-icon>
+                  {{ plan.badgeLabel }}
+                </span>
+              }
+            </div>
+
+            <button mat-icon-button class="card-menu" [mat-menu-trigger-for]="cardMenu"
+              (click)="$event.stopPropagation()">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #cardMenu="matMenu" xPosition="before">
+              <button mat-menu-item (click)="openEditDialog(plan)">
+                <mat-icon>edit</mat-icon><span>Edit Plan</span>
+              </button>
+              <button mat-menu-item class="menu-danger" (click)="openDeleteDialog(plan)">
+                <mat-icon>delete_outline</mat-icon><span>Delete Plan</span>
+              </button>
+            </mat-menu>
+          </div>
+
+          <div class="card-name-block">
+            <h3 class="plan-name">{{ plan.name }}</h3>
+            @if (plan.description) {
+              <p class="plan-desc">{{ plan.description }}</p>
+            }
+          </div>
+
+          <div class="price-block">
+            <span class="price-currency">AED</span>
+            <span class="price-value">{{ plan.planAmount | number }}</span>
+            <span class="price-per">/ {{ formatDuration(plan.durationDays) }}</span>
+          </div>
+
+          <div class="duration-row">
+            <div class="duration-pill">
+              <mat-icon>schedule</mat-icon>
+              {{ getDurationLabel(plan.durationDays) }}
+            </div>
+          </div>
+
+          <div class="card-sep"></div>
+
+          <div class="feature-grid">
+            <div class="feat">
+              <div class="feat-icon"><mat-icon>inventory_2</mat-icon></div>
+              <div class="feat-body">
+                <span class="feat-val">{{ plan.assetLimit | number }}</span>
+                <span class="feat-key">Assets</span>
+              </div>
+            </div>
+            <div class="feat">
+              <div class="feat-icon"><mat-icon>manage_accounts</mat-icon></div>
+              <div class="feat-body">
+                <span class="feat-val">{{ plan.systemUserLimit | number }}</span>
+                <span class="feat-key">Sys Users</span>
+              </div>
+            </div>
+            <div class="feat">
+              <div class="feat-icon"><mat-icon>group</mat-icon></div>
+              <div class="feat-body">
+                <span class="feat-val">{{ plan.totalUserLimit | number }}</span>
+                <span class="feat-key">Total Users</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <button mat-button class="act-edit" (click)="openEditDialog(plan)">
+              <mat-icon>edit</mat-icon> Edit
+            </button>
+            <button mat-button class="act-delete" (click)="openDeleteDialog(plan)">
+              <mat-icon>delete_outline</mat-icon> Delete
+            </button>
+          </div>
+
+          <div class="blob blob-1"></div>
+          <div class="blob blob-2"></div>
+
+        </div>
+      }
+
+      <div class="add-card" (click)="openCreateDialog()" matRipple matTooltip="Add a new plan">
+        <div class="add-inner">
+          <div class="add-circle"><mat-icon>add</mat-icon></div>
+          <span>New Plan</span>
+        </div>
+      </div>
+
+    </div>
+  }
+</div> -->

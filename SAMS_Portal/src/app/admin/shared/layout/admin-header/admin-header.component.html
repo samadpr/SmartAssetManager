@@ -1,0 +1,93 @@
+<mat-toolbar class="mat-elevation-z3 admin-header-toolbar">
+
+  <!-- Left: Logo + Title -->
+  <div class="navbar-header" [style.width]="layoutService.headerSidenavWidth()">
+    <img class="logo-icon" src="assets/images/logos/infoasset_logo-1.png" alt="Logo" />
+    <div class="logo-text-group" [class.hidden]="layoutService.collapsed()">
+      <span class="logo-name">INFOASSET</span>
+      <span class="admin-badge-tag">Super Admin</span>
+    </div>
+  </div>
+
+  <!-- Toggle button -->
+  <button class="toggleMenuBtn" mat-icon-button (click)="toggleSidebar()" matTooltip="Toggle Sidebar">
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <!-- Page context / breadcrumb hint -->
+  <div class="header-page-context">
+    <mat-icon class="context-icon">admin_panel_settings</mat-icon>
+    <span class="context-label">Admin Control Panel</span>
+  </div>
+
+  <span class="spacer"></span>
+
+  <!-- Right Actions -->
+  <div class="header-actions">
+
+    <!-- Theme switcher -->
+    <button mat-icon-button [mat-menu-trigger-for]="themeMenu" class="action-btn" matTooltip="Change Theme">
+      <mat-icon>{{ themeService.selectedTheme()?.icon }}</mat-icon>
+    </button>
+    <mat-menu #themeMenu="matMenu" xPosition="before">
+      @for (theme of themeService.getAppTheme(); track theme.name) {
+        <button mat-menu-item (click)="setThemeFromName(theme.name)">
+          <mat-icon>{{ theme.icon }}</mat-icon>
+          <span>{{ theme.name | titlecase }}</span>
+        </button>
+      }
+    </mat-menu>
+
+    <!-- Notifications -->
+    <button mat-icon-button class="action-btn" matTooltip="Notifications">
+      <mat-icon [matBadge]="notificationCount()" matBadgeColor="warn"
+        [matBadgeHidden]="notificationCount() === 0">notifications_outlined</mat-icon>
+    </button>
+
+    <!-- Admin Profile Menu -->
+    <button mat-icon-button [mat-menu-trigger-for]="adminMenu" class="admin-avatar-btn"
+      [matTooltip]="adminName()">
+      <div class="admin-avatar">
+        <mat-icon>manage_accounts</mat-icon>
+      </div>
+    </button>
+
+    <mat-menu #adminMenu="matMenu" xPosition="before" class="admin-profile-menu-panel">
+
+      <!-- Admin info header -->
+      <div class="admin-menu-header" mat-menu-item [disabled]="true">
+        <div class="admin-avatar-large">
+          <mat-icon>manage_accounts</mat-icon>
+        </div>
+        <div class="admin-info">
+          <div class="admin-name">{{ adminName() }}</div>
+          <div class="admin-email">{{ adminEmail() }}</div>
+          <div class="admin-role-chip">
+            <mat-icon>verified_user</mat-icon>
+            <span>Super Admin</span>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <button mat-menu-item [routerLink]="['/admin/profile']">
+        <mat-icon>person_outline</mat-icon>
+        <span>My Profile</span>
+      </button>
+
+      <button mat-menu-item [routerLink]="['/admin/settings']">
+        <mat-icon>settings</mat-icon>
+        <span>Settings</span>
+      </button>
+
+      <mat-divider></mat-divider>
+
+      <button mat-menu-item (click)="logout()" class="logout-btn">
+        <mat-icon>logout</mat-icon>
+        <span>Sign Out</span>
+      </button>
+    </mat-menu>
+
+  </div>
+</mat-toolbar>

@@ -1,0 +1,654 @@
+// ══════════════════════════════════════════════════════════════
+//  ASSIGN SUBSCRIPTION DIALOG
+//  Enterprise-grade, matches project mat-sys token design system
+// ══════════════════════════════════════════════════════════════
+
+.asd-dialog {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    background: var(--mat-sys-surface);
+    border-radius: 20px;
+}
+
+// ══ HEADER ════════════════════════════════════════════════════
+.asd-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 16px;
+    background: linear-gradient(135deg,
+        var(--mat-sys-primary-container),
+        var(--mat-sys-secondary-container));
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    flex-shrink: 0;
+    gap: 12px;
+
+    &.edit-mode {
+        background: linear-gradient(135deg,
+            color-mix(in srgb, var(--mat-sys-secondary) 12%, var(--mat-sys-surface)),
+            color-mix(in srgb, var(--mat-sys-primary) 10%, var(--mat-sys-surface)));
+    }
+
+    .asd-header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+.asd-header-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+    }
+
+    &.icon-add {
+        background: color-mix(in srgb, #f59e0b 18%, var(--mat-sys-surface));
+        border: 1.5px solid #f59e0b40;
+        mat-icon { color: #d97706; }
+    }
+
+    &.icon-edit {
+        background: var(--mat-sys-primary-container);
+        border: 1.5px solid var(--mat-sys-primary);
+        mat-icon { color: var(--mat-sys-primary); }
+    }
+}
+
+.asd-header-text {
+    min-width: 0;
+
+    .asd-title {
+        margin: 0 0 3px;
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--mat-sys-on-surface);
+        line-height: 1.2;
+    }
+
+    .asd-subtitle {
+        margin: 0;
+        font-size: 0.75rem;
+        color: var(--mat-sys-on-surface-variant);
+
+        strong {
+            font-weight: 700;
+            color: var(--mat-sys-primary);
+        }
+    }
+}
+
+.asd-close-btn {
+    flex-shrink: 0;
+    color: var(--mat-sys-on-surface-variant) !important;
+
+    &:hover {
+        background: var(--mat-sys-surface-container) !important;
+    }
+}
+
+// ══ COMPANY PILL ══════════════════════════════════════════════
+.asd-company-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: var(--mat-sys-surface-container-low);
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    flex-shrink: 0;
+
+    .acp-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, var(--mat-sys-primary), var(--mat-sys-secondary));
+        color: var(--mat-sys-on-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    .acp-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+
+        .acp-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--mat-sys-on-surface);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .acp-org {
+            font-size: 0.65rem;
+            font-family: 'Courier New', monospace;
+            color: var(--mat-sys-on-surface-variant);
+            opacity: 0.65;
+        }
+    }
+
+    .acp-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        flex-shrink: 0;
+        white-space: nowrap;
+
+        mat-icon { font-size: 12px; width: 12px; height: 12px; }
+
+        &.has-sub {
+            background: color-mix(in srgb, #22c55e 15%, transparent);
+            color: #16a34a;
+            border: 1.5px solid #22c55e40;
+        }
+
+        &.no-sub {
+            background: color-mix(in srgb, #f59e0b 12%, transparent);
+            color: #d97706;
+            border: 1.5px solid #f59e0b30;
+        }
+    }
+}
+
+// ══ FORM BODY ═════════════════════════════════════════════════
+.asd-form {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0;
+
+    // Slim scrollbar
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-thumb {
+        background: var(--mat-sys-outline-variant);
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-track { background: transparent; }
+    scrollbar-width: thin;
+    scrollbar-color: var(--mat-sys-outline-variant) transparent;
+}
+
+// ── Section ───────────────────────────────────────────────────
+.asd-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+    &:last-child { border-bottom: none; }
+
+    &--status {
+        background: var(--mat-sys-surface-container-low);
+    }
+}
+
+.asd-section-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--mat-sys-primary);
+    margin-bottom: 12px;
+    opacity: 0.9;
+
+    mat-icon { font-size: 15px; width: 15px; height: 15px; }
+
+    .section-label-hint {
+        font-size: 0.65rem;
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--mat-sys-on-surface-variant);
+        margin-left: 4px;
+        opacity: 0.8;
+    }
+}
+
+// ── Field rows ────────────────────────────────────────────────
+.asd-fields-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    .asd-field {
+        flex: 1 1 200px;
+
+        &--full { flex: 1 1 100%; }
+    }
+}
+
+// ── Plan Details grid — Name full width, Amount + Date side by side ──
+.plan-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 12px;
+
+    .plan-field--name {
+        grid-column: 1 / -1; // spans both columns
+    }
+
+    .plan-field {
+        width: 100%;
+    }
+
+    @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+
+        .plan-field--name {
+            grid-column: 1;
+        }
+    }
+}
+
+.field-suffix {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.7;
+    padding-right: 4px;
+}
+
+// ── Duration presets ──────────────────────────────────────────
+.duration-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.dur-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1.5px solid var(--mat-sys-outline-variant);
+    background: var(--mat-sys-surface-container);
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.18s ease;
+
+    mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+    &:hover {
+        border-color: var(--mat-sys-primary);
+        color: var(--mat-sys-primary);
+        background: var(--mat-sys-primary-container);
+        transform: translateY(-1px);
+    }
+
+    &--selected {
+        border-color: var(--mat-sys-primary) !important;
+        background: var(--mat-sys-primary) !important;
+        color: var(--mat-sys-on-primary) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,.15);
+
+        mat-icon { color: var(--mat-sys-on-primary); }
+    }
+
+    &--popular .popular-tag {
+        display: inline-block;
+    }
+
+    .popular-tag {
+        display: none;
+        font-size: 0.55rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding: 1px 5px;
+        border-radius: 6px;
+        background: #f59e0b;
+        color: #fff;
+        margin-left: 3px;
+    }
+}
+
+// Duration row with expiry
+.dur-row {
+    align-items: flex-start;
+    margin-top: 4px;
+}
+
+// Expiry Date Display
+.expiry-display {
+    flex: 1 1 200px;
+    display: flex;
+    align-items: center;
+
+    .expiry-display-inner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: color-mix(in srgb, #22c55e 10%, var(--mat-sys-surface));
+        border: 1.5px solid #22c55e40;
+        width: 100%;
+
+        mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            color: #16a34a;
+            flex-shrink: 0;
+        }
+
+        .expiry-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            .expiry-label {
+                font-size: 0.62rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: var(--mat-sys-on-surface-variant);
+                opacity: 0.7;
+            }
+
+            .expiry-value {
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: #16a34a;
+
+                &.muted { color: var(--mat-sys-on-surface-variant); opacity: 0.5; font-weight: 500; }
+            }
+        }
+    }
+
+    &.expiry-placeholder .expiry-display-inner {
+        background: var(--mat-sys-surface-container);
+        border-color: var(--mat-sys-outline-variant);
+        mat-icon { color: var(--mat-sys-outline-variant); }
+    }
+}
+
+.custom-dur-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--mat-sys-primary) 10%, transparent);
+    color: var(--mat-sys-primary);
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 25%, transparent);
+
+    mat-icon { font-size: 13px; width: 13px; height: 13px; }
+    strong { font-weight: 800; }
+}
+
+// ── Limits Grid ───────────────────────────────────────────────
+.limits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+}
+
+.limit-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 14px;
+    background: var(--mat-sys-surface-container-low);
+    border: 1.5px solid var(--mat-sys-outline-variant);
+    transition: border-color 0.18s, background 0.18s;
+
+    &:hover { border-color: var(--mat-sys-primary); }
+
+    .limit-field { width: 100%; }
+}
+
+.limit-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    mat-icon { font-size: 19px; width: 19px; height: 19px; }
+
+    &.limit-asset {
+        background: color-mix(in srgb, #7c3aed 12%, transparent);
+        mat-icon { color: #7c3aed; }
+    }
+
+    &.limit-users {
+        background: color-mix(in srgb, #06b6d4 12%, transparent);
+        mat-icon { color: #06b6d4; }
+    }
+
+    &.limit-system {
+        background: color-mix(in srgb, #10b981 12%, transparent);
+        mat-icon { color: #10b981; }
+    }
+}
+
+// ── Status Toggle ─────────────────────────────────────────────
+.status-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.status-toggle-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.status-toggle-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    mat-icon { font-size: 22px; width: 22px; height: 22px; }
+
+    &.toggle-on {
+        background: color-mix(in srgb, #22c55e 14%, var(--mat-sys-surface));
+        border: 1.5px solid #22c55e40;
+        mat-icon { color: #16a34a; }
+    }
+
+    &.toggle-off {
+        background: var(--mat-sys-surface-container);
+        border: 1.5px solid var(--mat-sys-outline-variant);
+        mat-icon { color: var(--mat-sys-on-surface-variant); opacity: 0.5; }
+    }
+}
+
+.status-toggle-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--mat-sys-on-surface);
+    margin-bottom: 3px;
+}
+
+.status-toggle-desc {
+    font-size: 0.72rem;
+    color: var(--mat-sys-on-surface-variant);
+    line-height: 1.4;
+}
+
+.toggle-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+
+    &.label-on { color: #16a34a; }
+}
+
+// ── Cost Summary ──────────────────────────────────────────────
+.cost-summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 14px 20px;
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--mat-sys-primary) 6%, var(--mat-sys-surface)),
+        color-mix(in srgb, var(--mat-sys-secondary) 6%, var(--mat-sys-surface)));
+    border-top: 1px solid var(--mat-sys-outline-variant);
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.cs-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 120px;
+
+    mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: var(--mat-sys-primary);
+        flex-shrink: 0;
+    }
+
+    .cs-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+
+        .cs-label {
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--mat-sys-on-surface-variant);
+            opacity: 0.7;
+        }
+
+        .cs-value {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--mat-sys-on-surface);
+        }
+    }
+}
+
+.cs-divider {
+    width: 1px;
+    height: 32px;
+    background: var(--mat-sys-outline-variant);
+    margin: 0 8px;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+// ══ ACTIONS ═══════════════════════════════════════════════════
+.asd-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--mat-sys-outline-variant);
+    background: var(--mat-sys-surface-container-low);
+    flex-shrink: 0;
+
+    button {
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        height: 42px !important;
+        padding: 0 20px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+
+        mat-icon { font-size: 17px; width: 17px; height: 17px; }
+        mat-spinner { margin: 0; }
+    }
+}
+
+.asd-btn-cancel {
+    color: var(--mat-sys-on-surface-variant) !important;
+    border-color: var(--mat-sys-outline-variant) !important;
+}
+
+.asd-btn-submit {
+    font-weight: 700 !important;
+    min-width: 140px;
+
+    &.btn-add {
+        background: #d97706 !important;
+        color: #fff !important;
+
+        &:hover:not([disabled]) { background: #b45309 !important; }
+    }
+
+    &.btn-edit {
+        background: var(--mat-sys-primary) !important;
+        color: var(--mat-sys-on-primary) !important;
+
+        &:hover:not([disabled]) { opacity: 0.9; }
+    }
+
+    &[disabled] { opacity: 0.45 !important; cursor: not-allowed !important; }
+}
+
+// ══ RESPONSIVE ════════════════════════════════════════════════
+@media (max-width: 600px) {
+    .asd-header { padding: 14px 14px 12px; }
+    .asd-section { padding: 12px 14px; }
+    .asd-fields-row { flex-direction: column; }
+    .asd-field { flex: 1 1 auto; min-width: auto !important; }
+    .limits-grid { grid-template-columns: 1fr; }
+    .asd-actions { padding: 10px 14px; gap: 8px; }
+    .cost-summary { padding: 10px 14px; }
+    .cs-divider { display: none; }
+    .duration-presets { gap: 6px; }
+    .dur-chip { padding: 5px 8px; font-size: 0.72rem; }
+}

@@ -1,0 +1,48 @@
+<div class="toggle-dialog">
+
+  <!-- Icon -->
+  <div class="td-icon-wrap" [class.activate]="data.activate" [class.suspend]="!data.activate">
+    <mat-icon>{{ data.activate ? 'play_circle_filled' : 'pause_circle_filled' }}</mat-icon>
+  </div>
+
+  <!-- Text -->
+  <h2 class="td-title">
+    {{ data.activate ? 'Activate Company' : 'Suspend Company' }}
+  </h2>
+  <p class="td-desc"
+   [innerHTML]="data.activate 
+   ? 'This will restore full access for <strong>' + data.company.name + '</strong> and all its users.'
+   : 'This will immediately block all login access for <strong>' + data.company.name + '</strong> and its users.'">
+    </p>
+
+  <!-- Warning for suspend -->
+  <div class="td-warning" *ngIf="!data.activate">
+    <mat-icon>warning_amber</mat-icon>
+    <span>All active sessions will be terminated. Users will not be able to log in until reactivated.</span>
+  </div>
+
+  <!-- Company name confirm pill -->
+  <div class="td-company-pill">
+    <div class="tcp-avatar">{{ getInitials(data.company.name) }}</div>
+    <span>{{ data.company.name }}</span>
+    <mat-icon [class.icon-active]="data.activate" [class.icon-suspend]="!data.activate">
+      {{ data.activate ? 'check_circle' : 'block' }}
+    </mat-icon>
+  </div>
+
+  <!-- Actions -->
+  <div class="td-actions">
+    <button mat-stroked-button (click)="onCancel()" [disabled]="saving">
+      Cancel
+    </button>
+    <button mat-flat-button
+            [class.btn-activate]="data.activate"
+            [class.btn-suspend]="!data.activate"
+            (click)="onConfirm()" [disabled]="saving">
+      <mat-spinner *ngIf="saving" diameter="16"></mat-spinner>
+      <mat-icon *ngIf="!saving">{{ data.activate ? 'play_circle_filled' : 'pause_circle_filled' }}</mat-icon>
+      {{ saving ? 'Please wait…' : (data.activate ? 'Yes, Activate' : 'Yes, Suspend') }}
+    </button>
+  </div>
+
+</div>

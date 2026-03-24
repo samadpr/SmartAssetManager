@@ -1,0 +1,256 @@
+<div class="asd-dialog">
+
+  <!-- ══ DIALOG HEADER ══ -->
+  <div class="asd-header" [class.edit-mode]="isEditMode">
+    <div class="asd-header-left">
+      <div class="asd-header-icon" [class.icon-edit]="isEditMode" [class.icon-add]="!isEditMode">
+        <mat-icon>{{ isEditMode ? 'edit_note' : 'add_card' }}</mat-icon>
+      </div>
+      <div class="asd-header-text">
+        <h2 class="asd-title">{{ isEditMode ? 'Edit Subscription Plan' : 'Assign Subscription Plan' }}</h2>
+        <p class="asd-subtitle">{{ isEditMode ? 'Update plan details for' : 'Set up a new plan for' }} <strong>{{ data.company.name }}</strong></p>
+      </div>
+    </div>
+    <button mat-icon-button class="asd-close-btn" (click)="onCancel()" matTooltip="Close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Company Pill -->
+  <div class="asd-company-pill">
+    <div class="acp-avatar">{{ getInitials(data.company.name) }}</div>
+    <div class="acp-info">
+      <span class="acp-name">{{ data.company.name }}</span>
+      <span class="acp-org">{{ data.company.organizationId | slice:0:16 }}…</span>
+    </div>
+    <div class="acp-status-badge" [class.has-sub]="isEditMode" [class.no-sub]="!isEditMode">
+      <mat-icon>{{ isEditMode ? 'verified' : 'add_circle_outline' }}</mat-icon>
+      {{ isEditMode ? 'Has Plan' : 'No Plan' }}
+    </div>
+  </div>
+
+  <!-- ══ FORM BODY ══ -->
+  <form [formGroup]="form" class="asd-form" autocomplete="off">
+
+    <!-- ── SECTION 1: Plan Identity ── -->
+    <div class="asd-section">
+      <div class="asd-section-label">
+        <mat-icon>workspace_premium</mat-icon>
+        <span>Plan Details</span>
+      </div>
+
+      <div class="plan-details-grid">
+        <!-- Plan Name — spans full width -->
+        <mat-form-field appearance="outline" class="plan-field plan-field--name" subscriptSizing="dynamic">
+          <mat-label>Plan Name</mat-label>
+          <mat-icon matPrefix>label</mat-icon>
+          <input matInput formControlName="name" placeholder="e.g. Enterprise Pro, Starter Basic…" />
+          <mat-error *ngIf="form.get('name')?.hasError('required')">Plan name is required</mat-error>
+          <mat-error *ngIf="form.get('name')?.hasError('minlength')">At least 2 characters</mat-error>
+        </mat-form-field>
+
+        <!-- Amount -->
+        <mat-form-field appearance="outline" class="plan-field" subscriptSizing="dynamic">
+          <mat-label>Plan Amount</mat-label>
+          <mat-icon matPrefix>payments</mat-icon>
+          <input matInput type="number" formControlName="planAmount" placeholder="0.00" min="0" />
+          <span matSuffix class="field-suffix">AED</span>
+          <mat-error *ngIf="form.get('planAmount')?.hasError('required')">Amount is required</mat-error>
+          <mat-error *ngIf="form.get('planAmount')?.hasError('min')">Must be ≥ 0</mat-error>
+        </mat-form-field>
+
+        <!-- Start Date -->
+        <mat-form-field appearance="outline" class="plan-field" subscriptSizing="dynamic">
+          <mat-label>Start Date</mat-label>
+          <mat-icon matPrefix>event_available</mat-icon>
+          <input matInput type="date" formControlName="startDate" />
+          <mat-error *ngIf="form.get('startDate')?.hasError('required')">Start date required</mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- ── SECTION 2: Duration ── -->
+    <div class="asd-section">
+      <div class="asd-section-label">
+        <mat-icon>schedule</mat-icon>
+        <span>Subscription Duration</span>
+      </div>
+
+      <!-- Duration preset chips -->
+      <div class="duration-presets">
+        <button type="button" class="dur-chip"
+                *ngFor="let p of durationPresets"
+                [class.dur-chip--selected]="selectedPresetDays() === p.days"
+                [class.dur-chip--popular]="p.popular"
+                (click)="selectPreset(p)">
+          <mat-icon>{{ p.icon }}</mat-icon>
+          <span>{{ p.label }}</span>
+          <span class="popular-tag" *ngIf="p.popular">Popular</span>
+        </button>
+      </div>
+
+      <div class="asd-fields-row dur-row">
+        <!-- Duration Days input -->
+        <mat-form-field appearance="outline" class="asd-field" subscriptSizing="dynamic">
+          <mat-label>Duration (Days)</mat-label>
+          <mat-icon matPrefix>hourglass_top</mat-icon>
+          <input matInput type="number" formControlName="durationDays" placeholder="Enter days manually…" min="1" max="3650"
+                 (input)="selectedPresetDays.set(null)" />
+          <span matSuffix class="field-suffix">days</span>
+          <mat-hint *ngIf="durationDaysValue > 0">
+            ≈ {{ (durationDaysValue / 30) | number:'1.1-1' }} months
+          </mat-hint>
+          <mat-error *ngIf="form.get('durationDays')?.hasError('required')">Duration is required</mat-error>
+          <mat-error *ngIf="form.get('durationDays')?.hasError('min')">Minimum 1 day</mat-error>
+          <mat-error *ngIf="form.get('durationDays')?.hasError('max')">Maximum 3650 days</mat-error>
+        </mat-form-field>
+
+        <!-- Expiry Date (readonly computed) -->
+        <div class="expiry-display" *ngIf="expiryDateStr()">
+          <div class="expiry-display-inner">
+            <mat-icon>event_busy</mat-icon>
+            <div class="expiry-text">
+              <span class="expiry-label">Subscription Expires</span>
+              <span class="expiry-value">{{ expiryDateStr()! | date:'MMMM d, yyyy':'UTC' }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="expiry-display expiry-placeholder" *ngIf="!expiryDateStr()">
+          <div class="expiry-display-inner">
+            <mat-icon>event_busy</mat-icon>
+            <div class="expiry-text">
+              <span class="expiry-label">Expiry Date</span>
+              <span class="expiry-value muted">Set start date & duration</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom duration badge -->
+      <div class="custom-dur-note" *ngIf="isCustomDuration && durationDaysValue > 0">
+        <mat-icon>tune</mat-icon>
+        Custom duration: <strong>{{ durationDaysValue }} days</strong>
+        (≈ {{ (durationDaysValue / 30) | number:'1.1-1' }} months)
+      </div>
+    </div>
+
+    <!-- ── SECTION 3: Usage Limits ── -->
+    <div class="asd-section">
+      <div class="asd-section-label">
+        <mat-icon>tune</mat-icon>
+        <span>Usage Limits</span>
+        <span class="section-label-hint">Set the maximum allowed resources for this plan</span>
+      </div>
+
+      <div class="limits-grid">
+        <!-- Asset Limit -->
+        <div class="limit-card">
+          <div class="limit-card-icon limit-asset">
+            <mat-icon>inventory_2</mat-icon>
+          </div>
+          <mat-form-field appearance="outline" class="limit-field" subscriptSizing="dynamic">
+            <mat-label>Asset Limit</mat-label>
+            <input matInput type="number" formControlName="assetLimit" placeholder="e.g. 500" min="1" />
+            <mat-hint>Max assets allowed</mat-hint>
+            <mat-error *ngIf="form.get('assetLimit')?.hasError('required')">Required</mat-error>
+            <mat-error *ngIf="form.get('assetLimit')?.hasError('min')">Min 1</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Total Users -->
+        <div class="limit-card">
+          <div class="limit-card-icon limit-users">
+            <mat-icon>group</mat-icon>
+          </div>
+          <mat-form-field appearance="outline" class="limit-field" subscriptSizing="dynamic">
+            <mat-label>Total Users</mat-label>
+            <input matInput type="number" formControlName="totalUserLimit" placeholder="e.g. 100" min="1" />
+            <mat-hint>Max employee profiles</mat-hint>
+            <mat-error *ngIf="form.get('totalUserLimit')?.hasError('required')">Required</mat-error>
+            <mat-error *ngIf="form.get('totalUserLimit')?.hasError('min')">Min 1</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- System Users -->
+        <div class="limit-card">
+          <div class="limit-card-icon limit-system">
+            <mat-icon>manage_accounts</mat-icon>
+          </div>
+          <mat-form-field appearance="outline" class="limit-field" subscriptSizing="dynamic">
+            <mat-label>System Users (Login)</mat-label>
+            <input matInput type="number" formControlName="systemUserLimit" placeholder="e.g. 20" min="1" />
+            <mat-hint>Max login-enabled users</mat-hint>
+            <mat-error *ngIf="form.get('systemUserLimit')?.hasError('required')">Required</mat-error>
+            <mat-error *ngIf="form.get('systemUserLimit')?.hasError('min')">Min 1</mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 4: Plan Status ── -->
+    <div class="asd-section asd-section--status">
+      <div class="status-toggle-row">
+        <div class="status-toggle-info">
+          <div class="status-toggle-icon" [class.toggle-on]="form.get('isPlanActive')?.value" [class.toggle-off]="!form.get('isPlanActive')?.value">
+            <mat-icon>{{ form.get('isPlanActive')?.value ? 'verified' : 'block' }}</mat-icon>
+          </div>
+          <div>
+            <div class="status-toggle-title">Plan Status</div>
+            <div class="status-toggle-desc">
+              {{ form.get('isPlanActive')?.value
+                ? 'Plan is active — company can use all features within limits'
+                : 'Plan is inactive — company access is restricted' }}
+            </div>
+          </div>
+        </div>
+        <mat-slide-toggle formControlName="isPlanActive" color="primary" class="status-toggle">
+          <span class="toggle-label" [class.label-on]="form.get('isPlanActive')?.value">
+            {{ form.get('isPlanActive')?.value ? 'Active' : 'Inactive' }}
+          </span>
+        </mat-slide-toggle>
+      </div>
+    </div>
+
+    <!-- ── COST SUMMARY ── -->
+    <div class="cost-summary" *ngIf="totalCostDisplay()">
+      <div class="cs-item">
+        <mat-icon>payments</mat-icon>
+        <div class="cs-body">
+          <span class="cs-label">Total Plan Value</span>
+          <span class="cs-value">AED {{ totalCostDisplay()!.total | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="cs-divider"></div>
+      <div class="cs-item">
+        <mat-icon>today</mat-icon>
+        <div class="cs-body">
+          <span class="cs-label">Cost Per Day</span>
+          <span class="cs-value">AED {{ totalCostDisplay()!.perDay }}</span>
+        </div>
+      </div>
+      <div class="cs-divider"></div>
+      <div class="cs-item">
+        <mat-icon>date_range</mat-icon>
+        <div class="cs-body">
+          <span class="cs-label">Duration</span>
+          <span class="cs-value">{{ totalCostDisplay()!.months | number:'1.1-1' }} months</span>
+        </div>
+      </div>
+    </div>
+
+  </form>
+
+  <!-- ══ DIALOG ACTIONS ══ -->
+  <div class="asd-actions">
+    <button mat-stroked-button class="asd-btn-cancel" (click)="onCancel()" [disabled]="saving">
+      <mat-icon>close</mat-icon> Cancel
+    </button>
+    <button mat-flat-button class="asd-btn-submit" [class.btn-edit]="isEditMode" [class.btn-add]="!isEditMode"
+            (click)="onSubmit()" [disabled]="saving || form.invalid">
+      <mat-spinner *ngIf="saving" diameter="16"></mat-spinner>
+      <mat-icon *ngIf="!saving">{{ isEditMode ? 'save' : 'add_card' }}</mat-icon>
+      {{ saving ? 'Saving…' : (isEditMode ? 'Save Changes' : 'Assign Plan') }}
+    </button>
+  </div>
+
+</div>

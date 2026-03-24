@@ -1,3 +1,5 @@
+import { AssignToType } from "../../../enum/asset.enums";
+
 export interface KpiStatItem {
   value: any;
   trend: number;
@@ -57,10 +59,15 @@ export interface ApprovalPipeline {
 }
 
 export interface SiteAssetMini {
+  id: number;
   assetId: string;
   name: string;
   status: string;
   statusKey: string;
+  categoryDisplay: string;
+  unitPrice: number;
+  assetImageUrl?: string;
+  assetAssignTo?: AssignToType;
 }
 
 export interface SiteAssetSummary {

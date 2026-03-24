@@ -21,6 +21,7 @@ import { AssetAreaService } from '../../../core/services/sites-or-branchs/areas/
 import { CitiesService } from '../../../core/services/sites-or-branchs/cities/cities.service';
 import { SiteOrBranch } from '../../../core/models/interfaces/sites-or-branchs/asset-site.interface';
 import { FileUrlHelper } from '../../../core/helper/get-file-url';
+import { UserType } from '../../../core/enum/user.enums';
 
 export interface UserProfile {
   userProfileId: number;
@@ -50,6 +51,8 @@ export interface UserProfile {
   address?: string;
   country?: string;
   profilePicture?: string;
+  userType?: UserType;
+  userTypeDisplay?: string
 }
 
 interface DropdownOption {
@@ -112,6 +115,12 @@ export class ManageUserComponent implements OnInit {
   private readonly typeOptions = [
     { value: SiteOrBranch.Site, label: 'Site', disabled: false },
     { value: SiteOrBranch.Branch, label: 'Branch', disabled: false }
+  ];
+
+  private readonly userTypeOptions = [
+    // { value: UserType.None, label: 'None', disabled: false },
+    { value: UserType.User, label: 'User', disabled: false },
+    { value: UserType.Employee, label: 'Employee', disabled: false },
   ];
 
   listConfig: ListConfig = {
@@ -256,6 +265,16 @@ export class ManageUserComponent implements OnInit {
         width: '150px',
         align: 'left',
         visible: true,
+        ellipsis: true,
+      },
+      {
+        key: 'userTypeDisplay',
+        label: 'User/Employee',
+        sortable: true,
+        type: 'text',
+        width: '150px',
+        align: 'left',
+        visible: false,
         ellipsis: true,
       },
       {
@@ -542,6 +561,18 @@ export class ManageUserComponent implements OnInit {
         required: true,
         colSpan: 2
       },
+      // 👇 ADD THIS NEW BLOCK RIGHT AFTER roleId
+      {
+        key: 'userType',
+        label: 'User Type',
+        type: 'radio',
+        required: true,
+        colSpan: 4,
+        icon: 'manage_accounts',
+        options: this.userTypeOptions,
+        // value: UserType.User,
+        validators: [Validators.required]
+      },
 
       // Role and Permissions
       {
@@ -629,6 +660,8 @@ export class ManageUserComponent implements OnInit {
       address: data.address,
       country: data.country,
       profilePicture: data.profilePicture ? FileUrlHelper.getFullUrl(data.profilePicture) : undefined,
+      userType: data.userType,
+      userTypeDisplay: data.userTypeDisplay
     };
   }
 
@@ -727,7 +760,8 @@ export class ManageUserComponent implements OnInit {
       isEmailConfirmed: formData.isEmailVerified || false,
       address: formData.address,
       country: formData.country,
-      profilePicture: formData.profilePicture
+      profilePicture: formData.profilePicture,
+      userType: Number(formData.userType),
     };
 
     this.userService.createUserProfile(userProfileRequest).subscribe({
@@ -805,7 +839,8 @@ export class ManageUserComponent implements OnInit {
       isEmailConfirmed: formData.isEmailVerified,
       address: formData.address,
       country: formData.country,
-      profilePicture: formData.profilePicture
+      profilePicture: formData.profilePicture,
+      userType: Number(formData.userType),
     };
 
     this.userService.updateCreatedUserProfile(userProfileRequest).subscribe({

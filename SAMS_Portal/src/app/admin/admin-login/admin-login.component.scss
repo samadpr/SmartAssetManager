@@ -1,0 +1,459 @@
+@use '@angular/material' as mat;
+
+:host {
+  display: block;
+  height: 100vh;
+  width: 100%;
+}
+
+// ═══════════════════════════════════════════
+// WRAPPER
+// ═══════════════════════════════════════════
+.admin-login-wrapper {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--mat-sys-surface);
+}
+
+// ═══════════════════════════════════════════
+// LEFT BRAND PANEL
+// ═══════════════════════════════════════════
+.brand-panel {
+  position: relative;
+  width: 45%;
+  flex-shrink: 0;
+  background: linear-gradient(
+    145deg,
+    var(--mat-sys-primary) 0%,
+    var(--mat-sys-secondary) 60%,
+    var(--mat-sys-tertiary, var(--mat-sys-primary)) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 2rem 1.75rem;
+
+  .bg-circle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .bg-circle-1 {
+    width: 320px; height: 320px;
+    top: -80px; right: -80px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .bg-circle-2 {
+    width: 200px; height: 200px;
+    bottom: 60px; left: -50px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .bg-circle-3 {
+    width: 100px; height: 100px;
+    bottom: 200px; right: 40px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.brand-panel-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  text-align: center;
+  width: 100%;
+  max-width: 380px;
+  overflow-y: auto;
+  max-height: 100%;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+// ── Brand logo ──
+.brand-logo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-icon-ring {
+  width: 84px; height: 84px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+  .brand-shield-icon {
+    font-size: 42px; width: 42px; height: 42px;
+    color: #fff;
+  }
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 4px;
+}
+
+.brand-subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 1px;
+}
+
+// ── Feature list ──
+.brand-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  width: 100%;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  transition: background 0.3s ease, transform 0.3s ease;
+
+  &:hover { background: rgba(255, 255, 255, 0.18); transform: translateX(4px); }
+
+  mat-icon { color: rgba(255, 255, 255, 0.9); font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+  span { font-size: 0.8rem; color: rgba(255, 255, 255, 0.85); font-weight: 500; text-align: left; }
+}
+
+// ═══════════════════════════════════════════
+// DEVICE INFO CARD  (left panel)
+// ═══════════════════════════════════════════
+.device-info-card {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.device-card-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+
+  mat-icon {
+    font-size: 16px; width: 16px; height: 16px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(255, 255, 255, 0.9);
+    flex: 1;
+  }
+
+  .device-loading {
+    display: flex;
+    align-items: center;
+    // Override spinner color to white
+    ::ng-deep .mat-mdc-progress-spinner circle {
+      stroke: rgba(255, 255, 255, 0.8) !important;
+    }
+  }
+
+  .device-ready-icon {
+    font-size: 16px; width: 16px; height: 16px;
+    color: #a5d6a7; // soft green
+  }
+}
+
+.device-info-rows {
+  padding: 4px 0;
+}
+
+.device-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: background 0.2s ease;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: rgba(255, 255, 255, 0.06); }
+
+  mat-icon {
+    font-size: 14px; width: 14px; height: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    flex-shrink: 0;
+  }
+
+  .device-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    min-width: 64px;
+    flex-shrink: 0;
+  }
+
+  .device-value {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 600;
+    flex: 1;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &.loading-text {
+      color: rgba(255, 255, 255, 0.45);
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    &.location-value {
+      font-size: 0.65rem;
+    }
+  }
+}
+
+.device-card-note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  mat-icon { font-size: 12px; width: 12px; height: 12px; color: rgba(255, 255, 255, 0.5); }
+  span { font-size: 0.62rem; color: rgba(255, 255, 255, 0.5); line-height: 1.4; }
+}
+
+// ── Watermark ──
+.brand-watermark span {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+// ═══════════════════════════════════════════
+// RIGHT FORM PANEL
+// ═══════════════════════════════════════════
+.form-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--mat-sys-surface);
+  overflow-y: auto;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  border-radius: 999px;
+  width: fit-content;
+
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  span { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+}
+
+.form-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.form-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--mat-sys-on-surface);
+}
+
+.form-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// ── Form ──
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.full-width { width: 100%; }
+
+.form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.125rem 0 0.625rem 0;
+
+  .forgot-link {
+    font-size: 0.8rem;
+    color: var(--mat-sys-primary);
+    text-decoration: none;
+    font-weight: 500;
+    &:hover { text-decoration: underline; }
+  }
+}
+
+// ═══════════════════════════════════════════
+// DEVICE SUMMARY (mobile inline, form panel)
+// ═══════════════════════════════════════════
+.device-summary-inline {
+  display: none; // hidden on desktop — shown via media query below
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--mat-sys-primary-container);
+  border-radius: 10px;
+  margin-bottom: 4px;
+
+  .device-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--mat-sys-on-primary-container); }
+    span { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--mat-sys-on-primary-container); flex: 1; }
+
+    ::ng-deep .mat-mdc-progress-spinner circle { stroke: var(--mat-sys-primary) !important; }
+
+    .ready-icon-sm { font-size: 15px; width: 15px; height: 15px; color: #4caf50; }
+  }
+
+  .device-summary-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .d-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: var(--mat-sys-surface);
+    border-radius: 999px;
+    border: 1px solid var(--mat-sys-outline-variant);
+
+    mat-icon { font-size: 12px; width: 12px; height: 12px; color: var(--mat-sys-primary); }
+    span { font-size: 0.68rem; color: var(--mat-sys-on-surface); font-weight: 600; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  }
+}
+
+// ── Submit button ──
+.login-btn {
+  height: 52px;
+  border-radius: 12px !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--mat-sys-primary) !important;
+  color: var(--mat-sys-on-primary) !important;
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+
+  &:not([disabled]):hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+  }
+  &[disabled] { opacity: 0.7; cursor: not-allowed; }
+  mat-spinner { margin-right: 4px; }
+}
+
+.form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon { font-size: 15px; width: 15px; height: 15px; opacity: 0.55; }
+  span { font-size: 0.72rem; opacity: 0.65; }
+}
+
+// ═══════════════════════════════════════════
+// RESPONSIVE
+// ═══════════════════════════════════════════
+@media (max-width: 900px) {
+  .brand-panel { width: 42%; }
+}
+
+@media (max-width: 768px) {
+  .admin-login-wrapper {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .brand-panel {
+    width: 100%;
+    min-height: 160px;
+    padding: 1.5rem 1.25rem 1rem;
+  }
+
+  .brand-panel-inner { gap: 0.875rem; }
+
+  .brand-icon-ring {
+    width: 64px; height: 64px;
+    .brand-shield-icon { font-size: 32px; width: 32px; height: 32px; }
+  }
+
+  .brand-title { font-size: 1.375rem; }
+
+  // Hide the full device card on mobile — show the inline summary instead
+  .device-info-card { display: none; }
+  .brand-features { display: none; }
+
+  .device-summary-inline { display: flex; } // show inline in form
+
+  .form-panel { padding: 1.5rem 1.25rem 2rem; align-items: flex-start; }
+  .form-container { max-width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .brand-panel { min-height: 130px; }
+  .form-title { font-size: 1.375rem; }
+}

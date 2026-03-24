@@ -1,0 +1,53 @@
+<div class="del-dialog">
+
+  <!-- Color stripe from plan's accent -->
+  <div class="del-stripe"
+    [style.background]="'linear-gradient(90deg,' + data.plan.cardColor + ',' + data.plan.cardColorSecondary + ')'">
+  </div>
+
+  <!-- Warning icon -->
+  <div class="del-icon-wrap">
+    <div class="del-ring">
+      <mat-icon>delete_forever</mat-icon>
+    </div>
+  </div>
+
+  <!-- Text -->
+  <div class="del-content">
+    <h3>Delete This Plan?</h3>
+    <p>
+      You are about to permanently delete
+      <strong>"{{ data.plan.name }}"</strong>.
+      This cannot be undone and may affect companies currently on this plan.
+    </p>
+  </div>
+
+  <!-- Plan chip -->
+  <div class="plan-chip"
+    [style.border-color]="data.plan.cardColor"
+    [style.color]="data.plan.cardColor">
+    <mat-icon>workspace_premium</mat-icon>
+    <span>{{ data.plan.name }}</span>
+    @if (data.plan.isCustom) {
+      <span class="chip-tag">Custom</span>
+    } @else {
+      <span class="chip-tag">Standard</span>
+    }
+  </div>
+
+  <!-- Actions -->
+  <div class="del-actions">
+    <button mat-stroked-button class="btn-keep" (click)="onCancel()" [disabled]="deleting()">
+      Keep Plan
+    </button>
+    <button mat-flat-button class="btn-del" (click)="onDelete()" [disabled]="deleting()">
+      @if (deleting()) {
+        <mat-spinner diameter="17"></mat-spinner>
+      } @else {
+        <mat-icon>delete_forever</mat-icon>
+      }
+      {{ deleting() ? 'Deleting…' : 'Yes, Delete' }}
+    </button>
+  </div>
+
+</div>

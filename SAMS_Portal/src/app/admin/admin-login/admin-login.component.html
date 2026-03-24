@@ -1,0 +1,198 @@
+<div class="admin-login-wrapper">
+
+  <!-- ═══════════════ LEFT BRAND PANEL ═══════════════ -->
+  <div class="brand-panel">
+    <div class="brand-panel-inner">
+
+      <div class="brand-logo-area">
+        <div class="brand-icon-ring">
+          <mat-icon class="brand-shield-icon">admin_panel_settings</mat-icon>
+        </div>
+        <h1 class="brand-title">INFOASSET</h1>
+        <p class="brand-subtitle">Super Admin Control Center</p>
+      </div>
+
+      <div class="brand-features">
+        <div class="feature-item">
+          <mat-icon>verified_user</mat-icon>
+          <span>Secure Role-Based Access</span>
+        </div>
+        <div class="feature-item">
+          <mat-icon>manage_accounts</mat-icon>
+          <span>Full System Management</span>
+        </div>
+        <div class="feature-item">
+          <mat-icon>analytics</mat-icon>
+          <span>Platform-wide Analytics</span>
+        </div>
+        <div class="feature-item">
+          <mat-icon>corporate_fare</mat-icon>
+          <span>Multi-Company Control</span>
+        </div>
+      </div>
+
+      <!-- ── Live Device Info Card ── -->
+      <div class="device-info-card">
+        <div class="device-card-header">
+          <mat-icon>device_hub</mat-icon>
+          <span>Session Fingerprint</span>
+          <!-- Loading spinner while collecting info -->
+          <span *ngIf="!deviceInfoLoaded" class="device-loading">
+            <mat-spinner diameter="14"></mat-spinner>
+          </span>
+          <mat-icon *ngIf="deviceInfoLoaded" class="device-ready-icon">check_circle</mat-icon>
+        </div>
+
+        <div class="device-info-rows">
+          <div class="device-info-row">
+            <mat-icon>public</mat-icon>
+            <span class="device-label">IP Address</span>
+            <span class="device-value"
+              [class.loading-text]="!deviceInfoLoaded">{{ deviceInfoLoaded ? deviceIP : 'Fetching...' }}</span>
+          </div>
+
+          <div class="device-info-row">
+            <mat-icon>computer</mat-icon>
+            <span class="device-label">Browser</span>
+            <span class="device-value"
+              [class.loading-text]="!deviceInfoLoaded">{{ deviceInfoLoaded ? deviceBrowser : 'Detecting...' }}</span>
+          </div>
+
+          <div class="device-info-row">
+            <mat-icon>dns</mat-icon>
+            <span class="device-label">OS</span>
+            <span class="device-value"
+              [class.loading-text]="!deviceInfoLoaded">{{ deviceInfoLoaded ? deviceOS : 'Detecting...' }}</span>
+          </div>
+
+          <div class="device-info-row">
+            <mat-icon>devices</mat-icon>
+            <span class="device-label">Device</span>
+            <span class="device-value"
+              [class.loading-text]="!deviceInfoLoaded">{{ deviceInfoLoaded ? deviceType : 'Detecting...' }}</span>
+          </div>
+
+          <div class="device-info-row">
+            <mat-icon>location_on</mat-icon>
+            <span class="device-label">Location</span>
+            <span class="device-value location-value"
+              [class.loading-text]="!deviceInfoLoaded">
+              {{ deviceInfoLoaded ? (deviceLat !== '—' ? deviceLat + ', ' + deviceLng : 'Not available') : 'Requesting...' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="device-card-note">
+          <mat-icon>info_outline</mat-icon>
+          <span>This data is recorded for security audit purposes.</span>
+        </div>
+      </div>
+
+      <div class="brand-watermark">
+        <span>Restricted Access • Authorized Personnel Only</span>
+      </div>
+    </div>
+
+    <!-- Decorative bg shapes -->
+    <div class="bg-circle bg-circle-1"></div>
+    <div class="bg-circle bg-circle-2"></div>
+    <div class="bg-circle bg-circle-3"></div>
+  </div>
+
+  <!-- ═══════════════ RIGHT FORM PANEL ═══════════════ -->
+  <div class="form-panel">
+    <div class="form-container">
+
+      <!-- Top badge -->
+      <div class="admin-badge">
+        <mat-icon>lock</mat-icon>
+        <span>Super Admin Portal</span>
+      </div>
+
+      <div class="form-header">
+        <h2 class="form-title">Welcome Back</h2>
+        <p class="form-subtitle">Sign in to access the admin dashboard</p>
+      </div>
+
+      <form [formGroup]="_loginform" (ngSubmit)="proceedLogin()" class="login-form" autocomplete="off">
+
+        <!-- Email -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Admin Email</mat-label>
+          <input matInput type="email" formControlName="email" placeholder="admin@infoasset.com" />
+          <mat-icon matPrefix>alternate_email</mat-icon>
+          <mat-error *ngIf="_loginform.get('email')?.hasError('required')">Email is required</mat-error>
+          <mat-error *ngIf="_loginform.get('email')?.hasError('email')">Enter a valid email</mat-error>
+        </mat-form-field>
+
+        <!-- Password -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" />
+          <mat-icon matPrefix>lock_outline</mat-icon>
+          <button type="button" mat-icon-button matSuffix (click)="hidePassword = !hidePassword">
+            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-error *ngIf="_loginform.get('password')?.hasError('required')">Password is required</mat-error>
+        </mat-form-field>
+
+        <!-- Remember Me -->
+        <div class="form-options">
+          <mat-checkbox formControlName="rememberMe" color="primary">Remember me</mat-checkbox>
+          <a class="forgot-link" href="#">Forgot password?</a>
+        </div>
+
+        <!-- ── Inline device summary (mobile only — brand panel hidden on mobile) ── -->
+        <div class="device-summary-inline">
+          <div class="device-summary-header">
+            <mat-icon>device_hub</mat-icon>
+            <span>Session Fingerprint</span>
+            <mat-spinner *ngIf="!deviceInfoLoaded" diameter="12"></mat-spinner>
+            <mat-icon *ngIf="deviceInfoLoaded" class="ready-icon-sm">check_circle</mat-icon>
+          </div>
+          <div class="device-summary-chips">
+            <div class="d-chip">
+              <mat-icon>public</mat-icon>
+              <span>{{ deviceInfoLoaded ? deviceIP : '...' }}</span>
+            </div>
+            <div class="d-chip">
+              <mat-icon>computer</mat-icon>
+              <span>{{ deviceInfoLoaded ? deviceBrowser : '...' }}</span>
+            </div>
+            <div class="d-chip">
+              <mat-icon>dns</mat-icon>
+              <span>{{ deviceInfoLoaded ? deviceOS : '...' }}</span>
+            </div>
+            <div class="d-chip">
+              <mat-icon>devices</mat-icon>
+              <span>{{ deviceInfoLoaded ? deviceType : '...' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden fields (sent to API, not shown to user) -->
+        <input type="hidden" formControlName="latitude" />
+        <input type="hidden" formControlName="longitude" />
+        <input type="hidden" formControlName="publicIP" />
+        <input type="hidden" formControlName="browser" />
+        <input type="hidden" formControlName="operatingSystem" />
+        <input type="hidden" formControlName="device" />
+
+        <!-- Submit -->
+        <button mat-flat-button class="login-btn full-width" type="submit" [disabled]="isSubmitting">
+          <mat-icon *ngIf="!isSubmitting">login</mat-icon>
+          <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
+          <span>{{ isSubmitting ? 'Authenticating...' : 'Sign In to Admin Panel' }}</span>
+        </button>
+
+      </form>
+
+      <div class="form-footer">
+        <mat-icon>security</mat-icon>
+        <span>Protected by enterprise-grade encryption</span>
+      </div>
+
+    </div>
+  </div>
+
+</div>

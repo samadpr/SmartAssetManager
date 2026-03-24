@@ -16,6 +16,7 @@ import { AuthService } from '../../../core/services/auth/auth.service';
 import { UserProfileStorageService } from '../../../core/services/localStorage/userProfile/user-profile-storage.service';
 import { response } from 'express';
 import { localStorageUserProfile, UserProfileData } from '../../../core/models/interfaces/account/userProfile';
+import { CompanyService } from '../../../core/services/company/company.service';
 
 @Component({
   selector: 'app-login',
@@ -52,12 +53,15 @@ export class LoginComponent implements OnInit {
     private toastr: ToastrService,
     private router: Router,
     private authService: AuthService,
-    private userProfileStorage: UserProfileStorageService
+    private userProfileStorage: UserProfileStorageService,
+    private companyService: CompanyService
   ) { }
 
   ngOnInit(): void {
+    // If already authenticated, decide where to send them
     if (this.authService.isAuthenticated()) {
-      this.router.navigateByUrl('/dashboard');
+      this._redirectByActivationStatus();
+      return;
     }
 
     this._loginform = this.builder.group({
@@ -72,7 +76,7 @@ export class LoginComponent implements OnInit {
       device: ['']
     });
 
-        // Set device and location information
+    // Set device and location information
     this.deviceInfoService.patchFormWithDeviceInfo(this._loginform)
       .subscribe({
         next: () => {
@@ -97,6 +101,20 @@ export class LoginComponent implements OnInit {
           if (this._response.isAuthenticated) {
             // Store authentication data
             this.authService.setToken(this._response.token);
+
+            const roles = this.authService.getRoles();
+
+            // 🔥 BLOCK SUPER ADMIN FROM NORMAL LOGIN
+            if (roles.includes('Super Admin')) {
+              this.authService.clearToken();
+              this.toastr.error(
+                'Super Admin must login via Admin Portal',
+                'Access Denied'
+              );
+              this.isSubmitting = false;
+              return;
+            }
+
             this.localStorageUserProfile = {
               email: this._response.email,
               fullName: this._response.fullName,
@@ -128,5 +146,33 @@ export class LoginComponent implements OnInit {
     }
   }
 
-  
+    /**
+   * Fetches company status and routes accordingly:
+   *   - isActive true  → /dashboard
+   *   - isActive false → /pending-activation
+   *   - No company yet → /company-onboarding  (fresh registration)
+   *   - API error       → /dashboard (fail open so users aren't stuck)
+   */
+  private _redirectByActivationStatus(): void {
+    this.companyService.getCurrentUserCompany().subscribe({
+      next: (res) => {
+        if (res?.success && res.data) {
+          if (res.data.isActive === true) {
+            this.router.navigateByUrl('/dashboard');
+          } else {
+            // Company exists but not yet activated
+            this.router.navigateByUrl('/pending-activation');
+          }
+        } else {
+          // No company record — user hasn't done onboarding yet
+          this.router.navigateByUrl('/company-onboarding');
+        }
+      },
+      error: () => {
+        // Can't reach API — send to dashboard and let guards handle it
+        this.router.navigateByUrl('/dashboard');
+      }
+    });
+  }
+
 }
