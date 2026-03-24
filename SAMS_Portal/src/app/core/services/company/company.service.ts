@@ -3,7 +3,7 @@ import { environment } from '../../../../environments/environment.development';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiResponse } from '../../models/interfaces/ApiResponse.interface';
-import { Company, CompanyRequest } from '../../models/interfaces/company/company.interface';
+import { Company, CompanyRequest, CompanyWithUserInfo } from '../../models/interfaces/company/company.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -28,6 +28,13 @@ export class CompanyService {
     );
   }
 
+  updateCompanyWithSubscription(request: CompanyRequest): Observable<ApiResponse<null>> {
+    return this.http.put<ApiResponse<null>>(
+      `${this.baseUrl}/update-company-with-subscription`,
+      request
+    );
+  }
+
   // 🔹 Get My Companies
   getCurrentUserCompany(): Observable<ApiResponse<Company>> {
     return this.http.get<ApiResponse<Company>>(
@@ -46,6 +53,12 @@ export class CompanyService {
   deleteCompany(id: number): Observable<ApiResponse<null>> {
     return this.http.delete<ApiResponse<null>>(
       `${this.baseUrl}/delete-company?id=${id}`
+    );
+  }
+
+  getAllCompaniesWithUser(): Observable<ApiResponse<CompanyWithUserInfo[]>> {
+    return this.http.get<ApiResponse<CompanyWithUserInfo[]>>(
+      `${this.baseUrl}/get-all-companies-with-user`
     );
   }
 }

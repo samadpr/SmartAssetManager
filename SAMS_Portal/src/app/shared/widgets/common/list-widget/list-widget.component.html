@@ -78,14 +78,25 @@
           </button>
           <mat-menu #exportMenu="matMenu">
             <button mat-menu-item (click)="exportToExcel()">
-              <mat-icon>description</mat-icon>
-              <span>Export All ({{ dataSource.filteredData.length }} items)</span>
+              <mat-icon>table_chart</mat-icon>
+              <span>Export to Excel ({{ dataSource.filteredData.length }} items)</span>
             </button>
+            <button mat-menu-item (click)="exportToPDF()">
+              <mat-icon>picture_as_pdf</mat-icon>
+              <span>Export to PDF ({{ dataSource.filteredData.length }} items)</span>
+            </button>
+            <mat-divider *ngIf="hasSelection()"></mat-divider>
             <button mat-menu-item 
                     *ngIf="hasSelection()" 
                     (click)="onExportSelected()">
               <mat-icon>check_box</mat-icon>
-              <span>Export Selected ({{ selectedCount() }} items)</span>
+              <span>Export Selected to Excel ({{ selectedCount() }} items)</span>
+            </button>
+            <button mat-menu-item 
+                    *ngIf="hasSelection()" 
+                    (click)="exportSelectedToPDF()">
+              <mat-icon>picture_as_pdf</mat-icon>
+              <span>Export Selected to PDF ({{ selectedCount() }} items)</span>
             </button>
           </mat-menu>
 

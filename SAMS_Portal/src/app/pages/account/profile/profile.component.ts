@@ -23,6 +23,7 @@ import { GlobalService } from '../../../core/services/global/global.service';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { FileUrlHelper } from '../../../core/helper/get-file-url';
 
 
 @Component({
@@ -76,7 +77,7 @@ export class ProfileComponent implements OnInit {
 
   profilePictureUrl = computed(() => {
     const profile = this.profileDetails();
-    return profile?.profilePicture || '/assets/images/ProfilePic.png';
+    return FileUrlHelper.getFullUrl(profile?.profilePicture) ||'/assets/images/ProfilePic.png';
   });
 
   constructor() {

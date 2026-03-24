@@ -1,3 +1,4 @@
+import { UserType } from "../../../enum/user.enums";
 import { EntityBase } from "../EntityBase.interface";
 
 export interface UserProfileData extends EntityBase{
@@ -24,6 +25,7 @@ export interface UserProfileData extends EntityBase{
   level1Approval: boolean;
   level2Approval: boolean;
   level3Approval: boolean;
+  userType: number;
 }
 
 export interface UserProfileDetails extends EntityBase {
@@ -53,6 +55,8 @@ export interface UserProfileDetails extends EntityBase {
   address?: string;
   country?: string;
   profilePicture?: string;
+  userType: UserType;
+  userTypeDisplay?: string;
 }
 
 
@@ -82,6 +86,7 @@ export interface UserProfileRequest {
   address?: string;
   country?: string;
   profilePicture?: string;
+  userType?: number;
 }
 
 export interface LoginAccessRequest {

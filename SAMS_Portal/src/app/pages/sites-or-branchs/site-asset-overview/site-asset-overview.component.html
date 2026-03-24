@@ -1,0 +1,1002 @@
+<app-page-header [title]="'Sites/Branchs Asset Overview'" [breadcrumbs]="[
+    { label: 'Sites/Branchs Overview' }
+  ]">
+</app-page-header>
+
+<div class="sao-wrapper" [@pageEnter]>
+ 
+  <!-- ═══════════════════════════════════════
+       SUMMARY KPI BAR
+       ═══════════════════════════════════════ -->
+  <section class="summary-bar">
+    @for (stat of summaryStats(); track stat.key) {
+      <div class="sstat sstat--{{ stat.color }}">
+        <div class="sstat-icon"><mat-icon>{{ stat.icon }}</mat-icon></div>
+        <div class="sstat-body">
+          @if (loading()) { <span class="sk sk--val-sm"></span> }
+          @else {
+            <span class="sstat-val">{{ stat.formatted }}</span>
+          }
+          <span class="sstat-lbl">
+            {{ stat.label }}
+            @if (stat.tooltip) {
+              <mat-icon class="sstat-info" [matTooltip]="stat.tooltip"
+                        matTooltipPosition="above">info_outline</mat-icon>
+            }
+          </span>
+        </div>
+      </div>
+    }
+  </section>
+ 
+  <!-- ═══════════════════════════════════════
+       REDESIGNED TOOLBAR
+       ═══════════════════════════════════════ -->
+  <div class="toolbar">
+ 
+    <!-- ── Toolbar Header: Title + View Toggles + Refresh ── -->
+    <div class="tb-header">
+      <div class="tb-header-left">
+        <span class="tb-title">
+          <mat-icon class="tb-title-icon">filter_list</mat-icon>
+          Filters & View
+        </span>
+        @if (hasActiveFilter()) {
+          <span class="tb-active-badge">{{ filteredSites().length }} results</span>
+        }
+      </div>
+ 
+      <div class="tb-header-right">
+        <!-- View-mode toggle (icon buttons) -->
+        <div class="view-toggle" role="group" aria-label="View mode">
+          <button mat-icon-button [class.active]="viewMode === 'board'"
+                  (click)="viewMode = 'board'" matTooltip="Board view">
+            <mat-icon>view_kanban</mat-icon>
+          </button>
+          <button mat-icon-button [class.active]="viewMode === 'grid'"
+                  (click)="viewMode = 'grid'" matTooltip="Grid view">
+            <mat-icon>grid_view</mat-icon>
+          </button>
+          <button mat-icon-button [class.active]="viewMode === 'list'"
+                  (click)="viewMode = 'list'" matTooltip="List view">
+            <mat-icon>view_list</mat-icon>
+          </button>
+        </div>
+ 
+        <!-- Divider -->
+        <span class="tb-vdivider"></span>
+ 
+        <!-- Refresh -->
+        <button mat-icon-button (click)="loadData()" matTooltip="Refresh data"
+                [class.spinning]="loading()" class="refresh-btn tb-icon-btn">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+    </div>
+ 
+    <!-- ── Toolbar Body: Controls row ── -->
+    <div class="tb-controls">
+ 
+      <!-- Left group: Type toggle + dropdowns -->
+      <div class="tb-controls-left">
+ 
+        <!-- Type toggle pill group -->
+        <div class="type-pill-group">
+          <button class="type-pill" [class.active]="typeFilter() === 'all'"
+                  (click)="setTypeFilter('all')">
+            <mat-icon>layers</mat-icon>
+            <span>All</span>
+          </button>
+          <button class="type-pill type-pill--site" [class.active]="typeFilter() === '1'"
+                  (click)="setTypeFilter('1')">
+            <mat-icon>domain</mat-icon>
+            <span>Sites</span>
+          </button>
+          <button class="type-pill type-pill--branch" [class.active]="typeFilter() === '2'"
+                  (click)="setTypeFilter('2')">
+            <mat-icon>account_tree</mat-icon>
+            <span>Branches</span>
+          </button>
+        </div>
+ 
+        <!-- Divider -->
+        <span class="tb-vdivider tb-vdivider--tall"></span>
+ 
+        <!-- Status dropdown -->
+        <mat-form-field appearance="outline" class="mf mf--status">
+          <mat-label>Status</mat-label>
+          <mat-select [value]="statusFilter()" (selectionChange)="setStatusFilter($event.value)">
+            <mat-option value="all">
+              <span class="status-opt"><mat-icon class="status-opt-icon">radio_button_unchecked</mat-icon>All Statuses</span>
+            </mat-option>
+            @for (s of assetStatuses; track s.key) {
+              <mat-option [value]="s.key">
+                <span class="status-opt">
+                  <span class="status-dot status-dot--{{ s.key }}"></span>{{ s.label }}
+                </span>
+              </mat-option>
+            }
+          </mat-select>
+          <mat-icon matPrefix class="mf-prefix-icon">filter_alt</mat-icon>
+        </mat-form-field>
+ 
+        <!-- Sort dropdown -->
+        <mat-form-field appearance="outline" class="mf mf--sort">
+          <mat-label>Sort by</mat-label>
+          <mat-select [value]="sortBy()" (selectionChange)="setSortBy($event.value)">
+            <mat-option value="name"><mat-icon>sort_by_alpha</mat-icon> Name A–Z</mat-option>
+            <mat-option value="assets_desc"><mat-icon>arrow_downward</mat-icon> Most Assets</mat-option>
+            <mat-option value="assets_asc"><mat-icon>arrow_upward</mat-icon> Fewest Assets</mat-option>
+            <mat-option value="value_desc"><mat-icon>trending_up</mat-icon> Highest Value</mat-option>
+            <mat-option value="value_asc"><mat-icon>trending_down</mat-icon> Lowest Value</mat-option>
+          </mat-select>
+          <mat-icon matPrefix class="mf-prefix-icon">swap_vert</mat-icon>
+        </mat-form-field>
+      </div>
+ 
+      <!-- Right group: Search -->
+      <div class="tb-controls-right">
+        <mat-form-field appearance="outline" class="mf mf--search">
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput placeholder="Search sites, branches or assets…"
+                 [value]="searchQuery()"
+                 (input)="setSearch($any($event.target).value)">
+          @if (searchQuery()) {
+            <button matSuffix mat-icon-button (click)="clearSearch()" matTooltip="Clear">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </mat-form-field>
+      </div>
+    </div>
+ 
+    <!-- ── Active-filter chips row ── -->
+    @if (hasActiveFilter()) {
+      <div class="tb-chips">
+        <span class="chips-label">Active:</span>
+ 
+        @if (typeFilter() !== 'all') {
+          <div class="fchip" (click)="setTypeFilter('all')">
+            <mat-icon>{{ typeFilter() === '1' ? 'domain' : 'account_tree' }}</mat-icon>
+            <span>{{ typeFilter() === '1' ? 'Sites only' : 'Branches only' }}</span>
+            <mat-icon class="fchip-x">close</mat-icon>
+          </div>
+        }
+ 
+        @if (statusFilter() !== 'all') {
+          <div class="fchip" (click)="setStatusFilter('all')">
+            <span class="status-dot status-dot--{{ statusFilter() }}"></span>
+            <span>{{ getStatusLabel(statusFilter()) }}</span>
+            <mat-icon class="fchip-x">close</mat-icon>
+          </div>
+        }
+ 
+        @if (searchQuery()) {
+          <div class="fchip" (click)="clearSearch()">
+            <mat-icon>search</mat-icon>
+            <span>"{{ searchQuery() }}"</span>
+            <mat-icon class="fchip-x">close</mat-icon>
+          </div>
+        }
+ 
+        <button mat-button class="clear-all-btn" (click)="clearAllFilters()">
+          <mat-icon>filter_alt_off</mat-icon>
+          <span>Clear all</span>
+        </button>
+      </div>
+    }
+  </div>
+ 
+  <!-- Results count -->
+  @if (!loading()) {
+    <div class="results-bar">
+      <mat-icon class="results-icon">search</mat-icon>
+      <span>
+        Showing <strong>{{ filteredSites().length }}</strong>
+        of <strong>{{ allSites().length }}</strong> sites/branches
+      </span>
+      <span class="results-currency-hint">
+        <mat-icon>payments</mat-icon>
+        Values in {{ currencySymbol() }}
+      </span>
+    </div>
+  }
+ 
+  <!-- ═══════════════════════════════════════
+       LOADING SKELETONS
+       ═══════════════════════════════════════ -->
+  @if (loading()) {
+    <div class="board-skeleton" [class.board-skeleton--list]="viewMode === 'list'">
+      @for (i of [1,2,3,4,5]; track i) { <div class="sk sk--card"></div> }
+    </div>
+  }
+ 
+  <!-- Empty state -->
+  @else if (filteredSites().length === 0) {
+    <div class="empty-page">
+      <div class="empty-icon-wrap"><mat-icon>location_off</mat-icon></div>
+      <h3>No sites found</h3>
+      <p>Try adjusting your filters or search query</p>
+      @if (hasActiveFilter()) {
+        <button mat-flat-button color="primary" (click)="clearAllFilters()">
+          <mat-icon>filter_alt_off</mat-icon>
+          <span>Clear filters</span>
+        </button>
+      }
+    </div>
+  }
+ 
+  <!-- ═══════════════════════════════════════
+       BOARD VIEW
+       ═══════════════════════════════════════ -->
+  @else if (viewMode === 'board') {
+    <div class="board-scroll">
+      <div class="board">
+        @for (site of filteredSites(); track site.siteId; let i = $index) {
+          <div class="board-col" [style.animation-delay]="(i * 45) + 'ms'">
+ 
+            <!-- Column header -->
+            <div class="col-header col-header--{{ site.type === 1 ? 'site' : 'branch' }}">
+              <div class="col-hd-top">
+                <div class="col-ico">
+                  <mat-icon>{{ site.type === 1 ? 'domain' : 'account_tree' }}</mat-icon>
+                </div>
+                <div class="col-title-group">
+                  <span class="col-name">{{ site.name }}</span>
+                  <span class="col-city">
+                    <mat-icon class="pin-xs">place</mat-icon>{{ site.city || 'No location' }}
+                  </span>
+                </div>
+                <span class="col-badge col-badge--{{ site.type === 1 ? 'site' : 'branch' }}">
+                  {{ site.type === 1 ? 'Site' : 'Branch' }}
+                </span>
+              </div>
+ 
+              <!-- Stats row -->
+              <div class="col-stats">
+                <div class="cs">
+                  <span class="cs-val">{{ site.assetCount }}</span>
+                  <span class="cs-lbl">Assets</span>
+                </div>
+                <div class="cs-sep"></div>
+                <div class="cs">
+                  <span class="cs-val cs-val--green">{{ formatValue(site.totalValue) }}</span>
+                  <span class="cs-lbl">Value</span>
+                </div>
+                <div class="cs-sep"></div>
+                <div class="cs">
+                  <span class="cs-val cs-val--cyan">{{ site.activeCount }}</span>
+                  <span class="cs-lbl">Active</span>
+                </div>
+                @if (site.issueCount > 0) {
+                  <div class="cs-sep"></div>
+                  <div class="cs"
+                       matTooltip="Damaged + Under Maintenance + Expired assets"
+                       matTooltipPosition="above">
+                    <span class="cs-val cs-val--warn">{{ site.issueCount }}</span>
+                    <span class="cs-lbl cs-lbl--warn">Issues ⓘ</span>
+                  </div>
+                }
+              </div>
+ 
+              <!-- Status progress bar -->
+              @if (site.statusBreakdown.length > 0) {
+                <div class="status-bar-wrap">
+                  <div class="status-bar">
+                    @for (sb of site.statusBreakdown; track sb.key) {
+                      <div class="status-bar-seg"
+                           [style.width.%]="sb.pct" [style.background]="sb.color"
+                           [matTooltip]="sb.label + ': ' + sb.count"></div>
+                    }
+                  </div>
+                </div>
+              }
+ 
+              <!-- ── Assignment Tabs ── -->
+              <div class="assign-tabs">
+                <button class="atab" [class.active]="getSiteAssignmentTab(site.siteId) === 'all'"
+                        (click)="setSiteAssignmentTab(site.siteId, 'all', $event)">
+                  <mat-icon>layers</mat-icon>
+                  <span>All</span>
+                  <span class="atab-count">{{ site.assets.length }}</span>
+                </button>
+                <button class="atab atab--site" [class.active]="getSiteAssignmentTab(site.siteId) === 'site'"
+                        (click)="setSiteAssignmentTab(site.siteId, 'site', $event)"
+                        matTooltip="Assets directly assigned to this site/branch">
+                  <mat-icon>location_city</mat-icon>
+                  <span>Site</span>
+                  <span class="atab-count">{{ site.siteAssignedAssets.length }}</span>
+                </button>
+                <button class="atab atab--user" [class.active]="getSiteAssignmentTab(site.siteId) === 'user'"
+                        (click)="setSiteAssignmentTab(site.siteId, 'user', $event)"
+                        matTooltip="Assets assigned to users at this site">
+                  <mat-icon>person</mat-icon>
+                  <span>User</span>
+                  <span class="atab-count">{{ site.userAssignedAssets.length }}</span>
+                </button>
+              </div>
+            </div><!-- /col-header -->
+ 
+            <!-- Asset cards -->
+            <div class="col-body">
+              @if (getFilteredAssets(site).length === 0) {
+                <div class="col-empty">
+                  <mat-icon>inventory_2</mat-icon>
+                  <p>No assets match filters</p>
+                </div>
+              } @else {
+                @for (asset of getFilteredAssets(site); track asset.assetId) {
+                  <div class="asset-card asset-card--{{ asset.statusKey }}"
+                       (click)="openAssetDetail(asset, site)">
+ 
+                    <!-- Top row: thumb + name/id + assignment badge + status chip -->
+                    <div class="ac-top">
+                      <div class="ac-thumb">
+                        @if (asset.imageUrl) {
+                          <img [src]="asset.imageUrl" [alt]="asset.name"
+                               (error)="onImgError($event)" class="ac-img" />
+                          <div class="img-fb ac-icon-fb" [style.background]="catColor(asset.category)">
+                            <mat-icon>{{ catIcon(asset.category) }}</mat-icon>
+                          </div>
+                        } @else {
+                          <div class="ac-icon" [style.background]="catColor(asset.category)">
+                            <mat-icon>{{ catIcon(asset.category) }}</mat-icon>
+                          </div>
+                        }
+                      </div>
+ 
+                      <div class="ac-info">
+                        <div class="ac-name">{{ asset.name }}</div>
+                        <div class="ac-id">
+                          <mat-icon class="ac-id-icon">tag</mat-icon>{{ asset.assetId }}
+                        </div>
+                      </div>
+ 
+                      <span class="schip schip--{{ asset.statusKey }}">{{ asset.status }}</span>
+                    </div>
+ 
+                    <!-- Assignment badge row -->
+                    <div class="ac-assign-row">
+                      <span class="assign-badge assign-badge--{{ getAssignKey(asset.assignTo) }}">
+                        <mat-icon>{{ getAssignIcon(asset.assignTo) }}</mat-icon>
+                        {{ getAssignLabel(asset.assignTo) }}
+                      </span>
+                      @if (asset.category) {
+                        <span class="ac-tag">
+                          <mat-icon>category</mat-icon>{{ asset.category }}
+                        </span>
+                      }
+                      @if (asset.value) {
+                        <span class="ac-tag ac-tag--money">
+                          <mat-icon>payments</mat-icon>
+                          {{ formatValue(asset.value) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+ 
+                <!-- Show more / less -->
+                @if (getTotalFilteredCount(site) > maxAssetsInColumn) {
+                  <button mat-button class="show-more-btn"
+                          (click)="toggleExpand(site.siteId); $event.stopPropagation()">
+                    <mat-icon>{{ expandedSites.has(site.siteId) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                    <span>{{ expandedSites.has(site.siteId) ? 'Show less' : 'Show ' + (getTotalFilteredCount(site) - maxAssetsInColumn) + ' more' }}</span>
+                  </button>
+                }
+              }
+            </div><!-- /col-body -->
+ 
+            <!-- Column footer -->
+            <div class="col-footer">
+              <button mat-button class="cf-btn" [routerLink]="'/sites-branchs'">
+                <mat-icon>open_in_new</mat-icon><span>Manage</span>
+              </button>
+              <span class="cf-count">{{ getFilteredAssets(site).length }} shown</span>
+            </div>
+ 
+          </div><!-- /board-col -->
+        }
+      </div>
+    </div>
+  }
+ 
+  <!-- ═══════════════════════════════════════
+       GRID VIEW
+       ═══════════════════════════════════════ -->
+  @else if (viewMode === 'grid') {
+    <div class="grid-view">
+      @for (site of filteredSites(); track site.siteId; let i = $index) {
+        <mat-card class="grid-card dc" [style.animation-delay]="(i * 40) + 'ms'">
+          <mat-card-header>
+            <div class="ch-left">
+              <div class="grid-ico grid-ico--{{ site.type === 1 ? 'site' : 'branch' }}">
+                <mat-icon>{{ site.type === 1 ? 'domain' : 'account_tree' }}</mat-icon>
+              </div>
+              <div class="grid-title-group">
+                <span class="ct">{{ site.name }}</span>
+                <div class="grid-city">
+                  <mat-icon class="pin-xs">place</mat-icon>{{ site.city || 'No location' }}
+                </div>
+              </div>
+            </div>
+            <span class="sp"></span>
+            <span class="col-badge col-badge--{{ site.type === 1 ? 'site' : 'branch' }}">
+              {{ site.type === 1 ? 'Site' : 'Branch' }}
+            </span>
+          </mat-card-header>
+ 
+          <mat-card-content>
+            <!-- Stats band -->
+            <div class="grid-stats">
+              <div class="gs"><span class="gs-n">{{ site.assetCount }}</span><span class="gs-l">Assets</span></div>
+              <div class="gs-sep"></div>
+              <div class="gs"><span class="gs-n gs-n--green">{{ formatValue(site.totalValue) }}</span><span class="gs-l">Value</span></div>
+              <div class="gs-sep"></div>
+              <div class="gs"><span class="gs-n gs-n--cyan">{{ site.activeCount }}</span><span class="gs-l">Active</span></div>
+              @if (site.issueCount > 0) {
+                <div class="gs-sep"></div>
+                <div class="gs" matTooltip="Damaged + Under Maintenance + Expired" matTooltipPosition="above">
+                  <span class="gs-n gs-n--warn">{{ site.issueCount }}</span>
+                  <span class="gs-l">Issues ⓘ</span>
+                </div>
+              }
+            </div>
+ 
+            <!-- Assignment breakdown mini stats -->
+            <div class="grid-assign-band">
+              <div class="gab-item gab-item--site">
+                <mat-icon>location_city</mat-icon>
+                <span class="gab-count">{{ site.siteAssignedAssets.length }}</span>
+                <span class="gab-lbl">Site Assigned</span>
+              </div>
+              <div class="gab-sep"></div>
+              <div class="gab-item gab-item--user">
+                <mat-icon>person</mat-icon>
+                <span class="gab-count">{{ site.userAssignedAssets.length }}</span>
+                <span class="gab-lbl">User Assigned</span>
+              </div>
+            </div>
+ 
+            <!-- Status bar -->
+            @if (site.statusBreakdown.length > 0) {
+              <div class="status-bar-wrap status-bar-wrap--sm">
+                <div class="status-bar">
+                  @for (sb of site.statusBreakdown; track sb.key) {
+                    <div class="status-bar-seg" [style.width.%]="sb.pct" [style.background]="sb.color"
+                         [matTooltip]="sb.label + ': ' + sb.count"></div>
+                  }
+                </div>
+              </div>
+            }
+ 
+            <!-- Assignment tabs for grid -->
+            <div class="assign-tabs assign-tabs--sm">
+              <button class="atab" [class.active]="getSiteAssignmentTab(site.siteId) === 'all'"
+                      (click)="setSiteAssignmentTab(site.siteId, 'all', $event)">
+                <mat-icon>layers</mat-icon><span>All ({{ site.assets.length }})</span>
+              </button>
+              <button class="atab atab--site" [class.active]="getSiteAssignmentTab(site.siteId) === 'site'"
+                      (click)="setSiteAssignmentTab(site.siteId, 'site', $event)">
+                <mat-icon>location_city</mat-icon><span>Site ({{ site.siteAssignedAssets.length }})</span>
+              </button>
+              <button class="atab atab--user" [class.active]="getSiteAssignmentTab(site.siteId) === 'user'"
+                      (click)="setSiteAssignmentTab(site.siteId, 'user', $event)">
+                <mat-icon>person</mat-icon><span>User ({{ site.userAssignedAssets.length }})</span>
+              </button>
+            </div>
+ 
+            <!-- Asset list -->
+            <div class="grid-asset-list">
+              @if (site.assets.length === 0) {
+                <div class="gal-empty"><mat-icon>inventory_2</mat-icon><span>No assets assigned</span></div>
+              } @else {
+                @for (asset of getFilteredAssets(site); track asset.assetId) {
+                  <div class="gal-row" (click)="openAssetDetail(asset, site)">
+                    <span class="sdot sdot--{{ asset.statusKey }}"></span>
+ 
+                    <div class="gal-thumb">
+                      @if (asset.imageUrl) {
+                        <img [src]="asset.imageUrl" [alt]="asset.name"
+                             (error)="onImgError($event)" class="gal-img" />
+                        <div class="img-fb gal-icon-fb" [style.background]="catColor(asset.category)">
+                          <mat-icon>{{ catIcon(asset.category) }}</mat-icon>
+                        </div>
+                      } @else {
+                        <div class="gal-icon" [style.background]="catColor(asset.category)">
+                          <mat-icon>{{ catIcon(asset.category) }}</mat-icon>
+                        </div>
+                      }
+                    </div>
+ 
+                    <div class="gal-info">
+                      <span class="tp">{{ asset.name }}</span>
+                      <span class="ts gal-id">
+                        <mat-icon class="gal-tag-icon">tag</mat-icon>{{ asset.assetId }}
+                        @if (asset.category) { <span class="gal-sep">·</span>{{ asset.category }} }
+                      </span>
+                    </div>
+ 
+                    <!-- Assignment badge inline -->
+                    <span class="assign-badge assign-badge--{{ getAssignKey(asset.assignTo) }} assign-badge--xs">
+                      <mat-icon>{{ getAssignIcon(asset.assignTo) }}</mat-icon>
+                    </span>
+ 
+                    @if (asset.value) {
+                      <span class="gal-val">{{ formatValue(asset.value) }}</span>
+                    }
+                    <span class="schip schip--{{ asset.statusKey }}">{{ asset.status }}</span>
+                  </div>
+                }
+              }
+            </div>
+ 
+            @if (getTotalFilteredCount(site) > 5) {
+              <button mat-button class="show-more-btn show-more-btn--full"
+                      (click)="toggleExpand(site.siteId)">
+                <mat-icon>{{ expandedSites.has(site.siteId) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                <span>{{ expandedSites.has(site.siteId) ? 'Show less' : '+' + (getTotalFilteredCount(site) - 5) + ' more assets' }}</span>
+              </button>
+            }
+          </mat-card-content>
+ 
+          <mat-card-actions>
+            <button mat-button [routerLink]="'/sites-branchs'">
+              <mat-icon>open_in_new</mat-icon><span>Manage</span>
+            </button>
+            <button mat-button [routerLink]="'/assets'">
+              <mat-icon>inventory_2</mat-icon><span>Assets</span>
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      }
+    </div>
+  }
+ 
+  <!-- ═══════════════════════════════════════
+       LIST VIEW (accordion)
+       ═══════════════════════════════════════ -->
+  @else if (viewMode === 'list') {
+    <div class="list-view">
+      <mat-accordion multi>
+        @for (site of filteredSites(); track site.siteId; let i = $index) {
+          <mat-expansion-panel class="list-panel" [style.animation-delay]="(i * 35) + 'ms'">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <div class="lp-title">
+                  <div class="lp-ico lp-ico--{{ site.type === 1 ? 'site' : 'branch' }}">
+                    <mat-icon>{{ site.type === 1 ? 'domain' : 'account_tree' }}</mat-icon>
+                  </div>
+                  <div class="lp-meta">
+                    <span class="lp-name">{{ site.name }}</span>
+                    <span class="lp-city">
+                      <mat-icon class="pin-xs">place</mat-icon>{{ site.city || 'No location' }}
+                    </span>
+                  </div>
+                  <span class="col-badge col-badge--{{ site.type === 1 ? 'site' : 'branch' }}">
+                    {{ site.type === 1 ? 'Site' : 'Branch' }}
+                  </span>
+                </div>
+              </mat-panel-title>
+              <mat-panel-description>
+                <div class="lp-desc">
+                  <span class="lp-stat"><mat-icon>inventory_2</mat-icon>{{ site.assetCount }} assets</span>
+                  <span class="lp-stat lp-stat--green"><mat-icon>payments</mat-icon>{{ formatValue(site.totalValue) }}</span>
+                  <span class="lp-stat lp-stat--cyan"><mat-icon>check_circle</mat-icon>{{ site.activeCount }} active</span>
+                  <span class="lp-stat lp-stat--site"><mat-icon>location_city</mat-icon>{{ site.siteAssignedAssets.length }} site</span>
+                  <span class="lp-stat lp-stat--user"><mat-icon>person</mat-icon>{{ site.userAssignedAssets.length }} user</span>
+                  @if (site.issueCount > 0) {
+                    <span class="lp-stat lp-stat--warn"
+                          matTooltip="Damaged + Under Maintenance + Expired"
+                          matTooltipPosition="above">
+                      <mat-icon>warning_amber</mat-icon>{{ site.issueCount }} issues ⓘ
+                    </span>
+                  }
+                </div>
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+ 
+            <div class="lp-body">
+              <!-- Status breakdown mini bars -->
+              @if (site.statusBreakdown.length > 0) {
+                <div class="lp-breakdown">
+                  @for (sb of site.statusBreakdown; track sb.key) {
+                    <div class="lp-bd-item">
+                      <span class="sdot sdot--{{ sb.key }}"></span>
+                      <span class="lp-bd-lbl">{{ sb.label }}</span>
+                      <div class="lp-bd-bar">
+                        <div class="lp-bd-fill" [style.width.%]="sb.pct" [style.background]="sb.color"></div>
+                      </div>
+                      <span class="lp-bd-cnt">{{ sb.count }}</span>
+                    </div>
+                  }
+                </div>
+              }
+ 
+              <!-- Assignment tabs in list view -->
+              <div class="assign-tabs assign-tabs--list">
+                <button class="atab" [class.active]="getSiteAssignmentTab(site.siteId) === 'all'"
+                        (click)="setSiteAssignmentTab(site.siteId, 'all', $event)">
+                  <mat-icon>layers</mat-icon>
+                  <span>All Assets</span>
+                  <span class="atab-count">{{ site.assets.length }}</span>
+                </button>
+                <button class="atab atab--site" [class.active]="getSiteAssignmentTab(site.siteId) === 'site'"
+                        (click)="setSiteAssignmentTab(site.siteId, 'site', $event)"
+                        matTooltip="Assets directly assigned to this site/branch">
+                  <mat-icon>location_city</mat-icon>
+                  <span>Site Assigned</span>
+                  <span class="atab-count">{{ site.siteAssignedAssets.length }}</span>
+                </button>
+                <button class="atab atab--user" [class.active]="getSiteAssignmentTab(site.siteId) === 'user'"
+                        (click)="setSiteAssignmentTab(site.siteId, 'user', $event)"
+                        matTooltip="Assets assigned to users at this site">
+                  <mat-icon>person</mat-icon>
+                  <span>User Assigned</span>
+                  <span class="atab-count">{{ site.userAssignedAssets.length }}</span>
+                </button>
+              </div>
+ 
+              <!-- Asset table -->
+              <div class="lp-table-wrap">
+                <table mat-table [dataSource]="getFilteredAssets(site)" class="dt lp-table">
+ 
+                  <ng-container matColumnDef="asset">
+                    <th mat-header-cell *matHeaderCellDef>Asset</th>
+                    <td mat-cell *matCellDef="let a">
+                      <div class="ta-cell">
+                        <div class="thumb thumb--asset">
+                          @if (a.imageUrl) {
+                            <img class="thumb-img" [src]="a.imageUrl" [alt]="a.name"
+                                 (error)="onImgError($event)" />
+                            <div class="img-fb at" [style.background]="catColor(a.category)">
+                              <mat-icon>{{ catIcon(a.category) }}</mat-icon>
+                            </div>
+                          } @else {
+                            <div class="at" [style.background]="catColor(a.category)">
+                              <mat-icon>{{ catIcon(a.category) }}</mat-icon>
+                            </div>
+                          }
+                        </div>
+                        <div class="cell-text">
+                          <div class="tp">{{ a.name }}</div>
+                          <div class="ts lp-asset-id">
+                            <mat-icon class="ac-id-icon">tag</mat-icon>{{ a.assetId }}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </ng-container>
+ 
+                  <ng-container matColumnDef="category">
+                    <th mat-header-cell *matHeaderCellDef>Category</th>
+                    <td mat-cell *matCellDef="let a">
+                      <span class="ctag">{{ a.category || '—' }}</span>
+                    </td>
+                  </ng-container>
+ 
+                  <!-- NEW: Assigned To column -->
+                  <ng-container matColumnDef="assignedTo">
+                    <th mat-header-cell *matHeaderCellDef>Assigned To</th>
+                    <td mat-cell *matCellDef="let a">
+                      <span class="assign-badge assign-badge--{{ getAssignKey(a.assignTo) }}">
+                        <mat-icon>{{ getAssignIcon(a.assignTo) }}</mat-icon>
+                        {{ getAssignLabel(a.assignTo) }}
+                      </span>
+                    </td>
+                  </ng-container>
+ 
+                  <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef>Status</th>
+                    <td mat-cell *matCellDef="let a">
+                      <span class="schip schip--{{ a.statusKey }}">{{ a.status }}</span>
+                    </td>
+                  </ng-container>
+ 
+                  <ng-container matColumnDef="value">
+                    <th mat-header-cell *matHeaderCellDef>Value</th>
+                    <td mat-cell *matCellDef="let a" class="tm">
+                      {{ a.value ? formatValue(a.value) : '—' }}
+                    </td>
+                  </ng-container>
+ 
+                  <tr mat-header-row *matHeaderRowDef="listCols; sticky: true"></tr>
+                  <tr mat-row *matRowDef="let a; columns: listCols;" class="dr"
+                      (click)="openAssetDetail(a, site)"></tr>
+                </table>
+ 
+                @if (site.assets.length === 0) {
+                  <div class="empty-state">
+                    <mat-icon>inventory_2</mat-icon>
+                    <p>No assets assigned to this site</p>
+                  </div>
+                }
+              </div>
+ 
+              <div class="lp-actions">
+                <button mat-stroked-button [routerLink]="'/sites-branchs'">
+                  <mat-icon>open_in_new</mat-icon><span>Manage Site</span>
+                </button>
+                <button mat-stroked-button [routerLink]="'/assets'">
+                  <mat-icon>inventory_2</mat-icon><span>View All Assets</span>
+                </button>
+              </div>
+            </div>
+          </mat-expansion-panel>
+        }
+      </mat-accordion>
+    </div>
+  }
+ 
+</div><!-- /sao-wrapper -->
+ 
+<!-- ════════════════════════════════════════
+     ASSET DETAIL DRAWER
+     ════════════════════════════════════════ -->
+@if (selectedAsset()) {
+  <div class="detail-overlay" (click)="closeDetail()"></div>
+  <div class="detail-drawer" [@drawerSlide]>
+ 
+    @if (detailLoading()) {
+      <div class="dd-skeleton-header">
+        <div class="sk sk--dd-img"></div>
+        <div class="dd-skel-lines">
+          <div class="sk sk--dd-line" style="width:65%"></div>
+          <div class="sk sk--dd-line" style="width:45%"></div>
+          <div class="sk sk--dd-line" style="width:35%"></div>
+        </div>
+        <div class="sk sk--dd-close"></div>
+      </div>
+      <div class="dd-body">
+        @for (i of [1,2,3,4,5,6,7,8]; track i) {
+          <div class="sk sk--dd-field"></div>
+        }
+      </div>
+    } @else {
+ 
+      <div class="dd-header">
+        <div class="dd-thumb">
+          @if (resolvedImageUrl()) {
+            <img [src]="resolvedImageUrl()!" [alt]="selectedAsset()!.name"
+                 (error)="onDrawerImgError($event)" class="dd-img" />
+          } @else {
+            <div class="dd-icon" [style.background]="catColor(selectedAsset()!.category)">
+              <mat-icon>{{ catIcon(selectedAsset()!.category) }}</mat-icon>
+            </div>
+          }
+        </div>
+        <div class="dd-title-group">
+          <h2 class="dd-name">{{ selectedAsset()!.name }}</h2>
+          <div class="dd-asset-id">
+            <mat-icon class="ac-id-icon">tag</mat-icon>{{ selectedAsset()!.assetId }}
+          </div>
+          <div class="dd-chips">
+            <span class="schip schip--{{ selectedAsset()!.statusKey }}">{{ selectedAsset()!.status }}</span>
+            <!-- Assignment badge in drawer -->
+            <span class="assign-badge assign-badge--{{ getAssignKey(selectedAsset()!.assignTo) }}">
+              <mat-icon>{{ getAssignIcon(selectedAsset()!.assignTo) }}</mat-icon>
+              {{ getAssignLabel(selectedAsset()!.assignTo) }}
+            </span>
+            @if (assetDetail()?.isDepreciable) {
+              <span class="dd-badge dd-badge--depr">Depreciable</span>
+            }
+            @if (assetDetail()?.isAvilable === false) {
+              <span class="dd-badge dd-badge--assigned">Assigned</span>
+            }
+          </div>
+        </div>
+        <button mat-icon-button (click)="closeDetail()" class="dd-close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+ 
+      <div class="dd-body">
+ 
+        <!-- Identification -->
+        <div class="dd-section">
+          <h4 class="dd-section-title"><mat-icon>badge</mat-icon>Identification</h4>
+          <div class="dd-grid">
+            <div class="dd-field">
+              <span class="dd-lbl">Asset ID</span>
+              <span class="dd-val dd-val--mono">{{ selectedAsset()!.assetId }}</span>
+            </div>
+            <div class="dd-field">
+              <span class="dd-lbl">Brand</span>
+              <span class="dd-val">{{ assetDetail()?.assetBrand || '—' }}</span>
+            </div>
+            <div class="dd-field">
+              <span class="dd-lbl">Model</span>
+              <span class="dd-val">{{ assetDetail()?.assetModelNo || '—' }}</span>
+            </div>
+            <div class="dd-field">
+              <span class="dd-lbl">Serial No.</span>
+              <span class="dd-val dd-val--mono">{{ assetDetail()?.assetSerialNo || '—' }}</span>
+            </div>
+            <div class="dd-field">
+              <span class="dd-lbl">Category</span>
+              <span class="dd-val">{{ assetDetail()?.categoryDisplay || selectedAsset()!.category || '—' }}</span>
+            </div>
+            <div class="dd-field">
+              <span class="dd-lbl">Sub Category</span>
+              <span class="dd-val">{{ assetDetail()?.subCategoryDisplay || '—' }}</span>
+            </div>
+          </div>
+        </div>
+ 
+        <!-- Valuation -->
+        <div class="dd-section">
+          <h4 class="dd-section-title"><mat-icon>payments</mat-icon>Valuation</h4>
+          <div class="dd-grid">
+            <div class="dd-field">
+              <span class="dd-lbl">Unit Price</span>
+              <span class="dd-val dd-val--money">
+                {{ assetDetail()?.unitPrice ? formatValue(assetDetail()!.unitPrice!) : '—' }}
+              </span>
+            </div>
+            <div class="dd-field">
+              <span class="dd-lbl">Quantity</span>
+              <span class="dd-val">{{ assetDetail()?.quantity ?? '—' }}</span>
+            </div>
+            <div class="dd-field">
+              <span class="dd-lbl">Supplier</span>
+              <span class="dd-val">{{ assetDetail()?.supplierDisplay || '—' }}</span>
+            </div>
+            @if (assetDetail()?.isDepreciable) {
+              <div class="dd-field">
+                <span class="dd-lbl">Depreciable Cost</span>
+                <span class="dd-val dd-val--money">
+                  {{ assetDetail()?.depreciableCost ? formatValue(assetDetail()!.depreciableCost!) : '—' }}
+                </span>
+              </div>
+              <div class="dd-field">
+                <span class="dd-lbl">Salvage Value</span>
+                <span class="dd-val dd-val--money">
+                  {{ assetDetail()?.salvageValue ? formatValue(assetDetail()!.salvageValue!) : '—' }}
+                </span>
+              </div>
+            }
+          </div>
+        </div>
+ 
+        <!-- Assignment -->
+        <div class="dd-section">
+          <h4 class="dd-section-title"><mat-icon>person_pin</mat-icon>Assignment</h4>
+          <div class="dd-assign-block">
+            <div class="dd-assign-row">
+              <div class="dd-assign-ico"><mat-icon>{{ getAssignIcon(selectedAsset()!.assignTo) }}</mat-icon></div>
+              <div class="dd-assign-info">
+                <span class="dd-lbl">Assignment Type</span>
+                <span class="dd-val">
+                  <span class="assign-badge assign-badge--{{ getAssignKey(selectedAsset()!.assignTo) }}">
+                    <mat-icon>{{ getAssignIcon(selectedAsset()!.assignTo) }}</mat-icon>
+                    {{ getAssignLabel(selectedAsset()!.assignTo) }}
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div class="dd-assign-row">
+              <div class="dd-assign-ico"><mat-icon>person</mat-icon></div>
+              <div class="dd-assign-info">
+                <span class="dd-lbl">Assigned User</span>
+                <span class="dd-val">{{ assetDetail()?.assignUserDisplay || '—' }}</span>
+              </div>
+            </div>
+            <div class="dd-assign-row">
+              <div class="dd-assign-ico"><mat-icon>location_city</mat-icon></div>
+              <div class="dd-assign-info">
+                <span class="dd-lbl">Site / Area</span>
+                <span class="dd-val">
+                  {{ assetDetail()?.siteDisplay || '—' }}
+                  @if (assetDetail()?.areaDisplay) {
+                    <span class="dd-val-sub"> · {{ assetDetail()!.areaDisplay }}</span>
+                  }
+                </span>
+              </div>
+            </div>
+            <div class="dd-assign-row">
+              <div class="dd-assign-ico"><mat-icon>business</mat-icon></div>
+              <div class="dd-assign-info">
+                <span class="dd-lbl">Department</span>
+                <span class="dd-val">
+                  {{ assetDetail()?.departmentDisplay || '—' }}
+                  @if (assetDetail()?.subDepartmentDisplay) {
+                    <span class="dd-val-sub"> · {{ assetDetail()!.subDepartmentDisplay }}</span>
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+ 
+        <!-- Dates & Warranty -->
+        @if (assetDetail()?.dateOfPurchase || assetDetail()?.dateAquired || assetDetail()?.warranetyInMonth) {
+          <div class="dd-section">
+            <h4 class="dd-section-title"><mat-icon>event</mat-icon>Dates & Warranty</h4>
+            <div class="dd-grid">
+              @if (assetDetail()?.dateOfPurchase) {
+                <div class="dd-field">
+                  <span class="dd-lbl">Purchase Date</span>
+                  <span class="dd-val">{{ assetDetail()!.dateOfPurchase! | date:'dd MMM yyyy' }}</span>
+                </div>
+              }
+              @if (assetDetail()?.dateAquired) {
+                <div class="dd-field">
+                  <span class="dd-lbl">Date Acquired</span>
+                  <span class="dd-val">{{ assetDetail()!.dateAquired! | date:'dd MMM yyyy' }}</span>
+                </div>
+              }
+              @if (assetDetail()?.warranetyInMonth) {
+                <div class="dd-field">
+                  <span class="dd-lbl">Warranty Period</span>
+                  <span class="dd-val">{{ assetDetail()!.warranetyInMonth }} months</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+ 
+        <!-- Depreciation Schedule -->
+        @if (assetDetail()?.isDepreciable && assetDetail()?.depreciationSchedule?.length) {
+          <div class="dd-section">
+            <h4 class="dd-section-title"><mat-icon>trending_down</mat-icon>Depreciation Schedule</h4>
+            <div class="dd-depr-table">
+              <div class="dd-depr-head">
+                <span>Year</span><span>Opening</span><span>Depr.</span><span>Closing</span>
+              </div>
+              @for (row of assetDetail()!.depreciationSchedule!.slice(0, 5); track row.year) {
+                <div class="dd-depr-row">
+                  <span class="dd-depr-year">{{ row.year }}</span>
+                  <span>{{ formatValue(row.bookValueYearBegining) }}</span>
+                  <span class="dd-depr-amt">-{{ formatValue(row.depreciation) }}</span>
+                  <span>{{ formatValue(row.bookValueYearEnd) }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+ 
+        <!-- Notes -->
+        @if (assetDetail()?.note || assetDetail()?.description) {
+          <div class="dd-section">
+            <h4 class="dd-section-title"><mat-icon>notes</mat-icon>Notes</h4>
+            <p class="dd-note">{{ assetDetail()?.description || assetDetail()?.note }}</p>
+          </div>
+        }
+ 
+        <!-- Site context -->
+        @if (selectedSite()) {
+          <div class="dd-section">
+            <h4 class="dd-section-title"><mat-icon>location_city</mat-icon>Site Information</h4>
+            <div class="dd-site-info">
+              <div class="lp-ico lp-ico--{{ selectedSite()!.type === 1 ? 'site' : 'branch' }}">
+                <mat-icon>{{ selectedSite()!.type === 1 ? 'domain' : 'account_tree' }}</mat-icon>
+              </div>
+              <div>
+                <div class="tp">{{ selectedSite()!.name }}</div>
+                <div class="ts">
+                  <mat-icon class="pin-xs">place</mat-icon>{{ selectedSite()!.city || 'No location' }}
+                </div>
+                <div class="dd-site-stats">
+                  <strong>{{ selectedSite()!.assetCount }}</strong> assets
+                  <span>·</span>
+                  <span class="dd-site-val">{{ formatValue(selectedSite()!.totalValue) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+ 
+        <!-- Actions -->
+        <div class="dd-actions">
+          <button mat-flat-button color="primary" [routerLink]="'/assets'" class="dd-action-btn">
+            <mat-icon>open_in_new</mat-icon><span>View in Assets</span>
+          </button>
+          <button mat-stroked-button [routerLink]="'/sites-branchs'" class="dd-action-btn">
+            <mat-icon>location_city</mat-icon><span>Manage Site</span>
+          </button>
+        </div>
+ 
+      </div>
+    }
+  </div>
+}

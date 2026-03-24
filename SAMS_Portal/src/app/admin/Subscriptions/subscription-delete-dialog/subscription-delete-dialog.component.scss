@@ -1,0 +1,89 @@
+// .del-dialog {
+//   display: flex; flex-direction: column;
+//   align-items: center; text-align: center;
+//   border-radius: 20px; overflow: hidden;
+//   background: var(--mat-sys-surface);
+// }
+
+// .del-stripe {
+//   width: 100%; height: 4px; flex-shrink: 0;
+// }
+
+// .del-icon-wrap {
+//   margin-top: 28px;
+// }
+
+// .del-ring {
+//   width: 70px; height: 70px; border-radius: 50%;
+//   background: color-mix(in srgb, var(--mat-sys-error) 12%, var(--mat-sys-surface));
+//   border: 2px solid color-mix(in srgb, var(--mat-sys-error) 28%, transparent);
+//   display: flex; align-items: center; justify-content: center;
+//   animation: del-pulse 2s ease-in-out infinite;
+
+//   mat-icon {
+//     font-size: 32px; width: 32px; height: 32px;
+//     color: var(--mat-sys-error);
+//   }
+// }
+
+// @keyframes del-pulse {
+//   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--mat-sys-error) 22%, transparent); }
+//   50%       { box-shadow: 0 0 0 10px transparent; }
+// }
+
+// .del-content {
+//   padding: 16px 28px 0;
+
+//   h3 {
+//     margin: 0 0 8px;
+//     font-size: 1.15rem; font-weight: 800;
+//     color: var(--mat-sys-on-surface);
+//   }
+
+//   p {
+//     margin: 0;
+//     font-size: 0.85rem; color: var(--mat-sys-on-surface-variant); line-height: 1.55;
+
+//     strong { color: var(--mat-sys-on-surface); font-weight: 700; }
+//   }
+// }
+
+// .plan-chip {
+//   display: inline-flex; align-items: center; gap: 8px;
+//   padding: 8px 16px; border-radius: 12px;
+//   background: var(--mat-sys-surface-container);
+//   border: 1.5px solid; // color from [style]
+//   font-size: 0.875rem; font-weight: 700;
+//   margin-top: 14px;
+
+//   mat-icon { font-size: 17px; width: 17px; height: 17px; }
+// }
+
+// .chip-tag {
+//   font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+//   letter-spacing: 0.5px;
+//   padding: 2px 8px; border-radius: 999px;
+//   background: var(--mat-sys-surface-container-high);
+//   color: var(--mat-sys-on-surface-variant);
+// }
+
+// .del-actions {
+//   display: flex; gap: 10px;
+//   width: 100%; padding: 20px 24px 24px;
+
+//   button {
+//     flex: 1; border-radius: 10px !important;
+//     font-weight: 600 !important; height: 44px !important;
+//     display: flex !important; align-items: center !important;
+//     justify-content: center !important; gap: 6px !important;
+//   }
+// }
+
+// .btn-keep { border-color: var(--mat-sys-outline-variant) !important; }
+
+// .btn-del {
+//   background: var(--mat-sys-error) !important;
+//   color: var(--mat-sys-on-error) !important;
+//   &:disabled { opacity: 0.65 !important; }
+//   mat-icon { font-size: 17px; width: 17px; height: 17px; }
+// }

@@ -1,0 +1,215 @@
+<div class="sp-shell">
+
+  <!-- ══ TOPBAR ══ -->
+  <header class="sp-topbar">
+    <div class="sp-topbar-inner">
+      <div class="sp-brand">
+        <img src="assets/images/logos/infoasset_logo-1.webp" alt="InfoAsset" class="sp-logo" />
+        <span class="sp-brand-name">INFOASSET</span>
+      </div>
+      <button mat-button class="sp-logout-btn" (click)="logout()">
+        <mat-icon>logout</mat-icon> Sign Out
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ HERO ══ -->
+  <section class="sp-hero">
+    <div class="sp-hero-inner">
+      <div class="sp-hero-tag">
+        <mat-icon>workspace_premium</mat-icon>
+        <span>Choose Your Plan</span>
+      </div>
+      <h1 class="sp-hero-title">
+        Unlock the Full Power of<br />
+        <span class="sp-hero-accent">InfoAsset</span>
+      </h1>
+      <p class="sp-hero-sub">
+        Select a plan that fits your business. All plans include full access to
+        asset management, user controls, and reporting tools.
+      </p>
+    </div>
+
+    <!-- Decorative orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </section>
+
+  <!-- ══ LOADING ══ -->
+  @if (loading()) {
+    <div class="sp-loading">
+      <mat-spinner diameter="52"></mat-spinner>
+      <p>Loading available plans…</p>
+    </div>
+  }
+
+  <!-- ══ EMPTY ══ -->
+  @if (!loading() && plans().length === 0) {
+    <div class="sp-empty">
+      <div class="sp-empty-icon"><mat-icon>inbox</mat-icon></div>
+      <h3>No Plans Available</h3>
+      <p>Please contact our team to get a plan set up for your account.</p>
+      <a href="mailto:support@infoasset.com" mat-flat-button class="sp-contact-btn">
+        <mat-icon>mail</mat-icon> Contact Support
+      </a>
+    </div>
+  }
+
+  <!-- ══ PLANS GRID ══ -->
+  @if (!loading() && plans().length > 0) {
+    <section class="sp-plans-section">
+      <div class="sp-plans-grid" [class.grid-1]="plans().length === 1"
+                                  [class.grid-2]="plans().length === 2"
+                                  [class.grid-3]="plans().length === 3"
+                                  [class.grid-4plus]="plans().length >= 4">
+
+        @for (plan of plans(); track plan.id) {
+          <div class="sp-card"
+            [class.sp-card--featured]="isFeatured(plan)"
+            [class.sp-card--selected]="isSelected(plan)"
+            [style.--c1]="getCardColor(plan)"
+            [style.--c2]="getCardColorSecondary(plan)"
+            (click)="selectPlan(plan)"
+            matRipple>
+
+            <!-- Featured glow ring -->
+            @if (isFeatured(plan)) {
+              <div class="sp-card-glow"></div>
+            }
+
+            <!-- Top stripe -->
+            <div class="sp-stripe"></div>
+
+            <!-- ── CARD TOP ── -->
+            <div class="sp-card-top">
+
+              <!-- Plan icon circle -->
+              <div class="sp-plan-icon">
+                <mat-icon>workspace_premium</mat-icon>
+              </div>
+
+              <!-- Promo badge -->
+              @if (plan.badgeLabel) {
+                <div class="sp-promo-badge">
+                  <mat-icon>{{ plan.badgeIcon || 'star' }}</mat-icon>
+                  {{ plan.badgeLabel }}
+                </div>
+              }
+
+            </div>
+
+            <!-- ── PLAN NAME ── -->
+            <div class="sp-card-name">
+              <h2>{{ plan.name }}</h2>
+              @if (plan.description) {
+                <p class="sp-plan-desc">{{ plan.description }}</p>
+              }
+            </div>
+
+            <!-- ── PRICE ── -->
+            <div class="sp-price-block">
+              <span class="sp-currency">AED</span>
+              <span class="sp-amount">{{ formatAmount(plan.planAmount) }}</span>
+              <span class="sp-per">/ {{ formatDurationShort(plan.durationDays) }}</span>
+            </div>
+
+            <!-- Duration pill -->
+            <div class="sp-duration-pill">
+              <mat-icon>schedule</mat-icon>
+              {{ formatDuration(plan.durationDays) }}
+            </div>
+
+            <!-- ── DIVIDER ── -->
+            <div class="sp-card-divider"></div>
+
+            <!-- ── FEATURES ── -->
+            <div class="sp-features">
+
+              <div class="sp-feat">
+                <div class="sp-feat-check"><mat-icon>check</mat-icon></div>
+                <span>Up to <strong>{{ plan.assetLimit | number }}</strong> assets</span>
+              </div>
+
+              <div class="sp-feat">
+                <div class="sp-feat-check"><mat-icon>check</mat-icon></div>
+                <span><strong>{{ plan.systemUserLimit | number }}</strong> system users</span>
+              </div>
+
+              <div class="sp-feat">
+                <div class="sp-feat-check"><mat-icon>check</mat-icon></div>
+                <span><strong>{{ plan.totalUserLimit | number }}</strong> total users</span>
+              </div>
+
+              <div class="sp-feat">
+                <div class="sp-feat-check"><mat-icon>check</mat-icon></div>
+                <span>Full asset management suite</span>
+              </div>
+
+              <div class="sp-feat">
+                <div class="sp-feat-check"><mat-icon>check</mat-icon></div>
+                <span>Reports & analytics</span>
+              </div>
+
+              <div class="sp-feat">
+                <div class="sp-feat-check"><mat-icon>check</mat-icon></div>
+                <span>QR & barcode generation</span>
+              </div>
+
+            </div>
+
+            <!-- ── CTA BUTTON ── -->
+            <button class="sp-cta-btn" [class.sp-cta-featured]="isFeatured(plan)">
+              @if (isSelected(plan)) {
+                <mat-icon>check_circle</mat-icon>
+                Plan Selected
+              } @else {
+                <mat-icon>arrow_forward</mat-icon>
+                Get Started
+              }
+            </button>
+
+            <!-- Decorative blobs -->
+            <div class="sp-blob sp-blob-1"></div>
+            <div class="sp-blob sp-blob-2"></div>
+
+          </div>
+        }
+
+      </div>
+    </section>
+
+    <!-- ══ CONTACT SECTION ══ -->
+    <section class="sp-contact-section">
+      <div class="sp-contact-inner">
+        <div class="sp-contact-icon"><mat-icon>diamond</mat-icon></div>
+        <div class="sp-contact-text">
+          <h3>Need a Custom Plan?</h3>
+          <p>Looking for tailored limits, dedicated support, or special pricing for your enterprise? Our team is ready to help.</p>
+        </div>
+        <a href="mailto:support@infoasset.com" mat-stroked-button class="sp-contact-btn-outline">
+          <mat-icon>mail_outline</mat-icon>
+          Contact Us
+        </a>
+      </div>
+    </section>
+
+    <!-- ══ ADMIN NOTICE ══ -->
+    <div class="sp-admin-notice">
+      <mat-icon>info</mat-icon>
+      <span>Your account is pending subscription activation. Once an admin reviews and activates your plan, you'll get full access to the dashboard.</span>
+    </div>
+
+  }
+
+  <!-- ══ FOOTER ══ -->
+  <!-- <footer class="sp-footer">
+    <p>© {{ currentYear }} InfoAsset. All rights reserved.</p>
+    <div class="sp-footer-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="#">Support</a>
+    </div>
+  </footer> -->
+
+</div>

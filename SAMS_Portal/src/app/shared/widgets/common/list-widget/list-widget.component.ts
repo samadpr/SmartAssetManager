@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, ChangeDetectorRef, Component, computed, EventEmitter, inject, Input, OnInit, Output, signal, ViewChild } from '@angular/core';
+import { AfterViewChecked, AfterViewInit, ChangeDetectorRef, Component, computed, EventEmitter, inject, Input, OnInit, Output, signal, ViewChild } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -22,6 +22,10 @@ import { FilePreviewComponent } from './file-preview/file-preview.component';
 import { GlobalService } from '../../../../core/services/global/global.service';
 import { PopupWidgetService } from '../../../../core/services/popup-widget/popup-widget.service';
 import { PopupField } from '../../../../core/models/interfaces/popup-widget.interface';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { MatDividerModule } from '@angular/material/divider';
+import { CompanyStorageService } from '../../../../core/services/localStorage/company/company-storage.service';
 
 // ✅ ADD NEW TYPES
 export type ActionButtonType =
@@ -148,7 +152,8 @@ export interface SelectionActionEvent {
     MatFormFieldModule,
     MatInputModule,
     MatTooltipModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatDividerModule 
   ],
   templateUrl: './list-widget.component.html',
   styleUrl: './list-widget.component.scss',
@@ -197,718 +202,605 @@ export interface SelectionActionEvent {
     ])
   ],
 })
-export class ListWidgetComponent implements OnInit, AfterViewInit {
+export class ListWidgetComponent implements OnInit, AfterViewInit, AfterViewChecked {
+ 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
-
+ 
   @Input() config!: ListConfig;
   @Input() loading = false;
+ 
   private _data: any[] = [];
   @Input() set data(value: any[]) {
     this._data = value || [];
     this.dataSource.data = this._data;
-
-    if (this.paginator) {
-      this.dataSource.paginator = this.paginator;
-    }
-    if (this.sort) {
-      this.dataSource.sort = this.sort;
-    }
-
+    if (this.paginator) this.dataSource.paginator = this.paginator;
+    if (this.sort)      this.dataSource.sort      = this.sort;
     this.showPagination.set(this._data.length > (this.config?.pageSize ?? 10));
     this.updateSelectionState();
-    this.updateTableHeight(); // 🆕 Update height when data changes
   }
   get data() { return this._data; }
-
-  @Output() actionClick = new EventEmitter<{ action: string, item: any }>();
-  @Output() addClick = new EventEmitter<void>();
-  @Output() refreshClick = new EventEmitter<void>();
+ 
+  @Output() actionClick    = new EventEmitter<{ action: string; item: any }>();
+  @Output() addClick       = new EventEmitter<void>();
+  @Output() refreshClick   = new EventEmitter<void>();
   @Output() selectionChange = new EventEmitter<any[]>();
   @Output() selectionAction = new EventEmitter<SelectionActionEvent>();
-  @Output() rowClick = new EventEmitter<{ action: string, item: any }>();
-
+  @Output() rowClick       = new EventEmitter<{ action: string; item: any }>();
+ 
   private countryService = inject(CountryService);
-  private dialog = inject(MatDialog);
-  private globalService = inject(GlobalService);
-  private popupService = inject(PopupWidgetService);
-
-  dataSource = new MatTableDataSource<any>([]);
-  selection = new SelectionModel<any>(true, []);
+  private dialog         = inject(MatDialog);
+  private globalService  = inject(GlobalService);
+  private popupService   = inject(PopupWidgetService);
+  // ✅ Inject CompanyStorageService to read currency from localStorage
+  private companyStorage = inject(CompanyStorageService);
+ 
+  dataSource    = new MatTableDataSource<any>([]);
+  selection     = new SelectionModel<any>(true, []);
   searchControl = new FormControl('');
   showPagination = signal(false);
   visibleColumns = signal<ListColumn[]>([]);
-  hasSelection = signal(false);
-  selectedCount = signal(0);
-
-  // ✅ NEW: Computed actions by position
-  startActions = computed(() => this.getActionsByPosition('start'));
-  endActions = computed(() => this.getActionsByPosition('end'));
+  hasSelection   = signal(false);
+  selectedCount  = signal(0);
+ 
+  // ✅ Currency code resolved ONCE from localStorage on init
+  // Falls back to 'USD' if nothing stored — safe for all pages
+  private _currencyCode = 'USD';
+ 
+  startActions   = computed(() => this.getActionsByPosition('start'));
+  endActions     = computed(() => this.getActionsByPosition('end'));
   defaultActions = computed(() => this.getDefaultActions());
   replaceActions = computed(() => this.getActionsByPosition('replace'));
-
-  hasStartActions = computed(() => this.startActions().length > 0);
-  hasEndActions = computed(() => this.endActions().length > 0);
+ 
+  hasStartActions   = computed(() => this.startActions().length > 0);
+  hasEndActions     = computed(() => this.endActions().length > 0);
   hasReplaceActions = computed(() => this.replaceActions().length > 0);
-
-  // 🆕 NEW: Computed signal for table scrolling
+ 
   shouldScroll = computed(() => {
     const pageSize = this.paginator?.pageSize || this.config?.pageSize || 10;
-    const maxRows = this.config?.maxVisibleRows || 5;
+    const maxRows  = this.config?.maxVisibleRows || 5;
     return pageSize > maxRows;
   });
-
-  // 🆕 NEW: Computed table height based on page size
+ 
   tableMaxHeight = computed(() => {
-    const maxRows = this.config?.maxVisibleRows || 5;
-    const pageSize = this.paginator?.pageSize || this.config?.pageSize || 10;
-    const rowHeight = this.config?.compactMode ? 52 : 64; // Approximate row heights
-    const headerHeight = 48;
-
-    if (pageSize <= maxRows) {
-      return 'none'; // No max height, show all rows
-    }
-
-    // Calculate height for max visible rows + header
-    return `${(maxRows * rowHeight) + headerHeight}px`;
+    const maxRows   = this.config?.maxVisibleRows || 5;
+    const pageSize  = this.paginator?.pageSize || this.config?.pageSize || 10;
+    const rowHeight = this.config?.compactMode ? 52 : 64;
+    const headerH   = 48;
+    if (pageSize <= maxRows) return 'none';
+    return `${(maxRows * rowHeight) + headerH}px`;
   });
-
-  constructor(private cdr: ChangeDetectorRef) { }
-
+ 
+  constructor(private cdr: ChangeDetectorRef) {}
+ 
   ngOnInit() {
-    // 🔧 Initialize visible columns FIRST before any data operations
+    // ✅ Resolve currency from localStorage once on init
+    this._resolveCurrency();
+ 
     if (this.config?.columns) {
       this.visibleColumns.set(this.config.columns.filter(col => col.visible !== false));
     }
-
     this.initializeComponent();
     this.setupSearch();
     this.setupSelectionTracking();
   }
-
+ 
   ngAfterViewInit() {
-    if (this.sort) {
-      this.dataSource.sort = this.sort;
-    }
+    if (this.sort)      this.dataSource.sort      = this.sort;
     if (this.paginator) {
       this.dataSource.paginator = this.paginator;
-
-      // 🆕 Listen to page changes to update height
-      this.paginator.page.subscribe(() => {
-        this.updateTableHeight();
-      });
+      this.paginator.page.subscribe(() => { /* height recomputed via signal */ });
     }
-
-    // 🔧 Detect changes after view initialization
     this.cdr.detectChanges();
   }
-
+ 
   ngAfterViewChecked() {
-    if (this.dataSource && this.paginator && this.dataSource.paginator !== this.paginator) {
-      this.dataSource.paginator = this.paginator;
-    }
-    if (this.dataSource && this.sort && this.dataSource.sort !== this.sort) {
-      this.dataSource.sort = this.sort;
+    if (this.dataSource && this.paginator && this.dataSource.paginator !== this.paginator) this.dataSource.paginator = this.paginator;
+    if (this.dataSource && this.sort      && this.dataSource.sort      !== this.sort)      this.dataSource.sort      = this.sort;
+  }
+ 
+  // ✅ Currency resolution — reads from localStorage via CompanyStorageService
+  // Safe: returns 'USD' if no company stored or currency is missing/invalid
+  private _resolveCurrency(): void {
+    try {
+      const company = this.companyStorage.get();
+      const code    = company?.currency?.trim();
+      if (code && code.length === 3) {
+        // Quick validity check — Intl will throw on invalid codes
+        new Intl.NumberFormat('en', { style: 'currency', currency: code }).format(0);
+        this._currencyCode = code;
+      } else {
+        this._currencyCode = 'USD';
+      }
+    } catch {
+      this._currencyCode = 'USD';
     }
   }
-
-  // ✅ NEW: Get actions by position
+ 
+  // ─── Action helpers (unchanged) ──────────────────────────────────────────
   private getActionsByPosition(position: ActionPosition): ListAction[] {
     if (!this.config?.actions) return [];
-
-    return this.config.actions
-      .filter(action => (action.position || 'end') === position)
-      .sort((a, b) => (a.order || 0) - (b.order || 0));
+    return this.config.actions.filter(a => (a.position || 'end') === position).sort((a, b) => (a.order || 0) - (b.order || 0));
   }
-
-  // ✅ NEW: Get default actions (no position or position='end')
+ 
   private getDefaultActions(): ListAction[] {
     if (!this.config?.actions) return [];
-
-    return this.config.actions
-      .filter(action => !action.position || action.position === 'end')
-      .filter(action => !action.buttonType) // Only icon buttons by default
-      .sort((a, b) => (a.order || 0) - (b.order || 0));
+    return this.config.actions.filter(a => !a.position || a.position === 'end').filter(a => !a.buttonType).sort((a, b) => (a.order || 0) - (b.order || 0));
   }
-
-  // ✅ NEW: Check if action should be visible
+ 
   isActionVisible(action: ListAction, item: any): boolean {
     if (action.hidden) return false;
     if (action.showIf) return action.showIf(item);
     return true;
   }
-
-  // ✅ NEW: Check if action should be disabled
+ 
   isActionDisabled(action: ListAction, item: any): boolean {
     if (action.disabledIf) return action.disabledIf(item);
     return false;
   }
-
-  // ✅ NEW: Get action button class
+ 
   getActionButtonClass(action: ListAction): string {
-    const baseClass = 'action-btn';
-    const typeClass = `btn-${action.buttonType || 'icon'}`;
+    const baseClass  = 'action-btn';
+    const typeClass  = `btn-${action.buttonType || 'icon'}`;
     const colorClass = action.color ? `btn-${action.color}` : '';
     return `${baseClass} ${typeClass} ${colorClass}`.trim();
   }
-
-  // ✅ UPDATED: Handle action click with popup support
+ 
   onActionClick(action: string | ListAction, item: any, event?: Event): void {
     event?.stopPropagation();
-
     if (typeof action === 'object') {
       const actionObj = action as ListAction;
-
-      if (actionObj.popup) {
-        this.handleActionWithPopup(actionObj, item);
-        return;
-      }
-
-      if (actionObj.confirmMessage) {
-        this.handleActionWithConfirmation(actionObj, item);
-        return;
-      }
-
+      if (actionObj.popup)          { this.handleActionWithPopup(actionObj, item); return; }
+      if (actionObj.confirmMessage) { this.handleActionWithConfirmation(actionObj, item); return; }
       this.actionClick.emit({ action: actionObj.key, item });
     } else {
       this.actionClick.emit({ action: action as string, item });
     }
   }
-
-  // ✅ NEW: Handle action with popup
+ 
   private handleActionWithPopup(action: ListAction, item: any): void {
     if (!action.popup) return;
-
     const popupConfig = action.popup;
-
-    const fields =
-      typeof popupConfig.fields === 'function'
-        ? popupConfig.fields()
-        : popupConfig.fields;
-
+    const fields = typeof popupConfig.fields === 'function' ? popupConfig.fields() : popupConfig.fields;
     this.popupService.openFormPopup(
-      {
-        title: popupConfig.title,
-        subtitle: popupConfig.subtitle,
-        icon: popupConfig.icon || action.icon,
-        fields,
-        columns: popupConfig.columns || 2,
-        maxWidth: popupConfig.maxWidth || '800px',
-        submitButtonText: popupConfig.submitButtonText || 'Submit'
-      },
+      { title: popupConfig.title, subtitle: popupConfig.subtitle, icon: popupConfig.icon || action.icon, fields, columns: popupConfig.columns || 2, maxWidth: popupConfig.maxWidth || '800px', submitButtonText: popupConfig.submitButtonText || 'Submit' },
       item
     ).subscribe(result => {
       if (result && result.action === 'submit' && popupConfig.onSubmit) {
         this.loading = true;
-
         const submitResult = popupConfig.onSubmit(result.data, item);
-
-        // Check if result is Observable
         if (submitResult && typeof submitResult.subscribe === 'function') {
           submitResult.subscribe({
-            next: (response: any) => {
-              this.loading = false;
-              this.globalService.showSnackbar(
-                `${action.label} completed successfully`,
-                'success'
-              );
-              this.refreshClick.emit();
-            },
-            error: (error: any) => {
-              this.loading = false;
-              this.globalService.showToastr(
-                `Failed to ${action.label.toLowerCase()}`,
-                'error'
-              );
-              console.error(`Action ${action.key} failed:`, error);
-            }
+            next: () => { this.loading = false; this.globalService.showSnackbar(`${action.label} completed successfully`, 'success'); this.refreshClick.emit(); },
+            error: (error: any) => { this.loading = false; this.globalService.showToastr(`Failed to ${action.label.toLowerCase()}`, 'error'); }
           });
         } else {
-          // Handle non-observable result
-          this.loading = false;
-          this.globalService.showSnackbar(
-            `${action.label} completed successfully`,
-            'success'
-          );
-          this.refreshClick.emit();
+          this.loading = false; this.globalService.showSnackbar(`${action.label} completed successfully`, 'success'); this.refreshClick.emit();
         }
       }
     });
   }
-
-  // ✅ NEW: Handle action with confirmation
+ 
   private handleActionWithConfirmation(action: ListAction, item: any): void {
     this.popupService.openGenericConfirmation(
-      action.confirmTitle || `Confirm ${action.label}`,
-      action.confirmMessage!,
-      {
-        confirmButtonText: action.label,
-        confirmButtonIcon: action.icon,
-        icon: action.icon,
-        iconColor: action.color === 'warn' ? 'warn' : 'primary'
-      }
-    ).subscribe(result => {
-      if (result && result.action === 'confirm') {
-        this.actionClick.emit({ action: action.key, item });
-      }
-    });
+      action.confirmTitle || `Confirm ${action.label}`, action.confirmMessage!,
+      { confirmButtonText: action.label, confirmButtonIcon: action.icon, icon: action.icon, iconColor: action.color === 'warn' ? 'warn' : 'primary' }
+    ).subscribe(result => { if (result && result.action === 'confirm') this.actionClick.emit({ action: action.key, item }); });
   }
-
-  // 🆕 File handling methods
-
+ 
+  // ─── File helpers (unchanged) ─────────────────────────────────────────────
   getFileExtension(filePath: string): string {
     if (!filePath) return '';
     const parts = filePath.split('.');
     return parts[parts.length - 1].toLowerCase();
   }
-
+ 
   getFileName(filePath: string): string {
     if (!filePath) return '';
     const parts = filePath.split('/');
     return parts[parts.length - 1];
   }
+ 
   getTruncatedFileName(filePath: string, maxLength: number = 20): string {
     if (!filePath) return '';
-
-    const fileName = this.getFileName(filePath);
+    const fileName  = this.getFileName(filePath);
     const extension = this.getFileExtension(filePath);
-
-    if (fileName.length <= maxLength) {
-      return fileName;
-    }
-
-    // Remove extension for truncation
-    const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
-    const truncateLength = maxLength - extension.length - 4; // -4 for "..." and "."
-
-    if (truncateLength > 0) {
-      return `${nameWithoutExt.substring(0, truncateLength)}...${extension}`;
-    }
-
+    if (fileName.length <= maxLength) return fileName;
+    const nameWithoutExt  = fileName.substring(0, fileName.lastIndexOf('.'));
+    const truncateLength  = maxLength - extension.length - 4;
+    if (truncateLength > 0) return `${nameWithoutExt.substring(0, truncateLength)}...${extension}`;
     return `${fileName.substring(0, maxLength - 3)}...`;
   }
-
+ 
   getFileTypeIcon(extension: string): string {
     const ext = extension.toLowerCase();
-
-    // Images
-    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext)) {
-      return 'image';
-    }
-
-    // PDFs
-    if (ext === 'pdf') {
-      return 'picture_as_pdf';
-    }
-
-    // Documents
-    if (['doc', 'docx'].includes(ext)) {
-      return 'description';
-    }
-
-    // Spreadsheets
-    if (['xls', 'xlsx', 'csv'].includes(ext)) {
-      return 'table_chart';
-    }
-
-    // Archives
-    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
-      return 'folder_zip';
-    }
-
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext)) return 'image';
+    if (ext === 'pdf') return 'picture_as_pdf';
+    if (['doc', 'docx'].includes(ext)) return 'description';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'table_chart';
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'folder_zip';
     return 'insert_drive_file';
   }
-
+ 
   isPreviewable(extension: string): boolean {
-    const ext = extension.toLowerCase();
-    const previewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-    return previewableTypes.includes(ext);
+    return ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(extension.toLowerCase());
   }
-
+ 
   onFilePreview(filePath: string, event: Event): void {
     event.stopPropagation();
-
-    const fileName = this.getFileName(filePath);
-    const fileExtension = this.getFileExtension(filePath);
-
     this.dialog.open(FilePreviewComponent, {
-      data: {
-        fileUrl: filePath,
-        fileName: fileName,
-        fileType: fileExtension
-      },
-      width: '90vw',
-      maxWidth: '1200px',
-      height: '90vh',
-      panelClass: 'file-preview-dialog',
-      autoFocus: false
+      data: { fileUrl: filePath, fileName: this.getFileName(filePath), fileType: this.getFileExtension(filePath) },
+      width: '90vw', maxWidth: '1200px', height: '90vh', panelClass: 'file-preview-dialog', autoFocus: false
     });
   }
-
+ 
   onFileDownload(filePath: string, fileName: string, event: Event): void {
     event.stopPropagation();
-
     this.popupService.openGenericConfirmation(
-      'Download File',
-      `Do you want to download "${fileName}"?`,
-      {
-        confirmButtonText: 'Download',
-        confirmButtonIcon: 'download',
-        icon: 'download',
-        iconColor: 'primary'
-      }
-    ).subscribe(result => {
-      if (result && result.action === 'confirm') {
-        this.downloadFile(filePath, fileName);
-      }
-    });
+      'Download File', `Do you want to download "${fileName}"?`,
+      { confirmButtonText: 'Download', confirmButtonIcon: 'download', icon: 'download', iconColor: 'primary' }
+    ).subscribe(result => { if (result && result.action === 'confirm') this.downloadFile(filePath, fileName); });
   }
-
+ 
   private downloadFile(url: string, fileName: string): void {
     const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
+    link.href = url; link.download = fileName; link.target = '_blank';
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
     this.globalService.showSnackbar('Download started', 'success');
   }
-
-
-  // 🆕 NEW: Method to update table height (removed detectChanges to prevent errors)
-  private updateTableHeight() {
-    // Height is updated via computed signal automatically
-    // No need for manual change detection here
-  }
-
+ 
+  // ─── Component init ───────────────────────────────────────────────────────
   private initializeComponent() {
-    // 🔧 Only set data if we have valid columns configured
-    if (!this.config?.columns?.length) {
-      console.warn('ListWidget: No columns configured');
-      return;
-    }
-
+    if (!this.config?.columns?.length) { console.warn('ListWidget: No columns configured'); return; }
     this.dataSource.data = this.data;
-
     this.dataSource.filterPredicate = (data: any, filter: string) => {
       const searchTerm = filter.trim().toLowerCase();
       if (!searchTerm) return true;
-
       return this.config.columns.some(column => {
         const value = data[column.key];
         if (value == null) return false;
-
-        switch (column.type) {
-          case 'avatar':
-            const nameValue = data[column.nameField || column.key];
-            return nameValue?.toString().toLowerCase().includes(searchTerm);
-          case 'country':
-            const countryName = this.getCountryName(value);
-            return value?.toString().toLowerCase().includes(searchTerm) ||
-              countryName.toLowerCase().includes(searchTerm);
-          default:
-            return value.toString().toLowerCase().includes(searchTerm);
-        }
+        if (column.type === 'avatar') return data[column.nameField || column.key]?.toString().toLowerCase().includes(searchTerm);
+        if (column.type === 'country') return value?.toString().toLowerCase().includes(searchTerm) || this.getCountryName(value).toLowerCase().includes(searchTerm);
+        return value.toString().toLowerCase().includes(searchTerm);
       });
     };
   }
-
+ 
   private setupSearch() {
     if (this.config?.showSearch) {
-      this.searchControl.valueChanges
-        .pipe(debounceTime(300), distinctUntilChanged())
-        .subscribe(value => {
-          this.dataSource.filter = value || '';
-        });
+      this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged())
+        .subscribe(value => { this.dataSource.filter = value || ''; });
     }
   }
-
+ 
   private setupSelectionTracking() {
-    this.selection.changed.subscribe(change => {
+    this.selection.changed.subscribe(() => {
       this.updateSelectionState();
       this.selectionChange.emit(this.selection.selected);
     });
   }
-
+ 
   private updateSelectionState() {
-    const hasItems = this.selection.selected.length > 0;
-    this.hasSelection.set(hasItems);
+    this.hasSelection.set(this.selection.selected.length > 0);
     this.selectedCount.set(this.selection.selected.length);
   }
-
+ 
   displayedColumns(): string[] {
-    const cols = this.config?.columns
-      ?.filter(c => c.visible !== false)
-      .map(c => c.key) || [];
-
-    if (this.config?.selectable) {
-      cols.unshift('select');
-    }
-    if (this.config?.actions?.length) {
-      cols.push('actions');
-    }
+    const cols = this.config?.columns?.filter(c => c.visible !== false).map(c => c.key) || [];
+    if (this.config?.selectable) cols.unshift('select');
+    if (this.config?.actions?.length) cols.push('actions');
     return cols;
   }
-
+ 
   isAllSelected(): boolean {
-    const numSelected = this.selection.selected.length;
-    const numRows = this.dataSource.filteredData.length;
-    return numSelected === numRows && numRows > 0;
+    return this.selection.selected.length === this.dataSource.filteredData.length && this.dataSource.filteredData.length > 0;
   }
-
+ 
   isIndeterminate(): boolean {
-    const numSelected = this.selection.selected.length;
-    const numRows = this.dataSource.filteredData.length;
-    return numSelected > 0 && numSelected < numRows;
+    return this.selection.selected.length > 0 && this.selection.selected.length < this.dataSource.filteredData.length;
   }
-
-  toggleAllRows(): void {
-    if (this.isAllSelected()) {
-      this.selection.clear();
-    } else {
-      this.dataSource.filteredData.forEach(row => this.selection.select(row));
-    }
-  }
-
-  toggleRow(row: any): void {
-    this.selection.toggle(row);
-  }
-
+ 
+  toggleAllRows(): void { this.isAllSelected() ? this.selection.clear() : this.dataSource.filteredData.forEach(row => this.selection.select(row)); }
+  toggleRow(row: any): void { this.selection.toggle(row); }
+ 
   onRowClick(row: any): void {
     if (this.config?.rowClickAction && this.config?.selectable) {
       this.rowClick.emit({ action: this.config.rowClickAction, item: row });
     }
   }
-
+ 
   toggleColumn(column: ListColumn): void {
     column.visible = !column.visible;
     this.visibleColumns.set(this.config.columns.filter(col => col.visible !== false));
   }
-
-  // onActionClick(action: string, item: any, event?: Event): void {
-  //   event?.stopPropagation();
-  //   this.actionClick.emit({ action, item });
-  // }
-
-  onAddClick(): void {
-    this.addClick.emit();
-  }
-
-  onRefreshClick(): void {
-    this.refreshClick.emit();
-  }
-
+ 
+  onAddClick():     void { this.addClick.emit(); }
+  onRefreshClick(): void { this.refreshClick.emit(); }
+ 
   onDeleteSelected(): void {
     if (this.selection.selected.length > 0) {
-      this.selectionAction.emit({
-        action: 'delete',
-        selectedItems: [...this.selection.selected]
-      });
+      this.selectionAction.emit({ action: 'delete', selectedItems: [...this.selection.selected] });
     }
   }
-
+ 
   onExportSelected(): void {
     if (this.selection.selected.length > 0) {
-      this.exportData(this.selection.selected);
-      this.selectionAction.emit({
-        action: 'export',
-        selectedItems: [...this.selection.selected]
-      });
+      this.exportDataToExcel(this.selection.selected);
+      this.selectionAction.emit({ action: 'export', selectedItems: [...this.selection.selected] });
     }
   }
-
-  clearSelection(): void {
-    this.selection.clear();
+ 
+  // ─── Export helpers (use resolved currency code) ─────────────────────────
+  private exportDataToExcel(dataToExport: any[]): void {
+    const exportRows = dataToExport.map(item => {
+      const row: any = {};
+      this.config.columns.filter(col => col.visible !== false && col.type !== 'file')
+        .forEach(col => { row[col.label] = this.getExportValue(item[col.key], col, item); });
+      return row;
+    });
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    ws['!cols'] = this.config.columns.filter(col => col.visible !== false && col.type !== 'file').map(col => ({ wch: Math.max(col.label.length + 4, 16) }));
+ 
+    const totalValue = dataToExport.reduce((sum, item) => {
+      const currencyCol = this.config.columns.find(c => c.type === 'currency');
+      return currencyCol ? sum + (Number(item[currencyCol.key]) || 0) : sum;
+    }, 0);
+ 
+    const summaryRows: any[] = [
+      { Metric: 'Report Title',   Value: this.config.title },
+      { Metric: 'Generated Date', Value: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) },
+      { Metric: 'Total Records',  Value: dataToExport.length }
+    ];
+    const currencyCol = this.config.columns.find(c => c.type === 'currency' && c.visible !== false);
+    if (currencyCol) summaryRows.push({ Metric: `Total ${currencyCol.label}`, Value: this._formatCurrencyForExport(totalValue) });
+ 
+    const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
+    wsSummary['!cols'] = [{ wch: 24 }, { wch: 36 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, this.config.title.substring(0, 31));
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+    const fileName = `${this.config?.exportFileName || this.config?.title?.replace(/\s+/g, '_') || 'export'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
   }
-
-  exportToExcel(): void {
-    this.exportData(this.dataSource.filteredData);
-  }
-
+ 
+  exportToPDF():          void { this.exportDataToPDF(this.dataSource.filteredData); }
+  exportSelectedToPDF():  void { if (this.selection.selected.length > 0) this.exportDataToPDF(this.selection.selected); }
+  exportToExcel():        void { this.exportData(this.dataSource.filteredData); }
+  clearSelection():       void { this.selection.clear(); }
+ 
   private exportData(dataToExport: any[]): void {
     const exportData = dataToExport.map(item => {
       const exportItem: any = {};
-      this.config.columns
-        .filter(col => col.visible !== false && col.type !== 'avatar')
-        .forEach(col => {
-          exportItem[col.label] = this.getExportValue(item[col.key], col, item);
-        });
+      this.config.columns.filter(col => col.visible !== false && col.type !== 'avatar')
+        .forEach(col => { exportItem[col.label] = this.getExportValue(item[col.key], col, item); });
       return exportItem;
     });
-
     const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
+    const workbook  = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-
-    const fileName = this.config?.exportFileName ||
-      `${this.config?.title?.replace(/\s+/g, '_') || 'export'}_${new Date().toISOString().split('T')[0]}.xlsx`;
-
+    const fileName = `${this.config?.exportFileName || this.config?.title?.replace(/\s+/g, '_') || 'export'}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   }
-
-  private getExportValue(value: any, column: ListColumn, item: any): string {
+ 
+  private exportDataToPDF(dataToExport: any[]): void {
+    const visibleCols = this.config.columns.filter(col => col.visible !== false && !['file', 'avatar'].includes(col.type || ''));
+    const orientation = visibleCols.length > 5 ? 'landscape' : 'portrait';
+    const doc         = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+    const pageWidth   = doc.internal.pageSize.getWidth();
+    const primaryColor: [number, number, number] = [103, 58, 183];
+    const lightPurple: [number, number, number]  = [237, 231, 246];
+ 
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, pageWidth, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+    doc.text(this.config.title, 14, 12);
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, 20);
+    doc.text(`Total Records: ${dataToExport.length}`, pageWidth / 2, 20);
+ 
+    const currencyCol = this.config.columns.find(c => c.type === 'currency' && c.visible !== false);
+    let yPos = 34;
+    if (currencyCol) {
+      const totalVal  = dataToExport.reduce((sum, item) => sum + (Number(item[currencyCol.key]) || 0), 0);
+      doc.text(`Total ${currencyCol.label}: ${this._formatCurrencyForExport(totalVal)}`, pageWidth - 14, 20, { align: 'right' });
+      doc.setFillColor(...lightPurple);
+      doc.rect(0, yPos - 5, pageWidth, 14, 'F');
+      doc.setTextColor(...primaryColor);
+      doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+      doc.text(this._formatCurrencyForExport(totalVal), 14, yPos + 2);
+      doc.setTextColor(100, 100, 100); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+      doc.text(currencyCol.label.toUpperCase(), 14, yPos + 7);
+      yPos += 18;
+    }
+ 
+    autoTable(doc, {
+      head: [visibleCols.map(c => c.label)],
+      body: dataToExport.map(item => visibleCols.map(col => this.getExportValue(item[col.key], col, item))),
+      startY: yPos,
+      styles: { fontSize: 8, cellPadding: 4, lineColor: [220, 220, 220], lineWidth: 0.2, textColor: [50, 50, 50], overflow: 'ellipsize' },
+      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5, cellPadding: 5 },
+      alternateRowStyles: { fillColor: [250, 247, 255] },
+      columnStyles: this.buildPDFColumnStyles(visibleCols),
+      margin: { left: 14, right: 14 },
+      didDrawPage: (data) => {
+        const pageCount   = (doc as any).internal.getNumberOfPages();
+        const currentPage = data.pageNumber;
+        doc.setFontSize(8); doc.setTextColor(150, 150, 150); doc.setFont('helvetica', 'normal');
+        doc.text(`Page ${currentPage} of ${pageCount}  •  ${this.config.title}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
+        doc.setDrawColor(...primaryColor); doc.setLineWidth(0.5);
+        doc.line(14, doc.internal.pageSize.getHeight() - 12, pageWidth - 14, doc.internal.pageSize.getHeight() - 12);
+      }
+    });
+ 
+    const fileName = `${this.config?.exportFileName || this.config?.title?.replace(/\s+/g, '_') || 'export'}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+  }
+ 
+  private buildPDFColumnStyles(columns: ListColumn[]): { [key: number]: any } {
+    const styles: { [key: number]: any } = {};
+    columns.forEach((col, i) => {
+      if (col.type === 'currency' || col.type === 'number') styles[i] = { halign: 'right' };
+      else if (col.type === 'boolean') styles[i] = { halign: 'center' };
+      else if (col.type === 'date')    styles[i] = { halign: 'center', cellWidth: 28 };
+    });
+    return styles;
+  }
+ 
+  // ✅ CURRENCY FORMAT HELPERS
+  // All currency formatting goes through here — reads _currencyCode resolved from localStorage.
+  // Safe: if invalid code, falls back to USD silently.
+ 
+  /**
+   * Formats a number as currency for display in the table cell.
+   * Uses the company currency from localStorage (set once on ngOnInit).
+   */
+  formatCellCurrency(value: number): string {
+    return this._formatCurrencyIntl(value);
+  }
+ 
+  /**
+   * Formats a number as currency for export (Excel/PDF).
+   * Uses the company currency from localStorage.
+   */
+  private _formatCurrencyForExport(value: number): string {
+    return this._formatCurrencyIntl(value);
+  }
+ 
+  /**
+   * Core Intl formatter. Uses this._currencyCode (resolved from localStorage).
+   * Safe fallback to USD on any error.
+   */
+  private _formatCurrencyIntl(value: number): string {
+    try {
+      return new Intl.NumberFormat('en', {
+        style:                 'currency',
+        currency:              this._currencyCode,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(value ?? 0);
+    } catch {
+      // Fallback to USD if the stored currency code is somehow invalid at runtime
+      return new Intl.NumberFormat('en', { style: 'currency', currency: 'USD' }).format(value ?? 0);
+    }
+  }
+ 
+  // ─── Cell value formatting ────────────────────────────────────────────────
+  getExportValue(value: any, column: ListColumn, item: any): string {
     if (value == null) return '';
-
     switch (column.type) {
-      case 'currency':
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD'
-        }).format(value);
-      case 'number':
-        return new Intl.NumberFormat().format(value);
-      case 'date':
-        return new Date(value).toLocaleDateString();
-      case 'boolean':
-        return value ? 'Yes' : 'No';
-      case 'country':
-        return `${this.getCountryName(value)}`;
-      case 'avatar':
-        return item[column.nameField || column.key] || '';
+      case 'currency': return this._formatCurrencyForExport(value);
+      case 'number':   return new Intl.NumberFormat().format(value);
+      case 'date':     return new Date(value).toLocaleDateString();
+      case 'boolean':  return value ? 'Yes' : 'No';
+      case 'country':  return this.getCountryName(value);
+      case 'avatar':   return item[column.nameField || column.key] || '';
       case 'email':
         if (column.showEmailVerification && column.emailVerificationKey) {
-          const verified = item[column.emailVerificationKey];
-          return `${value} ${verified ? '(Verified)' : '(Not Verified)'}`;
+          return `${value} ${item[column.emailVerificationKey] ? '(Verified)' : '(Not Verified)'}`;
         }
         return value;
-      default:
-        return value.toString();
+      default: return value.toString();
     }
   }
-
+ 
+  /**
+   * ✅ UPDATED: currency type now uses the company's currency from localStorage.
+   * All other types unchanged.
+   */
   formatCellValue(value: any, column: ListColumn, item?: any): string {
     if (value == null) return '';
-
     switch (column.type) {
-      case 'currency':
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD'
-        }).format(value);
-      case 'number':
-        return new Intl.NumberFormat().format(value);
-      case 'date':
-        return new Date(value).toLocaleDateString();
-      case 'boolean':
-        return value ? 'Yes' : 'No';
-      default:
-        return value.toString();
+      case 'currency': return this._formatCurrencyIntl(value);   // ← company currency
+      case 'number':   return new Intl.NumberFormat().format(value);
+      case 'date':     return new Date(value).toLocaleDateString();
+      case 'boolean':  return value ? 'Yes' : 'No';
+      default:         return value.toString();
     }
   }
-
+ 
+  // ─── Avatar / display helpers ─────────────────────────────────────────────
   getAvatarUrl(item: any, column: ListColumn): string {
     return item[column.avatarField || 'avatar'] || '/assets/images/ProfilePic.png';
   }
-
+ 
   getDisplayName(item: any, column: ListColumn): string {
     return item[column.nameField || column.key] || '';
   }
-
+ 
   getCountryFlagUrl(country: string): string {
     if (!country) return '';
-
     const countries = this.countryService.getAllCountries();
-    const match = countries.find(c =>
-      c.code.toUpperCase() === country.toUpperCase() ||
-      c.name.toLowerCase() === country.toLowerCase()
-    );
-
-    const code = match ? match.code : country;
-    return this.countryService.getFlagUrl(code);
+    const match = countries.find(c => c.code.toUpperCase() === country.toUpperCase() || c.name.toLowerCase() === country.toLowerCase());
+    return this.countryService.getFlagUrl(match ? match.code : country);
   }
-
+ 
   getCountryName(countryCode: string): string {
     if (!countryCode) return '';
     const countries = this.countryService.getAllCountries();
-    const country = countries.find(c => c.code.toUpperCase() === countryCode.toUpperCase());
+    const country   = countries.find(c => c.code.toUpperCase() === countryCode.toUpperCase());
     return country ? country.name : countryCode;
   }
-
+ 
   formatPhoneNumber(phone: string | number): string {
     if (!phone) return '';
     const phoneStr = phone.toString();
-    if (phoneStr.length === 10) {
-      return `(${phoneStr.slice(0, 2)}) ${phoneStr.slice(3, 6)}-${phoneStr.slice(6)}`;
-    }
+    if (phoneStr.length === 10) return `(${phoneStr.slice(0, 2)}) ${phoneStr.slice(3, 6)}-${phoneStr.slice(6)}`;
     return phoneStr;
   }
-
+ 
   getColumnTooltip(column: ListColumn, value: any, item?: any): string {
     if (column.tooltip) return column.tooltip;
-
     switch (column.type) {
-      case 'avatar':
-        return this.getDisplayName(item!, column);
-      case 'country':
-        return `${this.getCountryName(value)} (${value})`;
-      case 'phone':
-        return `Call ${this.formatPhoneNumber(value)}`;
+      case 'avatar':  return this.getDisplayName(item!, column);
+      case 'country': return `${this.getCountryName(value)} (${value})`;
+      case 'phone':   return `Call ${this.formatPhoneNumber(value)}`;
       case 'email':
         if (column.showEmailVerification && column.emailVerificationKey && item) {
-          const verified = item[column.emailVerificationKey];
-          return verified ? `Send email to ${value} (Verified)` : `${value} (Not Verified - Click disabled)`;
+          return item[column.emailVerificationKey] ? `Send email to ${value} (Verified)` : `${value} (Not Verified)`;
         }
         return `Send email to ${value}`;
-      case 'address':
-        return `Address: ${value}`;
-      default:
-        return column.ellipsis ? value?.toString() || '' : '';
+      case 'address': return `Address: ${value}`;
+      default:        return column.ellipsis ? value?.toString() || '' : '';
     }
   }
-
+ 
   onPhoneClick(phone: string, event: Event): void {
     event.stopPropagation();
-    if (phone) {
-      window.open(`tel:${phone.replace(/\D/g, '')}`, '_self');
-    }
+    if (phone) window.open(`tel:${phone.replace(/\D/g, '')}`, '_self');
   }
-
+ 
   onEmailClick(email: string, row: any, column: ListColumn, event: Event): void {
     event.stopPropagation();
-
     if (column.showEmailVerification && column.emailVerificationKey && column.disableUnverifiedClick) {
-      const isVerified = row[column.emailVerificationKey];
-      if (!isVerified) {
-        console.log('Email not verified. Click disabled.');
-        return;
-      }
+      if (!row[column.emailVerificationKey]) return;
     }
-
-    if (email) {
-      window.open(`mailto:${email}`, '_self');
-    }
+    if (email) window.open(`mailto:${email}`, '_self');
   }
-
+ 
   isEmailVerified(row: any, column: ListColumn): boolean {
     if (!column.emailVerificationKey) return true;
     return row[column.emailVerificationKey] === true;
   }
-
+ 
   onAddressClick(address: string, event: Event): void {
     event.stopPropagation();
-    if (address) {
-      const encodedAddress = encodeURIComponent(address);
-      window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
-    }
+    if (address) window.open(`https://maps.google.com/maps?q=${encodeURIComponent(address)}`, '_blank');
   }
-
-  trackByFn(index: number, item: any): any {
-    return item.id || item.userProfileId || index;
-  }
-
+ 
+  trackByFn(index: number, item: any): any { return item.id || item.userProfileId || index; }
+ 
   shouldShowIcon(column: ListColumn): boolean {
     return column.showIcon !== false && ['phone', 'email', 'address', 'country'].includes(column.type || '');
   }
-
+ 
   getColumnIcon(column: ListColumn): string {
     switch (column.type) {
-      case 'phone': return 'phone';
-      case 'email': return 'email';
+      case 'phone':   return 'phone';
+      case 'email':   return 'email';
       case 'address': return 'location_on';
       case 'country': return 'public';
-      default: return 'info';
+      default:        return 'info';
     }
   }
 }

@@ -1,4 +1,6 @@
-﻿namespace SAMS.API.UserProfileAPIs.RequestObject
+﻿using SAMS.Helpers.Enum;
+
+namespace SAMS.API.UserProfileAPIs.RequestObject
 {
     public class UserProfileRequestObject
     {
@@ -37,5 +39,7 @@
         public string? Country { get; set; }
 
         public string? ProfilePicture { get; set; }
+
+        public UserType UserType { get; set; }
     }
 }

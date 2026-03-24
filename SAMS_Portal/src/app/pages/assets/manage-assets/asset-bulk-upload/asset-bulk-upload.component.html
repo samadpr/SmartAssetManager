@@ -1,0 +1,725 @@
+<!-- src/app/pages/assets/asset-bulk-upload/asset-bulk-upload.component.html -->
+
+<app-page-header
+  [title]="'Bulk Asset Upload'"
+  [breadcrumbs]="[
+    { label: 'Assets', url: '/assets' },
+    { label: 'Bulk Upload' }
+  ]">
+</app-page-header>
+<div class="bulk-upload-page">
+ 
+  <!-- ═══ STEP INDICATOR ════════════════════════════════════════════════════ -->
+  <div class="step-bar">
+    <div class="step-item" [class.active]="currentStep() >= 1" [class.done]="currentStep() > 1">
+      <div class="step-circle">
+        <mat-icon *ngIf="currentStep() > 1">check</mat-icon>
+        <span *ngIf="currentStep() <= 1">1</span>
+      </div>
+      <span class="step-label">Upload File</span>
+    </div>
+    <div class="step-connector" [class.done]="currentStep() > 1"></div>
+ 
+    <div class="step-item" [class.active]="currentStep() >= 2" [class.done]="currentStep() > 2">
+      <div class="step-circle">
+        <mat-icon *ngIf="currentStep() > 2">check</mat-icon>
+        <span *ngIf="currentStep() <= 2">2</span>
+      </div>
+      <span class="step-label">Review & Edit</span>
+    </div>
+    <div class="step-connector" [class.done]="currentStep() > 2"></div>
+ 
+    <div class="step-item" [class.active]="currentStep() >= 3" [class.done]="currentStep() > 3">
+      <div class="step-circle">
+        <mat-icon *ngIf="currentStep() > 3">check</mat-icon>
+        <span *ngIf="currentStep() <= 3">3</span>
+      </div>
+      <span class="step-label">Import</span>
+    </div>
+    <div class="step-connector" [class.done]="currentStep() > 3"></div>
+ 
+    <div class="step-item" [class.active]="currentStep() >= 4">
+      <div class="step-circle"><span>4</span></div>
+      <span class="step-label">Complete</span>
+    </div>
+  </div>
+ 
+  <!-- ═══ STEP 1: UPLOAD ═══════════════════════════════════════════════════ -->
+  <div class="step-panel" *ngIf="currentStep() === 1" [@stepAnim]>
+ 
+    <div class="step-header">
+      <mat-icon class="step-icon">upload_file</mat-icon>
+      <div>
+        <h2>Upload Your Asset File</h2>
+        <p>Use the official SAMS Excel template. Download it if you haven't already.</p>
+      </div>
+    </div>
+ 
+    <!-- Download template card -->
+    <div class="template-card">
+      <div class="template-card-left">
+        <div class="template-icon-wrap"><mat-icon>table_chart</mat-icon></div>
+        <div>
+          <span class="template-title">SAMS Asset Upload Template</span>
+          <span class="template-desc">Excel file with all fields, dropdowns, and instructions</span>
+        </div>
+      </div>
+      <button mat-raised-button color="primary" class="template-download-btn"
+              (click)="downloadTemplate()" [disabled]="downloadingTemplate()">
+        <div class="btn-inner" *ngIf="!downloadingTemplate()">
+          <mat-icon>download</mat-icon> Download Template
+        </div>
+        <div class="btn-inner loading" *ngIf="downloadingTemplate()">
+          <div class="mini-spinner"></div> Generating…
+        </div>
+      </button>
+    </div>
+ 
+    <!-- Drop Zone -->
+    <div class="drop-zone"
+         [class.drag-over]="isDragOver()"
+         [class.has-file]="uploadedFile()"
+         (dragover)="onDragOver($event)"
+         (dragleave)="onDragLeave()"
+         (drop)="onDrop($event)"
+         (click)="fileInput.click()">
+ 
+      <input #fileInput type="file" accept=".xlsx,.xls" (change)="onFileSelect($event)" style="display:none">
+ 
+      <div class="drop-content" *ngIf="!uploadedFile()">
+        <div class="drop-icon-wrap">
+          <mat-icon class="drop-icon">cloud_upload</mat-icon>
+        </div>
+        <span class="drop-title">Drag & drop your Excel file here</span>
+        <span class="drop-sub">or click to browse — .xlsx / .xls only</span>
+        <div class="drop-hint">
+          <mat-icon>info_outline</mat-icon>
+          Use only the official SAMS template for correct field mapping
+        </div>
+      </div>
+ 
+      <div class="file-selected" *ngIf="uploadedFile()">
+        <div class="file-icon-wrap"><mat-icon>insert_drive_file</mat-icon></div>
+        <div class="file-details">
+          <span class="file-name">{{ uploadedFile()!.name }}</span>
+          <span class="file-size">{{ formatFileSize(uploadedFile()!.size) }}</span>
+        </div>
+        <button mat-icon-button class="remove-file-btn" (click)="removeFile($event)" matTooltip="Remove file">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+ 
+    <div class="parse-error" *ngIf="parseError()">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ parseError() }}</span>
+    </div>
+ 
+    <div class="parse-progress" *ngIf="parsing()">
+      <mat-progress-bar mode="indeterminate" color="primary"></mat-progress-bar>
+      <span>Parsing file and loading dropdown data…</span>
+    </div>
+ 
+    <div class="step-actions">
+      <button mat-stroked-button (click)="cancel()">
+        <mat-icon>arrow_back</mat-icon> Back to Assets
+      </button>
+      <button mat-raised-button color="primary"
+              [disabled]="!uploadedFile() || parsing()"
+              (click)="parseAndProceed()">
+        <mat-icon>navigate_next</mat-icon> Parse & Review
+      </button>
+    </div>
+  </div>
+ 
+  <!-- ═══ STEP 2: REVIEW & EDIT ═════════════════════════════════════════════ -->
+  <div class="step-panel review-panel" *ngIf="currentStep() === 2" [@stepAnim]>
+ 
+    <div class="step-header">
+      <mat-icon class="step-icon">fact_check</mat-icon>
+      <div>
+        <h2>Review & Edit Assets</h2>
+        <p>{{ parsedAssets().length }} assets loaded — fix any errors before importing.</p>
+      </div>
+      <div class="review-stats">
+        <span class="stat-chip valid">
+          <mat-icon>check_circle</mat-icon>
+          {{ validCount() }} Valid
+        </span>
+        <span class="stat-chip invalid" *ngIf="invalidCount() > 0">
+          <mat-icon>error</mat-icon>
+          {{ invalidCount() }} Errors
+        </span>
+      </div>
+    </div>
+ 
+    <!-- Table -->
+    <div class="review-table-wrap">
+      <table class="review-table">
+        <thead>
+          <tr>
+            <th class="th-index">#</th>
+            <th class="th-status">Status</th>
+            <th class="th-name">Asset Name <span class="req">*</span></th>
+            <th class="th-brand">Brand <span class="req">*</span></th>
+            <th class="th-model">Model No <span class="req">*</span></th>
+            <th class="th-serial">Serial No <span class="req">*</span></th>
+            <th class="th-qty">Qty</th>
+            <th class="th-price">Unit Price</th>
+            <th class="th-category">Category</th>
+            <th class="th-sub-category">Sub Category</th>
+            <th class="th-supplier">Supplier</th>
+            <th class="th-status-col">Status</th>
+            <th class="th-dept">Department</th>
+            <th class="th-depr">Depreciable</th>
+            <th class="th-assign">Assign To</th>
+            <th class="th-files">Files</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let asset of parsedAssets(); let i = index; trackBy: trackByIndex">
+            <tr class="data-row"
+                [class.row-invalid]="!isAssetValid(asset)"
+                [class.row-editing]="editingIndex() === i">
+ 
+              <td class="td-index">{{ i + 1 }}</td>
+ 
+              <td class="td-status">
+                <mat-icon class="status-ok"  *ngIf="isAssetValid(asset)"  matTooltip="Ready to import">check_circle</mat-icon>
+                <mat-icon class="status-err" *ngIf="!isAssetValid(asset)" matTooltip="Required fields missing">error</mat-icon>
+              </td>
+ 
+              <td class="td-name">
+                <span class="cell-val" [class.missing]="!asset.name">{{ asset.name || '— missing —' }}</span>
+              </td>
+              <td class="td-brand">
+                <span class="cell-val" [class.missing]="!asset.assetBrand">{{ asset.assetBrand || '— missing —' }}</span>
+              </td>
+              <td class="td-model">
+                <span class="cell-val" [class.missing]="!asset.assetModelNo">{{ asset.assetModelNo || '— missing —' }}</span>
+              </td>
+              <td class="td-serial">
+                <span class="cell-val" [class.missing]="!asset.assetSerialNo">{{ asset.assetSerialNo || '— missing —' }}</span>
+              </td>
+              <td class="td-qty">{{ asset.quantity || 1 }}</td>
+              <td class="td-price">{{ asset.unitPrice | currency:'USD':'symbol':'1.2-2' }}</td>
+              <td class="td-category">{{ asset.categoryDisplay || '—' }}</td>
+              <td class="td-sub-category">{{ asset.subCategoryDisplay || '—' }}</td>
+              <td class="td-supplier">{{ asset.supplierDisplay || '—' }}</td>
+              <td class="td-status-col">{{ asset.assetStatusDisplay || '—' }}</td>
+              <td class="td-dept">{{ asset.departmentDisplay || '—' }}</td>
+              <td class="td-depr">
+                <span class="depr-badge" [class.yes]="asset.isDepreciable">
+                  {{ asset.isDepreciable ? 'Yes' : 'No' }}
+                </span>
+              </td>
+              <td class="td-assign">
+                <span class="assign-badge"
+                      [class.user]="asset.assignTo === AssignToType.User"
+                      [class.site]="asset.assignTo === AssignToType.Site">
+                  {{ asset.assignTo === AssignToType.User ? (asset.assignUserDisplay || 'User') :
+                     asset.assignTo === AssignToType.Site ? (asset.siteDisplay || 'Site') : 'Not Assigned' }}
+                </span>
+              </td>
+              <td class="td-files">
+                <div class="files-summary">
+                  <span class="file-dot" [class.has-file]="asset._imageFile"    matTooltip="Image">IMG</span>
+                  <span class="file-dot" [class.has-file]="asset._deliveryNote" matTooltip="Delivery Note">DN</span>
+                  <span class="file-dot" [class.has-file]="asset._receipt"      matTooltip="Receipt">RCT</span>
+                  <span class="file-dot" [class.has-file]="asset._invoice"      matTooltip="Invoice">INV</span>
+                </div>
+              </td>
+              <td class="td-actions">
+                <button mat-icon-button color="primary" (click)="openEditDrawer(i)"
+                        matTooltip="Edit asset" class="act-btn">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="removeAsset(i)"
+                        matTooltip="Remove asset" class="act-btn">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </tr>
+ 
+            <!-- Validation error pills -->
+            <tr class="error-row" *ngIf="!isAssetValid(asset)">
+              <td colspan="17">
+                <div class="error-pills">
+                  <span class="error-pill" *ngFor="let err of getValidationErrors(asset)">
+                    <mat-icon>warning</mat-icon> {{ err }}
+                  </span>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+ 
+    <div class="step-actions">
+      <button mat-stroked-button (click)="currentStep.set(1)">
+        <mat-icon>arrow_back</mat-icon> Back
+      </button>
+      <div class="action-right">
+        <button mat-stroked-button color="warn" (click)="clearAll()">
+          <mat-icon>clear_all</mat-icon> Clear All
+        </button>
+        <button mat-raised-button color="primary"
+                [disabled]="validCount() === 0"
+                (click)="proceedToImport()">
+          <mat-icon>cloud_upload</mat-icon>
+          Import {{ validCount() }} Assets
+        </button>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- ═══ EDIT DRAWER ═══════════════════════════════════════════════════════ -->
+  <div class="edit-drawer-backdrop" *ngIf="editingIndex() !== null" (click)="closeEditDrawer()"></div>
+  <div class="edit-drawer" [class.open]="editingIndex() !== null">
+    <ng-container *ngIf="editingIndex() !== null && editForm">
+ 
+      <div class="drawer-header">
+        <div class="drawer-title">
+          <mat-icon>edit</mat-icon>
+          <span>Edit Asset #{{ editingIndex()! + 1 }}</span>
+        </div>
+        <button mat-icon-button (click)="closeEditDrawer()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+ 
+      <div class="drawer-body" [formGroup]="editForm">
+ 
+        <!-- ── Basic Info ─────────────────────────────────────────────── -->
+        <div class="drawer-section-title">Basic Information</div>
+ 
+        <mat-form-field appearance="outline" class="fw">
+          <mat-label>Asset Name <span class="req">*</span></mat-label>
+          <input matInput formControlName="name" placeholder="Enter asset name">
+          <mat-icon matPrefix>inventory_2</mat-icon>
+          <mat-error>Required</mat-error>
+        </mat-form-field>
+ 
+        <div class="drawer-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Brand <span class="req">*</span></mat-label>
+            <input matInput formControlName="assetBrand" placeholder="Brand">
+            <mat-icon matPrefix>branding_watermark</mat-icon>
+            <mat-error>Required</mat-error>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Model Number <span class="req">*</span></mat-label>
+            <input matInput formControlName="assetModelNo" placeholder="Model No">
+            <mat-icon matPrefix>tag</mat-icon>
+            <mat-error>Required</mat-error>
+          </mat-form-field>
+        </div>
+ 
+        <div class="drawer-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Serial Number <span class="req">*</span></mat-label>
+            <input matInput formControlName="assetSerialNo" placeholder="Serial No">
+            <mat-icon matPrefix>qr_code_2</mat-icon>
+            <mat-error>Required</mat-error>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Quantity</mat-label>
+            <input matInput type="number" formControlName="quantity" min="1">
+            <mat-icon matPrefix>numbers</mat-icon>
+          </mat-form-field>
+        </div>
+ 
+        <div class="drawer-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Unit Price</mat-label>
+            <input matInput type="number" formControlName="unitPrice" min="0">
+            <mat-icon matPrefix>attach_money</mat-icon>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Warranty (Months)</mat-label>
+            <input matInput type="number" formControlName="warranetyInMonth" min="0">
+            <mat-icon matPrefix>verified_user</mat-icon>
+          </mat-form-field>
+        </div>
+ 
+        <mat-form-field appearance="outline" class="fw">
+          <mat-label>Description</mat-label>
+          <textarea matInput formControlName="description" rows="2" placeholder="Optional description"></textarea>
+          <mat-icon matPrefix>description</mat-icon>
+        </mat-form-field>
+ 
+        <!-- ── Classification ─────────────────────────────────────────── -->
+        <div class="drawer-section-title">Classification</div>
+ 
+        <div class="drawer-row">
+          <!-- Category — changing this auto-clears Sub Category via valueChanges subscription -->
+          <mat-form-field appearance="outline">
+            <mat-label>Category</mat-label>
+            <mat-select formControlName="category">
+              <mat-option [value]="null">— None —</mat-option>
+              <mat-option *ngFor="let c of dropdowns().categories" [value]="c.value">{{ c.label }}</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>category</mat-icon>
+          </mat-form-field>
+ 
+          <!-- Sub Category — filtered by drawerSelectedCategory signal (Bug #3 fix) -->
+          <mat-form-field appearance="outline">
+            <mat-label>Sub Category</mat-label>
+            <mat-select formControlName="subCategory">
+              <mat-option [value]="null">— None —</mat-option>
+              <mat-option *ngFor="let sc of filteredSubCategories()" [value]="sc.value">{{ sc.label }}</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>label</mat-icon>
+          </mat-form-field>
+        </div>
+ 
+        <div class="drawer-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Supplier</mat-label>
+            <mat-select formControlName="supplier">
+              <mat-option [value]="null">— None —</mat-option>
+              <mat-option *ngFor="let s of dropdowns().suppliers" [value]="s.value">{{ s.label }}</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>business</mat-icon>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Asset Status</mat-label>
+            <mat-select formControlName="assetStatus">
+              <mat-option [value]="null">— None —</mat-option>
+              <mat-option *ngFor="let s of dropdowns().assetStatus" [value]="s.value">{{ s.label }}</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>fact_check</mat-icon>
+          </mat-form-field>
+        </div>
+ 
+        <div class="drawer-row">
+          <!-- Department — changing this auto-clears Sub Department (Bug #3 fix) -->
+          <mat-form-field appearance="outline">
+            <mat-label>Department</mat-label>
+            <mat-select formControlName="department">
+              <mat-option [value]="null">— None —</mat-option>
+              <mat-option *ngFor="let d of dropdowns().departments" [value]="d.value">{{ d.label }}</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>business_center</mat-icon>
+          </mat-form-field>
+ 
+          <!-- Sub Department — filtered by drawerSelectedDepartment signal (Bug #3 fix) -->
+          <mat-form-field appearance="outline">
+            <mat-label>Sub Department</mat-label>
+            <mat-select formControlName="subDepartment">
+              <mat-option [value]="null">— None —</mat-option>
+              <mat-option *ngFor="let sd of filteredSubDepartments()" [value]="sd.value">{{ sd.label }}</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>account_tree</mat-icon>
+          </mat-form-field>
+        </div>
+ 
+        <!-- ── Assignment Details (Bug #4 — NEW SECTION) ─────────────── -->
+        <div class="drawer-section-title">Assignment Details</div>
+ 
+        <!-- Assign To selector -->
+        <mat-form-field appearance="outline" class="fw">
+          <mat-label>Assign To</mat-label>
+          <mat-select formControlName="assignTo">
+            <mat-option *ngFor="let opt of dropdowns().assignToOptions" [value]="opt.value">
+              {{ opt.label }}
+            </mat-option>
+          </mat-select>
+          <mat-icon matPrefix>assignment_ind</mat-icon>
+        </mat-form-field>
+ 
+        <!-- Assign to USER: show user dropdown -->
+        <ng-container *ngIf="drawerSelectedAssignTo() === AssignToType.User">
+          <mat-form-field appearance="outline" class="fw">
+            <mat-label>Employee / User</mat-label>
+            <mat-select formControlName="assignUserId">
+              <mat-option [value]="null">— Select employee —</mat-option>
+              <mat-option *ngFor="let u of dropdowns().usersList" [value]="u.value">{{ u.label }}</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>person</mat-icon>
+          </mat-form-field>
+        </ng-container>
+ 
+        <!-- Assign to SITE: show site + area dropdowns -->
+        <ng-container *ngIf="drawerSelectedAssignTo() === AssignToType.Site">
+          <div class="drawer-row">
+            <!-- Site — changing this auto-clears Area (Bug #3 fix applied here too) -->
+            <mat-form-field appearance="outline">
+              <mat-label>Site / Branch</mat-label>
+              <mat-select formControlName="siteId">
+                <mat-option [value]="null">— Select site —</mat-option>
+                <mat-option *ngFor="let s of dropdowns().sites" [value]="s.value">{{ s.label }}</mat-option>
+              </mat-select>
+              <mat-icon matPrefix>location_city</mat-icon>
+            </mat-form-field>
+ 
+            <!-- Area — filtered by drawerSelectedSite signal -->
+            <mat-form-field appearance="outline">
+              <mat-label>Area</mat-label>
+              <mat-select formControlName="areaId">
+                <mat-option [value]="null">— Select area —</mat-option>
+                <mat-option *ngFor="let a of filteredAreas()" [value]="a.value">{{ a.label }}</mat-option>
+              </mat-select>
+              <mat-icon matPrefix>map</mat-icon>
+            </mat-form-field>
+          </div>
+        </ng-container>
+ 
+        <!-- Transfer Date & Due Date — shown for both User and Site assignments -->
+        <ng-container *ngIf="drawerSelectedAssignTo() === AssignToType.User || drawerSelectedAssignTo() === AssignToType.Site">
+          <div class="drawer-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Transfer Date</mat-label>
+              <input matInput [matDatepicker]="dpTransfer" formControlName="transferDate">
+              <mat-datepicker-toggle matPrefix [for]="dpTransfer"></mat-datepicker-toggle>
+              <mat-datepicker #dpTransfer></mat-datepicker>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Due Date</mat-label>
+              <input matInput [matDatepicker]="dpDue" formControlName="dueDate">
+              <mat-datepicker-toggle matPrefix [for]="dpDue"></mat-datepicker-toggle>
+              <mat-datepicker #dpDue></mat-datepicker>
+            </mat-form-field>
+          </div>
+        </ng-container>
+ 
+        <!-- ── Depreciation ────────────────────────────────────────────── -->
+        <div class="drawer-section-title">Depreciation</div>
+ 
+        <mat-slide-toggle formControlName="isDepreciable" color="primary" class="depr-toggle">
+          This asset is depreciable
+        </mat-slide-toggle>
+ 
+        <ng-container *ngIf="editForm.get('isDepreciable')?.value">
+          <div class="drawer-row mt-8">
+            <mat-form-field appearance="outline">
+              <mat-label>Depreciable Cost</mat-label>
+              <input matInput type="number" formControlName="depreciableCost">
+              <mat-icon matPrefix>payments</mat-icon>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Salvage Value</mat-label>
+              <input matInput type="number" formControlName="salvageValue">
+              <mat-icon matPrefix>account_balance</mat-icon>
+            </mat-form-field>
+          </div>
+          <div class="drawer-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Period (Months)</mat-label>
+              <input matInput type="number" formControlName="depreciationInMonth">
+              <mat-icon matPrefix>schedule</mat-icon>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Method</mat-label>
+              <mat-select formControlName="depreciationMethod">
+                <mat-option [value]="null">— None —</mat-option>
+                <mat-option *ngFor="let m of dropdowns().depreciationMethods" [value]="m.value">{{ m.label }}</mat-option>
+              </mat-select>
+              <mat-icon matPrefix>calculate</mat-icon>
+            </mat-form-field>
+          </div>
+          <mat-form-field appearance="outline" class="fw">
+            <mat-label>Date Acquired</mat-label>
+            <input matInput [matDatepicker]="dp1" formControlName="dateAquired">
+            <mat-datepicker-toggle matPrefix [for]="dp1"></mat-datepicker-toggle>
+            <mat-datepicker #dp1></mat-datepicker>
+          </mat-form-field>
+        </ng-container>
+ 
+        <!-- ── Important Dates ─────────────────────────────────────────── -->
+        <div class="drawer-section-title">Important Dates</div>
+        <div class="drawer-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Purchase Date</mat-label>
+            <input matInput [matDatepicker]="dp2" formControlName="dateOfPurchase">
+            <mat-datepicker-toggle matPrefix [for]="dp2"></mat-datepicker-toggle>
+            <mat-datepicker #dp2></mat-datepicker>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Manufacturing Date</mat-label>
+            <input matInput [matDatepicker]="dp3" formControlName="dateOfManufacture">
+            <mat-datepicker-toggle matPrefix [for]="dp3"></mat-datepicker-toggle>
+            <mat-datepicker #dp3></mat-datepicker>
+          </mat-form-field>
+        </div>
+        <mat-form-field appearance="outline" class="fw">
+          <mat-label>Year of Valuation</mat-label>
+          <input matInput [matDatepicker]="dp4" formControlName="yearOfValuation">
+          <mat-datepicker-toggle matPrefix [for]="dp4"></mat-datepicker-toggle>
+          <mat-datepicker #dp4></mat-datepicker>
+        </mat-form-field>
+ 
+        <!-- ── File Uploads ────────────────────────────────────────────── -->
+        <div class="drawer-section-title">Documents & Image</div>
+ 
+        <div class="file-upload-grid">
+          <div class="file-upload-slot" *ngFor="let slot of fileSlots">
+            <div class="slot-label">
+              <mat-icon>{{ slot.icon }}</mat-icon>
+              {{ slot.label }}
+            </div>
+            <div class="slot-preview"
+                 [class.has-file]="getCurrentEditAsset()?.[slot.key]"
+                 (click)="slotFileInput.click()">
+              <input #slotFileInput type="file" [accept]="slot.accept"
+                     (change)="onSlotFileChange($event, slot.key)" style="display:none">
+              <ng-container *ngIf="getCurrentEditAsset()?.[slot.key]; else noFile">
+                <mat-icon class="preview-icon">insert_drive_file</mat-icon>
+                <span class="preview-name">{{ getCurrentEditAsset()?.[slot.key]?.name }}</span>
+                <button mat-icon-button class="remove-slot-btn"
+                        (click)="removeSlotFile($event, slot.key)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </ng-container>
+              <ng-template #noFile>
+                <mat-icon class="slot-upload-icon">cloud_upload</mat-icon>
+                <span>Click to upload</span>
+              </ng-template>
+            </div>
+          </div>
+        </div>
+ 
+        <!-- ── Note ───────────────────────────────────────────────────── -->
+        <div class="drawer-section-title">Note</div>
+        <mat-form-field appearance="outline" class="fw">
+          <mat-label>Note</mat-label>
+          <textarea matInput formControlName="note" rows="2" placeholder="Any additional notes"></textarea>
+          <mat-icon matPrefix>note</mat-icon>
+        </mat-form-field>
+ 
+      </div><!-- /drawer-body -->
+ 
+      <div class="drawer-footer">
+        <button mat-stroked-button (click)="closeEditDrawer()">Cancel</button>
+        <button mat-raised-button color="primary" (click)="saveEdit()">
+          <mat-icon>save</mat-icon> Save Changes
+        </button>
+      </div>
+    </ng-container>
+  </div>
+ 
+  <!-- ═══ STEP 3: IMPORTING ════════════════════════════════════════════════ -->
+  <div class="step-panel import-panel" *ngIf="currentStep() === 3" [@stepAnim]>
+ 
+    <div class="step-header">
+      <mat-icon class="step-icon">cloud_upload</mat-icon>
+      <div>
+        <h2>Importing Assets</h2>
+        <p>Please wait while we upload your assets one by one…</p>
+      </div>
+    </div>
+ 
+    <div class="import-progress-card">
+      <div class="progress-numbers">
+        <span class="prog-done">{{ importedCount() }}</span>
+        <span class="prog-sep">/</span>
+        <span class="prog-total">{{ validAssets().length }}</span>
+        <span class="prog-label">assets imported</span>
+        <span class="prog-failed" *ngIf="failedCount() > 0">
+          <mat-icon>error</mat-icon> {{ failedCount() }} failed
+        </span>
+      </div>
+      <mat-progress-bar mode="determinate" [value]="importProgress()" color="primary" class="import-bar"></mat-progress-bar>
+      <div class="import-status-row">
+        <span class="import-pct">{{ importProgress() | number:'1.0-0' }}%</span>
+        <span class="import-current" *ngIf="currentImporting()">
+          Uploading: <strong>{{ currentImporting() }}</strong>
+        </span>
+      </div>
+    </div>
+ 
+    <div class="import-list">
+      <div class="import-item" *ngFor="let item of importResults(); trackBy: trackByIndex"
+           [class.item-success]="item.status === 'success'"
+           [class.item-failed]="item.status === 'failed'"
+           [class.item-pending]="item.status === 'pending'"
+           [class.item-uploading]="item.status === 'uploading'">
+ 
+        <div class="item-icon-wrap">
+          <mat-icon *ngIf="item.status === 'success'">check_circle</mat-icon>
+          <mat-icon *ngIf="item.status === 'failed'">error</mat-icon>
+          <mat-icon *ngIf="item.status === 'pending'">pending</mat-icon>
+          <div class="item-spinner" *ngIf="item.status === 'uploading'"></div>
+        </div>
+ 
+        <div class="item-info">
+          <span class="item-name">{{ item.asset.name }}</span>
+          <span class="item-sub">{{ item.asset.assetBrand }} · {{ item.asset.assetModelNo }}</span>
+          <span class="item-error" *ngIf="item.status === 'failed' && item.error">{{ item.error }}</span>
+        </div>
+ 
+        <div class="item-actions" *ngIf="item.status === 'failed'">
+          <button mat-stroked-button color="warn" class="retry-btn" (click)="retryAsset(item)">
+            <mat-icon>refresh</mat-icon> Retry
+          </button>
+          <button mat-icon-button (click)="editFailedAsset(item)" matTooltip="Edit and retry">
+            <mat-icon>edit</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- ═══ STEP 4: COMPLETE ════════════════════════════════════════════════ -->
+  <div class="step-panel complete-panel" *ngIf="currentStep() === 4" [@stepAnim]>
+    <div class="complete-hero">
+      <div class="complete-icon-ring">
+        <mat-icon class="complete-icon">inventory_2</mat-icon>
+      </div>
+      <h2>Import Complete!</h2>
+ 
+      <div class="complete-stats">
+        <div class="c-stat success">
+          <mat-icon>check_circle</mat-icon>
+          <span class="c-num">{{ importedCount() }}</span>
+          <span class="c-lbl">Imported</span>
+        </div>
+        <div class="c-stat failed" *ngIf="failedCount() > 0">
+          <mat-icon>error</mat-icon>
+          <span class="c-num">{{ failedCount() }}</span>
+          <span class="c-lbl">Failed</span>
+        </div>
+        <div class="c-stat skipped" *ngIf="skippedCount() > 0">
+          <mat-icon>skip_next</mat-icon>
+          <span class="c-num">{{ skippedCount() }}</span>
+          <span class="c-lbl">Skipped</span>
+        </div>
+      </div>
+ 
+      <mat-expansion-panel *ngIf="failedCount() > 0" class="failed-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon>error_outline</mat-icon>
+            Failed Assets ({{ failedCount() }}) — Click to review & retry
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <div class="failed-list">
+          <div class="failed-item" *ngFor="let item of failedResults()">
+            <div class="fi-info">
+              <span class="fi-name">{{ item.asset.name }}</span>
+              <span class="fi-error">{{ item.error }}</span>
+            </div>
+            <div class="fi-actions">
+              <button mat-stroked-button color="primary" (click)="editAndRetryFailed(item)">
+                <mat-icon>edit</mat-icon> Edit & Retry
+              </button>
+              <button mat-stroked-button (click)="skipFailed(item)">Skip</button>
+            </div>
+          </div>
+        </div>
+      </mat-expansion-panel>
+ 
+      <div class="complete-actions">
+        <button mat-raised-button color="primary" (click)="goToAssets()">
+          <mat-icon>inventory_2</mat-icon> View Assets
+        </button>
+        <button mat-stroked-button (click)="startFresh()">
+          <mat-icon>upload_file</mat-icon> Upload Another File
+        </button>
+      </div>
+    </div>
+  </div>
+ 
+</div>

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { PageHeaderComponent } from '../../../shared/widgets/page-header/page-header.component';
 import { ManageAssetsService } from '../../../core/services/asset/manage-assets.service';
 import { SuppliersService } from '../../../core/services/supplier/suppliers.service';
@@ -21,17 +21,45 @@ import { UserProfileService } from '../../../core/services/users/user-profile.se
 import { AssetStatusService } from '../../../core/services/asset/asset-status/asset-status.service';
 import { AssetIssue } from '../../../core/models/interfaces/asset-manage/asset-issue.interface';
 import { AssetIssueService } from '../../../core/services/asset/asset-issues/asset-issue.service';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatButtonModule } from '@angular/material/button';
+import { MatRippleModule } from '@angular/material/core';
+import { CompanyStorageService } from '../../../core/services/localStorage/company/company-storage.service';
+import { Router } from '@angular/router';
+import { AssetBulkTemplateService } from '../../../core/services/asset/asset-bulk-template/asset-bulk-template.service';
+import { animate, style, transition, trigger } from '@angular/animations';
 
 @Component({
   selector: 'app-manage-assets',
+  standalone: true,
   imports: [
+    CommonModule,
     PageHeaderComponent,
-    ListWidgetComponent
+    ListWidgetComponent,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatRippleModule
   ],
   templateUrl: './manage-assets.component.html',
-  styleUrl: './manage-assets.component.scss'
+  styleUrl: './manage-assets.component.scss',
+  animations: [
+    trigger('fadeInOut', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'scale(0.95)' }),
+        animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))
+      ]),
+      transition(':leave', [
+        animate('150ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' }))
+      ])
+    ])
+  ]
 })
-export class ManageAssetsComponent {
+export class ManageAssetsComponent implements OnInit {
+
+  // ─── Services ─────────────────────────────────────────────────────────────
   private assetService = inject(ManageAssetsService);
   private supplierService = inject(SuppliersService);
   private departmentService = inject(DepartmentService);
@@ -45,24 +73,128 @@ export class ManageAssetsComponent {
   private userService = inject(UserProfileService);
   private assetStatusService = inject(AssetStatusService);
   private assetIssueService = inject(AssetIssueService);
+  private router = inject(Router);
+  private companyStorage = inject(CompanyStorageService);
+  private bulkTemplateService = inject(AssetBulkTemplateService);
 
+  // ─── State signals ────────────────────────────────────────────────────────
   assets = signal<AssetResponse[]>([]);
   loading = signal(false);
   filePreviewMap = signal<Map<string, string>>(new Map());
   fileMap = signal<Map<string, File>>(new Map());
+  // Add this signal inside the class:
+  downloadingTemplate = signal(false);
+
   dropdownData = signal<AssetDropdownData>({
-    categories: [],
-    allSubCategories: [],
-    suppliers: [],
-    sites: [],
-    allAreas: [],
-    departments: [],
-    allSubDepartments: [],
-    depreciationMethods: [],
-    assignToOptions: [],
-    usersList: [],
-    assetStatus: []
+    categories: [], allSubCategories: [], suppliers: [], sites: [],
+    allAreas: [], departments: [], allSubDepartments: [],
+    depreciationMethods: [], assignToOptions: [], usersList: [], assetStatus: []
   });
+
+  // ─── Computed stats ───────────────────────────────────────────────────────
+
+  totalAssets = computed(() => this.assets().length);
+  availableAssets = computed(() => this.assets().filter(a => a.isAvilable).length);
+
+  /** Assets assigned to a Site / Branch  (AssignToType.Site = 2) */
+  assignedToSiteCount = computed(() =>
+    this.assets().filter(a => (a as any).assignTo === AssignToType.Site).length
+  );
+  assignedToUserCount = computed(() =>
+    this.assets().filter(a => (a as any).assignTo === AssignToType.User).length
+  );
+
+  /** Unassigned  (AssignToType.NotAssigned = 0) */
+  unassignedCount = computed(() =>
+    this.assets().filter(
+      a => !(a as any).assignTo || (a as any).assignTo === AssignToType.NotAssigned
+    ).length
+  );
+
+  depreciableCount = computed(() => this.assets().filter(a => (a as any).isDepreciable).length);
+  nonDepreciableCount = computed(() => this.assets().filter(a => !(a as any).isDepreciable).length);
+
+  totalValue = computed(() =>
+    this.assets().reduce(
+      (sum, a) => sum + (Number((a as any).unitPrice) || 0) * (Number((a as any).quantity) || 1), 0
+    )
+  );
+
+  totalDepreciableCost = computed(() =>
+    this.assets()
+      .filter(a => (a as any).isDepreciable)
+      .reduce((sum, a) => sum + (Number((a as any).depreciableCost) || 0), 0)
+  );
+
+  totalSalvageValue = computed(() =>
+    this.assets()
+      .filter(a => (a as any).isDepreciable)
+      .reduce((sum, a) => sum + (Number((a as any).salvageValue) || 0), 0)
+  );
+
+  // ─── Currency helpers ─────────────────────────────────────────────────────
+
+  /**
+   * Currency SYMBOL only (e.g. "₹", "$", "€").
+   * Reads from CompanyStorageService (localStorage). Falls back to "$".
+   */
+  currencySymbolDisplay = computed<string>(() => {
+    try {
+      const code = this.companyStorage.getCurrency()?.trim() || 'USD';
+      return (
+        new Intl.NumberFormat('en', { style: 'currency', currency: code })
+          .formatToParts(0)
+          .find(p => p.type === 'currency')?.value ?? '$'
+      );
+    } catch {
+      return '$';
+    }
+  });
+
+  /**
+   * Full number with thousand separators + 2 decimal places — NO symbol.
+   * e.g. 125000.5 → "125,000.50"
+   */
+  formatAmount(value: number): string {
+    if (value == null) return '0.00';
+    return new Intl.NumberFormat('en', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  }
+
+  // ─── Navigation ───────────────────────────────────────────────────────────
+
+  goToSiteOverview(): void {
+    this.router.navigate(['/assets/site-branch-assets-overview']);
+  }
+
+  // ─── Lifecycle ────────────────────────────────────────────────────────────
+
+  ngOnInit(): void {
+    this.loadDropdownData();
+    this.loadAssets();
+  }
+
+  // ─── List widget config ───────────────────────────────────────────────────
+
+  goToBulkUpload(): void {
+    this.router.navigate(['/assets/bulk-upload']);
+  }
+
+  downloadTemplate(): void {
+    this.downloadingTemplate.set(true);
+    // Pass current dropdown data so template has real dropdown options
+    const data = this.dropdownData();
+    this.bulkTemplateService.generateAndDownload(data).then(() => {
+      this.downloadingTemplate.set(false);
+      this.globalService.showSnackbar('Excel template downloaded successfully', 'success');
+    }).catch(() => {
+      this.downloadingTemplate.set(false);
+      this.globalService.showToastr('Failed to generate template', 'error');
+    });
+  }
+
 
   listConfig: ListConfig = {
     title: 'Asset Management',
@@ -158,8 +290,17 @@ export class ManageAssetsComponent {
         sortable: true,
         type: 'currency',
         width: '120px',
-        align: 'right',
+        align: 'left',
         visible: true
+      },
+      {
+        key: 'quantity',
+        label: 'Quantity',
+        sortable: true,
+        type: 'number',
+        width: '100px',
+        align: 'center',
+        visible: false
       },
       {
         key: 'supplierDisplay',
@@ -627,11 +768,6 @@ export class ManageAssetsComponent {
     return this.assetService.disposeAsset(disposeRequest);
   }
 
-  ngOnInit(): void {
-    this.loadDropdownData();
-    this.loadAssets();
-  }
-
   private loadDropdownData() {
     forkJoin({
       suppliers: this.supplierService.getSuppliersByOrg(),
@@ -816,7 +952,8 @@ export class ManageAssetsComponent {
         colSpan: 1,
         icon: 'fact_check',
         options: dropdowns.assetStatus,
-        placeholder: 'Select Asset status'
+        placeholder: 'Select Asset status',
+        required: true
       },
       {
         key: 'description',
@@ -1187,7 +1324,8 @@ export class ManageAssetsComponent {
         colSpan: 1,
         icon: 'fact_check',
         options: dropdowns.assetStatus,
-        placeholder: 'Select Asset status'
+        placeholder: 'Select Asset status',
+        required: true
       },
       {
         key: 'description',

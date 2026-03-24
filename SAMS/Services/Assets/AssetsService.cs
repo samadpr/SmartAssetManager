@@ -209,7 +209,7 @@ namespace SAMS.Services.Assets
                     if (result.success)
                         createdAsset.AssetAssignedId = result.assetAssignedId;
                 }
-                else if (request.AssignTo == AssignToType.Location)
+                else if (request.AssignTo == AssignToType.SiteOrBranch)
                 {
                     createdAsset.SiteId = request.SiteId;
                     createdAsset.AreaId = request.AreaId;
@@ -722,10 +722,10 @@ namespace SAMS.Services.Assets
                 UserId = request.AssignTo == AssignToType.User
                             ? asset.AssignUserId
                             : null,
-                SiteId = request.AssignTo == AssignToType.Location
+                SiteId = request.AssignTo == AssignToType.SiteOrBranch
                             ? asset.SiteId
                             : null,
-                AreaId = request.AssignTo == AssignToType.Location
+                AreaId = request.AssignTo == AssignToType.SiteOrBranch
                             ? asset.AreaId
                             : null,
 
@@ -857,7 +857,7 @@ namespace SAMS.Services.Assets
                         asset.SiteId = userDetails.Site;
                         asset.AreaId = userDetails.Area;
                     }
-                    else if (request.AssignTo == AssignToType.Location)
+                    else if (request.AssignTo == AssignToType.SiteOrBranch)
                     {
                         asset.AssignUserId = null;
                         asset.SiteId = request.SiteId;

@@ -1,0 +1,448 @@
+<app-admin-page-header [title]="'Companies'" [breadcrumbs]="[
+    { label: 'Companies' }
+  ]">
+</app-admin-page-header>
+ 
+<div class="companies-page">
+ 
+  <!-- ══ STATS STRIP ══ -->
+  <div class="stats-strip">
+    <div class="stat-chip">
+      <mat-icon>corporate_fare</mat-icon>
+      <div class="stat-text">
+        <span class="stat-value">{{ totalCompanies }}</span>
+        <span class="stat-label">Total</span>
+      </div>
+    </div>
+    <div class="stat-chip active">
+      <mat-icon>verified</mat-icon>
+      <div class="stat-text">
+        <span class="stat-value">{{ activeCompanies }}</span>
+        <span class="stat-label">Active</span>
+      </div>
+    </div>
+    <div class="stat-chip expired">
+      <mat-icon>event_busy</mat-icon>
+      <div class="stat-text">
+        <span class="stat-value">{{ expiredCompanies }}</span>
+        <span class="stat-label">Expired</span>
+      </div>
+    </div>
+    <div class="stat-chip trial">
+      <mat-icon>hourglass_top</mat-icon>
+      <div class="stat-text">
+        <span class="stat-value">{{ trialCompanies }}</span>
+        <span class="stat-label">No Plan</span>
+      </div>
+    </div>
+    <span class="spacer"></span>
+    <div class="view-toggle">
+      <button mat-icon-button [class.active-view]="viewMode === 'card'" (click)="viewMode = 'card'" matTooltip="Card View">
+        <mat-icon>view_module</mat-icon>
+      </button>
+      <button mat-icon-button [class.active-view]="viewMode === 'table'" (click)="viewMode = 'table'" matTooltip="Table View">
+        <mat-icon>view_list</mat-icon>
+      </button>
+    </div>
+  </div>
+ 
+  <!-- ══ FILTER BAR ══ -->
+  <mat-card class="filter-bar" appearance="outlined">
+    <div class="filter-row">
+      <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+        <mat-label>Search companies, users, email…</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()" />
+        <button *ngIf="searchTerm" matSuffix mat-icon-button (click)="searchTerm=''; applyFilters()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Status</mat-label>
+        <mat-select [(ngModel)]="filterStatus" (ngModelChange)="applyFilters()">
+          <mat-option value="all">All Status</mat-option>
+          <mat-option value="active">Active</mat-option>
+          <mat-option value="expired">Expired</mat-option>
+          <mat-option value="no-subscription">No Plan</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" *ngIf="availableCountries.length">
+        <mat-label>Country</mat-label>
+        <mat-select [(ngModel)]="filterCountry" (ngModelChange)="applyFilters()">
+          <mat-option value="all">All Countries</mat-option>
+          <mat-option *ngFor="let c of availableCountries" [value]="c">{{ c }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Sort By</mat-label>
+        <mat-select [(ngModel)]="sortBy" (ngModelChange)="applyFilters()">
+          <mat-option value="name">Company Name</mat-option>
+          <mat-option value="date">Registered Date</mat-option>
+          <mat-option value="expiry">Expiry Date</mat-option>
+          <mat-option value="status">Status</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <button mat-stroked-button (click)="clearFilters()" *ngIf="hasActiveFilters()" class="clear-btn">
+        <mat-icon>filter_list_off</mat-icon> Clear
+      </button>
+    </div>
+    <div class="active-chips" *ngIf="hasActiveFilters()">
+      <mat-chip-set>
+        <mat-chip *ngIf="searchTerm" (removed)="searchTerm=''; applyFilters()" removable>
+          <mat-icon matChipAvatar>search</mat-icon>"{{ searchTerm }}"
+          <mat-icon matChipRemove>cancel</mat-icon>
+        </mat-chip>
+        <mat-chip *ngIf="filterStatus !== 'all'" (removed)="filterStatus='all'; applyFilters()" removable>
+          <mat-icon matChipAvatar>circle</mat-icon>{{ filterStatus | titlecase }}
+          <mat-icon matChipRemove>cancel</mat-icon>
+        </mat-chip>
+        <mat-chip *ngIf="filterCountry !== 'all'" (removed)="filterCountry='all'; applyFilters()" removable>
+          <mat-icon matChipAvatar>public</mat-icon>{{ filterCountry }}
+          <mat-icon matChipRemove>cancel</mat-icon>
+        </mat-chip>
+      </mat-chip-set>
+      <span class="result-count">{{ filteredCompanies.length }} result{{ filteredCompanies.length !== 1 ? 's' : '' }}</span>
+    </div>
+  </mat-card>
+ 
+  <!-- ══ LOADING ══ -->
+  <div class="loading-state" *ngIf="isLoading">
+    <mat-progress-bar mode="indeterminate" color="primary"></mat-progress-bar>
+    <div class="loading-cards">
+      <div class="skeleton-card" *ngFor="let s of [1,2,3,4,5,6]"></div>
+    </div>
+  </div>
+ 
+  <!-- ══ EMPTY ══ -->
+  <div class="empty-state" *ngIf="!isLoading && filteredCompanies.length === 0">
+    <mat-icon>corporate_fare</mat-icon>
+    <h3>No companies found</h3>
+    <p>{{ hasActiveFilters() ? 'Try adjusting your filters.' : 'No companies registered yet.' }}</p>
+    <button mat-stroked-button *ngIf="hasActiveFilters()" (click)="clearFilters()">
+      <mat-icon>refresh</mat-icon> Reset Filters
+    </button>
+  </div>
+ 
+  <!-- ══ CARD VIEW ══ -->
+  <div class="companies-grid" *ngIf="!isLoading && filteredCompanies.length > 0 && viewMode === 'card'">
+    <div class="company-card"
+         *ngFor="let company of filteredCompanies; trackBy: trackById"
+         [class.card--active]="company.isActive"
+         [class.card--expired]="getSubscriptionStatus(company) === 'expired'"
+         [class.card--no-plan]="getSubscriptionStatus(company) === 'no-plan'"
+         [class.card--suspended]="canToggleActive(company) && !company.isActive">
+ 
+      <!-- ── CARD BANNER ── -->
+      <div class="card-banner">
+        <div class="banner-left">
+          <div class="company-logo-wrap">
+            <img *ngIf="company.logo" [src]="company.logo" [alt]="company.name" class="company-logo" />
+            <div *ngIf="!company.logo" class="company-avatar-fallback">{{ getInitials(company.name) }}</div>
+          </div>
+          <div class="company-identity">
+            <h3 class="company-name">{{ company.name || 'Unnamed Company' }}</h3>
+            <span class="company-org-id">
+              <mat-icon>fingerprint</mat-icon>{{ company.organizationId | slice:0:12 }}…
+            </span>
+          </div>
+        </div>
+ 
+        <div class="banner-right">
+          <!-- Active/Suspend toggle — disabled when canToggleActive is false -->
+          <div class="active-toggle-wrap"
+               [class.toggle-disabled]="!canToggleActive(company)"
+               [matTooltip]="getToggleTooltip(company)">
+            <span class="toggle-status-dot"
+                  [class.dot-active]="canToggleActive(company) && company.isActive"
+                  [class.dot-suspended]="canToggleActive(company) && !company.isActive"
+                  [class.dot-locked]="!canToggleActive(company)">
+            </span>
+            <mat-slide-toggle
+              [checked]="canToggleActive(company) && company.isActive"
+              [disabled]="!canToggleActive(company)"
+              (change)="onToggleActive(company, $event.checked)"
+              color="primary">
+            </mat-slide-toggle>
+          </div>
+ 
+          <!-- Subscription Status Badge -->
+          <div class="sub-badge" [ngClass]="getSubscriptionBadge(company).css">
+            <mat-icon>{{ getSubscriptionBadge(company).icon }}</mat-icon>
+            <span>{{ getSubscriptionBadge(company).label }}</span>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Suspended Banner — only when has valid plan AND company is suspended -->
+      <div class="info-banner info-banner--suspended"
+           *ngIf="canToggleActive(company) && !company.isActive">
+        <mat-icon>pause_circle_filled</mat-icon>
+        <span>Company Suspended — all user access blocked</span>
+      </div>
+ 
+      <!-- Expired Banner -->
+      <div class="info-banner info-banner--expired"
+           *ngIf="getSubscriptionStatus(company) === 'expired'">
+        <mat-icon>event_busy</mat-icon>
+        <span>Subscription expired — renew plan to re-activate</span>
+      </div>
+ 
+      <!-- No Plan Banner -->
+      <div class="info-banner info-banner--no-plan"
+           *ngIf="getSubscriptionStatus(company) === 'no-plan'">
+        <mat-icon>info_outline</mat-icon>
+        <span>No subscription assigned — assign a plan to activate</span>
+      </div>
+ 
+      <!-- Plan Assigned (no dates) Banner -->
+      <div class="info-banner info-banner--assigned"
+           *ngIf="getSubscriptionStatus(company) === 'plan-assigned'">
+        <mat-icon>pending</mat-icon>
+        <span>Plan assigned — subscription dates required before activating</span>
+      </div>
+ 
+      <!-- ── CARD BODY ── -->
+      <div class="card-body">
+        <!-- Company Info -->
+        <div class="info-section">
+          <div class="section-header">
+            <mat-icon>business</mat-icon><span>Company</span>
+          </div>
+          <div class="info-grid">
+            <div class="info-item" *ngIf="company.email">
+              <mat-icon>email</mat-icon><span>{{ company.email }}</span>
+            </div>
+            <div class="info-item" *ngIf="company.phone">
+              <mat-icon>phone</mat-icon><span>{{ company.phone }}</span>
+            </div>
+            <div class="info-item" *ngIf="company.website">
+              <mat-icon>language</mat-icon>
+              <a [href]="company.website" target="_blank" class="website-link">{{ company.website }}</a>
+            </div>
+            <div class="info-item" *ngIf="company.city || company.country">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ [company.city, company.country] | joinNonNull }}</span>
+            </div>
+            <div class="info-item" *ngIf="company.address">
+              <mat-icon>maps_home_work</mat-icon><span class="ellipsis">{{ company.address }}</span>
+            </div>
+            <div class="info-item" *ngIf="company.currency">
+              <mat-icon>payments</mat-icon><span>{{ company.currency }}</span>
+            </div>
+          </div>
+        </div>
+ 
+        <div class="v-divider"></div>
+ 
+        <!-- Admin User Info -->
+        <div class="info-section user-section" *ngIf="company.userInfo">
+          <div class="section-header user-header">
+            <div class="user-avatar-mini">
+              <img *ngIf="company.userInfo.profilePicture" [src]="company.userInfo.profilePicture" class="user-pic" />
+              <div *ngIf="!company.userInfo.profilePicture" class="user-pic-fallback">
+                {{ getInitials((company.userInfo.firstName || '') + ' ' + (company.userInfo.lastName || '')) }}
+              </div>
+            </div>
+            <div class="user-header-text">
+              <span class="user-name">{{ company.userInfo.firstName }} {{ company.userInfo.lastName }}</span>
+              <span class="user-role-chip">{{ company.userInfo.roleName || 'Admin' }}</span>
+            </div>
+          </div>
+          <div class="info-grid">
+            <div class="info-item" *ngIf="company.userInfo.email">
+              <mat-icon>alternate_email</mat-icon><span>{{ company.userInfo.email }}</span>
+            </div>
+            <div class="info-item" *ngIf="company.userInfo.phoneNumber">
+              <mat-icon>smartphone</mat-icon><span>{{ company.userInfo.phoneNumber }}</span>
+            </div>
+            <div class="info-item" *ngIf="company.userInfo.designationName">
+              <mat-icon>badge</mat-icon><span>{{ company.userInfo.designationName }}</span>
+            </div>
+            <div class="info-item" *ngIf="company.userInfo.departmentName">
+              <mat-icon>account_tree</mat-icon><span>{{ company.userInfo.departmentName }}</span>
+            </div>
+            <div class="info-item email-verify">
+              <mat-icon [class.verified-icon]="company.userInfo.isEmailConfirmed"
+                        [class.unverified-icon]="!company.userInfo.isEmailConfirmed">
+                {{ company.userInfo.isEmailConfirmed ? 'mark_email_read' : 'mark_email_unread' }}
+              </mat-icon>
+              <span>Email {{ company.userInfo.isEmailConfirmed ? 'Verified' : 'Not Verified' }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="info-section no-user" *ngIf="!company.userInfo">
+          <div class="section-header">
+            <mat-icon>person_off</mat-icon><span>No Admin Assigned</span>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- ── CARD FOOTER ── -->
+      <div class="card-footer">
+        <div class="sub-dates" *ngIf="company.subscriptionDate || company.subscriptionExpiryDate">
+          <div class="date-chip" *ngIf="company.subscriptionDate">
+            <mat-icon>event_available</mat-icon>
+            <span>Since {{ company.subscriptionDate | date:'mediumDate' }}</span>
+          </div>
+          <div class="date-chip date-chip--expiry"
+               *ngIf="company.subscriptionExpiryDate"
+               [class.expiry-soon]="isExpiringSoon(company.subscriptionExpiryDate)"
+               [class.expiry-past]="getSubscriptionStatus(company) === 'expired'">
+            <mat-icon>event_busy</mat-icon>
+            <span>
+              {{ getSubscriptionStatus(company) === 'expired' ? 'Expired' : 'Expires' }}
+              {{ company.subscriptionExpiryDate | date:'mediumDate' }}
+            </span>
+          </div>
+        </div>
+        <div class="registered-date">
+          <mat-icon>calendar_today</mat-icon>
+          <span>Registered {{ company.createdDate | date:'mediumDate' }}</span>
+        </div>
+ 
+        <!-- ── ACTION BUTTONS ── -->
+        <div class="card-actions">
+          <button mat-icon-button class="action-icon-btn view-btn"
+                  matTooltip="View Full Details"
+                  (click)="viewCompany(company)">
+            <mat-icon>open_in_new</mat-icon>
+          </button>
+ 
+          <button mat-icon-button class="action-icon-btn sub-btn"
+                  [class.sub-add]="!company.subscriptionId"
+                  [matTooltip]="company.subscriptionId ? 'Edit Subscription' : 'Add Subscription'"
+                  (click)="openSubscriptionDialog(company)">
+            <mat-icon>{{ company.subscriptionId ? 'edit_note' : 'add_card' }}</mat-icon>
+          </button>
+ 
+          <button mat-icon-button class="action-icon-btn more-btn"
+                  [mat-menu-trigger-for]="cardMenu" matTooltip="More Actions">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #cardMenu="matMenu">
+            <button mat-menu-item (click)="viewCompany(company)">
+              <mat-icon>open_in_new</mat-icon> View Details
+            </button>
+            <button mat-menu-item (click)="contactAdmin(company)">
+              <mat-icon>mail_outline</mat-icon> Email Admin
+            </button>
+            <button mat-menu-item (click)="contactCompanyPhone(company)"
+                    *ngIf="company.phone || company.userInfo?.phoneNumber">
+              <mat-icon>call</mat-icon> Call Admin
+            </button>
+            <button mat-menu-item (click)="openSubscriptionDialog(company)">
+              <mat-icon>{{ company.subscriptionId ? 'edit_note' : 'add_card' }}</mat-icon>
+              {{ company.subscriptionId ? 'Edit Subscription' : 'Add Subscription' }}
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item
+                    [disabled]="!canToggleActive(company)"
+                    [matTooltip]="getToggleTooltip(company)"
+                    (click)="canToggleActive(company) && onToggleActive(company, !company.isActive)">
+              <mat-icon>{{ company.isActive ? 'pause_circle_outline' : 'play_circle_outline' }}</mat-icon>
+              {{ company.isActive ? 'Suspend' : 'Activate' }}
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item class="danger-item" (click)="deleteCompany(company)">
+              <mat-icon>delete_outline</mat-icon> Delete Company
+            </button>
+          </mat-menu>
+        </div>
+      </div>
+ 
+    </div>
+  </div>
+ 
+  <!-- ══ TABLE VIEW ══ -->
+  <mat-card appearance="outlined" class="table-card"
+            *ngIf="!isLoading && filteredCompanies.length > 0 && viewMode === 'table'">
+    <div class="table-container">
+      <table mat-table [dataSource]="filteredCompanies" class="companies-table">
+ 
+        <ng-container matColumnDef="company">
+          <th mat-header-cell *matHeaderCellDef>Company</th>
+          <td mat-cell *matCellDef="let c">
+            <div class="table-company-cell">
+              <div class="table-avatar">{{ getInitials(c.name) }}</div>
+              <div>
+                <div class="table-company-name">{{ c.name }}</div>
+                <div class="table-org-id">{{ c.organizationId | slice:0:10 }}…</div>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+ 
+        <ng-container matColumnDef="admin">
+          <th mat-header-cell *matHeaderCellDef>Admin</th>
+          <td mat-cell *matCellDef="let c">
+            <span *ngIf="c.userInfo">{{ c.userInfo.firstName }} {{ c.userInfo.lastName }}</span>
+            <span *ngIf="!c.userInfo" class="muted">—</span>
+          </td>
+        </ng-container>
+ 
+        <ng-container matColumnDef="email">
+          <th mat-header-cell *matHeaderCellDef>Email</th>
+          <td mat-cell *matCellDef="let c">{{ c.email || c.userInfo?.email || '—' }}</td>
+        </ng-container>
+ 
+        <ng-container matColumnDef="location">
+          <th mat-header-cell *matHeaderCellDef>Location</th>
+          <td mat-cell *matCellDef="let c">{{ ([c.city, c.country] | joinNonNull) || '—' }}</td>
+        </ng-container>
+ 
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let c">
+            <span class="table-sub-badge" [ngClass]="getSubscriptionBadge(c).css">
+              <mat-icon>{{ getSubscriptionBadge(c).icon }}</mat-icon>
+              {{ getSubscriptionBadge(c).label }}
+            </span>
+          </td>
+        </ng-container>
+ 
+        <ng-container matColumnDef="expiry">
+          <th mat-header-cell *matHeaderCellDef>Expiry</th>
+          <td mat-cell *matCellDef="let c">
+            <span [class.text-expired]="getSubscriptionStatus(c) === 'expired'"
+                  [class.text-warning]="isExpiringSoon(c.subscriptionExpiryDate)">
+              {{ c.subscriptionExpiryDate ? (c.subscriptionExpiryDate | date:'mediumDate') : '—' }}
+            </span>
+          </td>
+        </ng-container>
+ 
+        <ng-container matColumnDef="registered">
+          <th mat-header-cell *matHeaderCellDef>Registered</th>
+          <td mat-cell *matCellDef="let c">{{ c.createdDate | date:'mediumDate' }}</td>
+        </ng-container>
+ 
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let c">
+            <button mat-icon-button matTooltip="View Details" (click)="viewCompany(c)">
+              <mat-icon>open_in_new</mat-icon>
+            </button>
+            <button mat-icon-button
+                    [matTooltip]="c.subscriptionId ? 'Edit Subscription' : 'Add Subscription'"
+                    (click)="openSubscriptionDialog(c)">
+              <mat-icon>{{ c.subscriptionId ? 'edit_note' : 'add_card' }}</mat-icon>
+            </button>
+            <mat-slide-toggle
+              [checked]="canToggleActive(c) && c.isActive"
+              [disabled]="!canToggleActive(c)"
+              (change)="onToggleActive(c, $event.checked)"
+              color="primary"
+              [matTooltip]="getToggleTooltip(c)"
+              class="table-toggle">
+            </mat-slide-toggle>
+          </td>
+        </ng-container>
+ 
+        <tr mat-header-row *matHeaderRowDef="tableColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: tableColumns;" class="table-row"
+            [class.row-suspended]="canToggleActive(row) && !row.isActive"
+            [class.row-expired]="getSubscriptionStatus(row) === 'expired'"></tr>
+      </table>
+    </div>
+  </mat-card>
+ 
+</div>

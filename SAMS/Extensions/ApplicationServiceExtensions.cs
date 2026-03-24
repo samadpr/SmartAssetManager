@@ -7,6 +7,10 @@ using SAMS.Models.CommonModels;
 using SAMS.Models.EmailServiceModels;
 using SAMS.Services.Account;
 using SAMS.Services.Account.Interface;
+using SAMS.Services.Admin.CompaniesInformation;
+using SAMS.Services.Admin.CompaniesInformation.Interface;
+using SAMS.Services.Admin.Subscriptions;
+using SAMS.Services.Admin.Subscriptions.Interface;
 using SAMS.Services.Asset_Status;
 using SAMS.Services.Asset_Status.Interface;
 using SAMS.Services.AssetAreas;
@@ -157,6 +161,12 @@ namespace SAMS.Extensions
 
             services.AddScoped<IAssetIssueService, AssetIssueService>();
             services.AddScoped<IAssetIssueRepository, AssetIssueRepository>();
+
+            services.AddScoped<ISubscriptionsService, SubscriptionsService>();
+            services.AddScoped<ISubscriptionsRepository, SubscriptionsRepository>();
+
+            services.AddScoped<ICompaniesInformationService, CompaniesInformationService>();
+            services.AddScoped<ICompaniesInformationRepository, CompaniesInformationRepository>();
 
             return services;
         }

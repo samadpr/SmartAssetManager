@@ -2,6 +2,7 @@
 using SAMS.API.UserProfileAPIs.ResponseObject;
 using SAMS.Data;
 using SAMS.Helpers;
+using SAMS.Helpers.Enum;
 using SAMS.Models;
 using SAMS.Services.Account;
 using SAMS.Services.Profile.Interface;
@@ -157,6 +158,8 @@ public class UserProfileRepository : IUserProfileRepository
                                     ProfilePicture = vm.ProfilePicture,
                                     RoleIdDisplay = objManageRole.Name,
                                     RoleId = vm.RoleId,
+                                    UserType = vm.UserType,
+                                    UserTypeDisplay = ((UserType)vm.UserType!).ToString(),
                                 })
                             .FirstOrDefaultAsync();
 
@@ -236,6 +239,8 @@ public class UserProfileRepository : IUserProfileRepository
                                     RoleIdDisplay = objManageRole.Name,
                                     RoleId = vm.RoleId,
                                     IsAllowLoginAccess = vm.IsAllowLoginAccess,
+                                    UserType = vm.UserType,
+                                    UserTypeDisplay = ((UserType)vm.UserType!).ToString(),
                                 }).ToListAsync();
 
             if (!result.Any())
@@ -334,7 +339,9 @@ public class UserProfileRepository : IUserProfileRepository
                                     ProfilePicture = vm.ProfilePicture,
                                     RoleIdDisplay = objManageRole.Name,
                                     RoleId = vm.RoleId,
-                                    OrganizationId = vm.OrganizationId
+                                    OrganizationId = vm.OrganizationId,
+                                    UserType = vm.UserType,
+                                    UserTypeDisplay = ((UserType)vm.UserType!).ToString()
                                 }).ToListAsync();
 
             if (!result.Any())

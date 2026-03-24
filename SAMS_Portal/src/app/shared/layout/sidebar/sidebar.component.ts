@@ -11,6 +11,7 @@ import { ToastrService } from 'ngx-toastr';
 import { ProfileService } from '../../../core/services/account/profile/profile.service';
 import { UserProfileData } from '../../../core/models/interfaces/account/userProfile';
 import { GlobalService } from '../../../core/services/global/global.service';
+import { FileUrlHelper } from '../../../core/helper/get-file-url';
 
 export type MenuItem = {
   icon: string;
@@ -54,7 +55,7 @@ export class SidebarComponent implements OnInit {
 
   profilePictureUrl = computed(() => {
     const profile = this.userProfileData();
-    return profile?.profilePicture || '/assets/images/ProfilePic.png';
+    return FileUrlHelper.getFullUrl(profile?.profilePicture) || '/assets/images/ProfilePic.png';
   })
 
   getUserProfile() {

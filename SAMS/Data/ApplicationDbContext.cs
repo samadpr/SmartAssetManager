@@ -41,6 +41,12 @@ public partial class ApplicationDbContext : AuditableIdentityContext
             .HasForeignKey(ar => ar.RequestedEmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Entity<CompanyInfo>()
+            .HasOne(c => c.SubscriptionPlan)
+            .WithMany()
+            .HasForeignKey(c => c.SubscriptionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Global tenant filter
         foreach (var entityType in builder.Model.GetEntityTypes())
         {
@@ -154,6 +160,10 @@ public partial class ApplicationDbContext : AuditableIdentityContext
     public DbSet<AssetIssue> AssetIssue { get; set; }
 
     public DbSet<AssetRequest> AssetRequest { get; set; }
+
+    public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+
+    public DbSet<SubscriptionHistory> SubscriptionHistory { get; set; }
 
     public DbSet<SubscriptionRequest> SubscriptionRequest { get; set; }
 

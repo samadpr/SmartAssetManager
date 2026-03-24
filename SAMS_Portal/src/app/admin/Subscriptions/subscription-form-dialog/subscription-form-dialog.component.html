@@ -1,0 +1,211 @@
+<!-- <div class="dialog-wrap">
+
+  <div class="dlg-header">
+    <div class="dlg-header-icon">
+      <mat-icon>{{ isEdit ? 'edit' : 'add_circle' }}</mat-icon>
+    </div>
+    <div class="dlg-header-text">
+      <h2>{{ isEdit ? 'Edit Plan' : 'Create New Plan' }}</h2>
+      <p>{{ isEdit ? 'Update the subscription plan details.' : 'Fill in the details to create a subscription plan.' }}</p>
+    </div>
+    <button mat-icon-button class="dlg-close" (click)="onCancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dlg-body" mat-dialog-content>
+    <form [formGroup]="form" autocomplete="off">
+
+      <div class="section-label"><mat-icon>info</mat-icon> Basic Info</div>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Plan Name</mat-label>
+        <mat-icon matPrefix>workspace_premium</mat-icon>
+        <input matInput formControlName="name" placeholder="e.g. Starter, Professional, Enterprise…" />
+        @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
+          <mat-error>Plan name is required.</mat-error>
+        }
+        @if (form.get('name')?.hasError('minlength')) {
+          <mat-error>Minimum 3 characters required.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Short Description (optional)</mat-label>
+        <mat-icon matPrefix>description</mat-icon>
+        <input matInput formControlName="description" placeholder="e.g. Perfect for small teams" />
+      </mat-form-field>
+
+      <div class="section-label"><mat-icon>payments</mat-icon> Pricing & Duration</div>
+
+      <div class="two-col">
+        <mat-form-field appearance="outline">
+          <mat-label>Price (AED)</mat-label>
+          <mat-icon matPrefix>payments</mat-icon>
+          <input matInput type="number" formControlName="planAmount" placeholder="0" min="0" />
+          @if (form.get('planAmount')?.hasError('required') && form.get('planAmount')?.touched) {
+            <mat-error>Price is required.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Duration (Days)</mat-label>
+          <mat-icon matPrefix>schedule</mat-icon>
+          <input matInput type="number" formControlName="durationDays" min="1" />
+          @if (form.get('durationDays')?.hasError('min')) {
+            <mat-error>Minimum 1 day.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="preset-row">
+        <span class="preset-hint">Quick:</span>
+        @for (p of durationPresets; track p.days) {
+          <button type="button" class="preset-chip"
+            [class.active]="form.get('durationDays')?.value === p.days"
+            (click)="applyPreset(p.days)">
+            {{ p.label }}
+          </button>
+        }
+      </div>
+
+      <div class="section-label"><mat-icon>tune</mat-icon> Limits & Quotas</div>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Asset Limit</mat-label>
+        <mat-icon matPrefix>inventory_2</mat-icon>
+        <input matInput type="number" formControlName="assetLimit" placeholder="e.g. 500" min="1" />
+        <mat-hint>Maximum assets a company can register.</mat-hint>
+        @if (form.get('assetLimit')?.hasError('required') && form.get('assetLimit')?.touched) {
+          <mat-error>Asset limit is required.</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="two-col">
+        <mat-form-field appearance="outline">
+          <mat-label>System Users</mat-label>
+          <mat-icon matPrefix>manage_accounts</mat-icon>
+          <input matInput type="number" formControlName="systemUserLimit" placeholder="e.g. 5" min="1" />
+          @if (form.get('systemUserLimit')?.hasError('required') && form.get('systemUserLimit')?.touched) {
+            <mat-error>Required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Total Users</mat-label>
+          <mat-icon matPrefix>group</mat-icon>
+          <input matInput type="number" formControlName="totalUserLimit" placeholder="e.g. 50" min="1" />
+          @if (form.get('totalUserLimit')?.hasError('required') && form.get('totalUserLimit')?.touched) {
+            <mat-error>Required</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="section-label"><mat-icon>palette</mat-icon> Card Color Theme</div>
+
+      <div class="color-preview-strip"
+        [style.background]="'linear-gradient(135deg,' + form.get('cardColor')?.value + ',' + form.get('cardColorSecondary')?.value + ')'">
+        <span class="preview-label">Preview</span>
+        <div class="preview-pill">
+          <span>{{ form.get('name')?.value || 'Plan Name' }}</span>
+        </div>
+      </div>
+
+      <div class="color-swatches">
+        @for (theme of colorThemes; track theme.id) {
+          <button type="button" class="swatch"
+            [class.swatch-selected]="selectedThemeId() === theme.id"
+            [style.background]="'linear-gradient(135deg,' + theme.primary + ',' + theme.secondary + ')'"
+            [matTooltip]="theme.label"
+            (click)="selectTheme(theme)">
+            @if (selectedThemeId() === theme.id) {
+              <mat-icon>check</mat-icon>
+            }
+          </button>
+        }
+      </div>
+
+      <div class="custom-color-row">
+        <span class="custom-color-label">Custom Colors:</span>
+        <div class="color-picker-wrap">
+          <label class="color-pick-label">Primary</label>
+          <input type="color" formControlName="cardColor"
+            class="native-color-pick"
+            (input)="onCustomColorChange()"
+            [matTooltip]="'Pick primary color'" />
+          <span class="color-hex">{{ form.get('cardColor')?.value }}</span>
+        </div>
+        <div class="color-picker-wrap">
+          <label class="color-pick-label">Secondary</label>
+          <input type="color" formControlName="cardColorSecondary"
+            class="native-color-pick"
+            (input)="onCustomColorChange()"
+            [matTooltip]="'Pick secondary color'" />
+          <span class="color-hex">{{ form.get('cardColorSecondary')?.value }}</span>
+        </div>
+      </div>
+
+      <div class="section-label"><mat-icon>local_offer</mat-icon> Promo Badge <span class="optional-tag">optional</span></div>
+      <p class="section-sub">Highlight this plan with an eye-catching badge on the card.</p>
+
+      <div class="badge-grid">
+        @for (badge of badgeOptions; track badge.label; let i = $index) {
+          <button type="button" class="badge-opt"
+            [class.badge-opt-selected]="selectedBadgeIndex() === i"
+            (click)="selectBadge(i)">
+            <mat-icon>{{ badge.icon }}</mat-icon>
+            <span>{{ badge.label }}</span>
+          </button>
+        }
+        <button type="button" class="badge-opt badge-opt-none"
+          [class.badge-opt-selected]="selectedBadgeIndex() === null"
+          (click)="selectedBadgeIndex.set(null)">
+          <mat-icon>block</mat-icon>
+          <span>No Badge</span>
+        </button>
+      </div>
+
+      <div class="section-label"><mat-icon>settings</mat-icon> Plan Settings</div>
+
+      <div class="toggle-card" [class.is-custom]="form.get('isCustom')?.value">
+        <div class="toggle-left">
+          <div class="toggle-icon-wrap">
+            <mat-icon>{{ form.get('isCustom')?.value ? 'diamond' : 'public' }}</mat-icon>
+          </div>
+          <div>
+            <span class="toggle-title">{{ form.get('isCustom')?.value ? 'Custom Plan' : 'Standard Plan' }}</span>
+            <p class="toggle-desc">
+              {{ form.get('isCustom')?.value
+                  ? 'Tailored for a specific customer. Will NOT appear in the public InfoAsset portal.'
+                  : 'Visible to all customers after registration in the InfoAsset portal.' }}
+            </p>
+          </div>
+        </div>
+        <mat-slide-toggle formControlName="isCustom" color="primary"></mat-slide-toggle>
+      </div>
+
+      <mat-form-field appearance="outline" class="w-full sort-field">
+        <mat-label>Sort Order</mat-label>
+        <mat-icon matPrefix>sort</mat-icon>
+        <input matInput type="number" formControlName="sortOrder" placeholder="0" />
+        <mat-hint>Lower number appears first in the portal.</mat-hint>
+      </mat-form-field>
+
+    </form>
+  </div>
+
+  <div class="dlg-footer" mat-dialog-actions>
+    <button mat-stroked-button class="btn-cancel" (click)="onCancel()" [disabled]="saving()">
+      Cancel
+    </button>
+    <button mat-flat-button class="btn-save" (click)="onSubmit()" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="17"></mat-spinner>
+      } @else {
+        <mat-icon>{{ isEdit ? 'save' : 'add_circle' }}</mat-icon>
+      }
+      {{ isEdit ? 'Save Changes' : 'Create Plan' }}
+    </button>
+  </div>
+
+</div> -->

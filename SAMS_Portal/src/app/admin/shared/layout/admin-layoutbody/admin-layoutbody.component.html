@@ -1,0 +1,25 @@
+<app-admin-header></app-admin-header>
+
+<mat-sidenav-container class="admin-shell">
+  <mat-sidenav
+    #drawer
+    [mode]="layoutService.mode()"
+    [opened]="layoutService.opened()"
+    [fixedTopGap]="64"
+    (backdropClick)="layoutService.onBackdrop()"
+    (closedStart)="layoutService.afterSidenavClosed()"
+    [style.width]="layoutService.sidenavWidth()"
+    class="admin-sidenav"
+  >
+    <div class="sidebar-scroll-container">
+      <app-admin-sidebar [collapsed]="layoutService.collapsed()"></app-admin-sidebar>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content
+    class="admin-content"
+    [style.marginLeft]="layoutService.contentMargin()"
+  >
+    <router-outlet></router-outlet>
+  </mat-sidenav-content>
+</mat-sidenav-container>

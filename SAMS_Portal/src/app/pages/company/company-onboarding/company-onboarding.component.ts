@@ -18,6 +18,44 @@ import { IndustriesService } from '../../../core/services/Industries/industries.
 import { CompanyService } from '../../../core/services/company/company.service';
 import { CountryService } from '../../../core/services/account/country/country.service';
 import { CompanyRequest } from '../../../core/models/interfaces/company/company.interface';
+import { DeviceInfoService } from '../../../core/services/account/device/device-info.service';
+import { AccountService } from '../../../core/services/account/account.service';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface StepMeta {
+  index: number;
+  label: string;
+}
+
+export interface CurrencyInfo {
+  code: string;   // e.g. "USD"
+  symbol: string; // e.g. "$"
+  name: string;   // e.g. "US Dollar"
+}
+
+type CurrencyDetectionStatus = 'idle' | 'detecting' | 'detected' | 'manual';
+
+// ─── Country → Currency map (ISO 3166-1 alpha-2 → ISO 4217) ──────────────────
+const COUNTRY_CURRENCY_MAP: Record<string, string> = {
+  US: 'USD', GB: 'GBP', EU: 'EUR', IN: 'INR', JP: 'JPY', CN: 'CNY',
+  AU: 'AUD', CA: 'CAD', CH: 'CHF', AE: 'AED', SA: 'SAR', SG: 'SGD',
+  HK: 'HKD', NZ: 'NZD', SE: 'SEK', NO: 'NOK', DK: 'DKK', ZA: 'ZAR',
+  MX: 'MXN', BR: 'BRL', KR: 'KRW', TH: 'THB', MY: 'MYR', ID: 'IDR',
+  PH: 'PHP', VN: 'VND', BD: 'BDT', PK: 'PKR', EG: 'EGP', NG: 'NGN',
+  KE: 'KES', GH: 'GHS', TR: 'TRY', RU: 'RUB', UA: 'UAH', PL: 'PLN',
+  CZ: 'CZK', HU: 'HUF', RO: 'RON', AT: 'EUR', BE: 'EUR', NL: 'EUR',
+  DE: 'EUR', FR: 'EUR', ES: 'EUR', IT: 'EUR', PT: 'EUR', FI: 'EUR',
+  GR: 'EUR', IE: 'EUR', LU: 'EUR', SK: 'EUR', SI: 'EUR', EE: 'EUR',
+  LV: 'EUR', LT: 'EUR', MT: 'EUR', CY: 'EUR', HR: 'EUR', AR: 'ARS',
+  CL: 'CLP', CO: 'COP', PE: 'PEN', IL: 'ILS', QA: 'QAR', KW: 'KWD',
+  BH: 'BHD', OM: 'OMR', JO: 'JOD', LK: 'LKR', NP: 'NPR', MM: 'MMK',
+  KH: 'KHR', LA: 'LAK', MN: 'MNT', KZ: 'KZT', UZ: 'UZS', GE: 'GEL',
+  AM: 'AMD', AZ: 'AZN', TZ: 'TZS', UG: 'UGX', ET: 'ETB', ZM: 'ZMW',
+  ZW: 'ZWL', MZ: 'MZN', MG: 'MGA', MU: 'MUR', TN: 'TND', MA: 'MAD',
+  DZ: 'DZD', LY: 'LYD', SD: 'SDG', SO: 'SOS', CM: 'XAF', CI: 'XOF',
+  SN: 'XOF', ML: 'XOF', BF: 'XOF', NE: 'XOF', TG: 'XOF', BJ: 'XOF'
+};
 
 @Component({
   selector: 'app-company-onboarding',
@@ -26,7 +64,6 @@ import { CompanyRequest } from '../../../core/models/interfaces/company/company.
     CommonModule,
     ReactiveFormsModule,
     MatCardModule,
-    MatStepperModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
@@ -38,48 +75,104 @@ import { CompanyRequest } from '../../../core/models/interfaces/company/company.
   templateUrl: './company-onboarding.component.html',
   styleUrl: './company-onboarding.component.scss',
   animations: [
-    trigger('slideInOut', [
-      transition(':enter', [
-        style({ transform: 'translateX(100%)', opacity: 0 }),
-        animate('400ms cubic-bezier(0.4, 0, 0.2, 1)',
-          style({ transform: 'translateX(0)', opacity: 1 }))
-      ]),
-      transition(':leave', [
-        animate('400ms cubic-bezier(0.4, 0, 0.2, 1)',
-          style({ transform: 'translateX(-100%)', opacity: 0 }))
-      ])
-    ]),
     trigger('fadeIn', [
       transition(':enter', [
         style({ opacity: 0 }),
         animate('300ms ease-in', style({ opacity: 1 }))
       ])
-    ]),
-    trigger('scaleIn', [
-      transition(':enter', [
-        style({ transform: 'scale(0.8)', opacity: 0 }),
-        animate('300ms cubic-bezier(0.4, 0, 0.2, 1)',
-          style({ transform: 'scale(1)', opacity: 1 }))
-      ])
     ])
   ]
 })
 export class CompanyOnboardingComponent implements OnInit {
+
+  // ─── Signals ──────────────────────────────────────────────────
   currentStep = signal(0);
+  slideDir = signal<'forward' | 'back'>('forward');
   isLoading = signal(false);
   isSubmitting = signal(false);
   industries = signal<Industry[]>([]);
   countries = signal<any[]>([]);
-  companyId: number | null = null;
+  currencyDetectionStatus = signal<CurrencyDetectionStatus>('idle');
 
+  // ─── State ────────────────────────────────────────────────────
+  companyId: number | null = null;
+  readonly totalSteps = 5;
+
+  readonly stepsMeta: StepMeta[] = [
+    { index: 0, label: 'Industry' },
+    { index: 1, label: 'Company' },
+    { index: 2, label: 'Capacity' },
+    { index: 3, label: 'Location' },
+    { index: 4, label: 'Website' }
+  ];
+
+  /** Full list of currencies shown in the select dropdown */
+  readonly currencyList: CurrencyInfo[] = [
+    { code: 'USD', symbol: '$', name: 'US Dollar' },
+    { code: 'EUR', symbol: '€', name: 'Euro' },
+    { code: 'GBP', symbol: '£', name: 'British Pound' },
+    { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+    { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+    { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
+    { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham' },
+    { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal' },
+    { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
+    { code: 'HKD', symbol: 'HK$', name: 'Hong Kong Dollar' },
+    { code: 'NZD', symbol: 'NZ$', name: 'New Zealand Dollar' },
+    { code: 'SEK', symbol: 'kr', name: 'Swedish Krona' },
+    { code: 'NOK', symbol: 'kr', name: 'Norwegian Krone' },
+    { code: 'DKK', symbol: 'kr', name: 'Danish Krone' },
+    { code: 'ZAR', symbol: 'R', name: 'South African Rand' },
+    { code: 'MXN', symbol: '$', name: 'Mexican Peso' },
+    { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
+    { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
+    { code: 'THB', symbol: '฿', name: 'Thai Baht' },
+    { code: 'MYR', symbol: 'RM', name: 'Malaysian Ringgit' },
+    { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah' },
+    { code: 'PHP', symbol: '₱', name: 'Philippine Peso' },
+    { code: 'PKR', symbol: '₨', name: 'Pakistani Rupee' },
+    { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka' },
+    { code: 'LKR', symbol: '₨', name: 'Sri Lankan Rupee' },
+    { code: 'NPR', symbol: '₨', name: 'Nepalese Rupee' },
+    { code: 'EGP', symbol: '£', name: 'Egyptian Pound' },
+    { code: 'NGN', symbol: '₦', name: 'Nigerian Naira' },
+    { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling' },
+    { code: 'GHS', symbol: '₵', name: 'Ghanaian Cedi' },
+    { code: 'TRY', symbol: '₺', name: 'Turkish Lira' },
+    { code: 'RUB', symbol: '₽', name: 'Russian Ruble' },
+    { code: 'PLN', symbol: 'zł', name: 'Polish Złoty' },
+    { code: 'ILS', symbol: '₪', name: 'Israeli Shekel' },
+    { code: 'QAR', symbol: '﷼', name: 'Qatari Riyal' },
+    { code: 'KWD', symbol: 'د.ك', name: 'Kuwaiti Dinar' },
+    { code: 'BHD', symbol: '.د.ب', name: 'Bahraini Dinar' },
+    { code: 'OMR', symbol: '﷼', name: 'Omani Rial' },
+    { code: 'JOD', symbol: 'JD', name: 'Jordanian Dinar' },
+    { code: 'MAD', symbol: 'MAD', name: 'Moroccan Dirham' },
+    { code: 'TND', symbol: 'DT', name: 'Tunisian Dinar' },
+    { code: 'DZD', symbol: 'DA', name: 'Algerian Dinar' },
+    { code: 'VND', symbol: '₫', name: 'Vietnamese Dong' },
+    { code: 'XAF', symbol: 'CFA', name: 'Central African CFA' },
+    { code: 'XOF', symbol: 'CFA', name: 'West African CFA' },
+    { code: 'ARS', symbol: '$', name: 'Argentine Peso' },
+    { code: 'CLP', symbol: '$', name: 'Chilean Peso' },
+    { code: 'COP', symbol: '$', name: 'Colombian Peso' },
+    { code: 'PEN', symbol: 'S/', name: 'Peruvian Sol' },
+  ];
+
+  // ─── Forms ────────────────────────────────────────────────────
   industryForm!: FormGroup;
   basicInfoForm!: FormGroup;
+  subscriptionForm!: FormGroup;
   addressForm!: FormGroup;
   websiteForm!: FormGroup;
 
-  progressPercentage = computed(() => {
-    return ((this.currentStep() + 1) / 4) * 100;
-  });
+  // ─── Computed ─────────────────────────────────────────────────
+  progressPercentage = computed(() =>
+    ((this.currentStep() + 1) / this.totalSteps) * 100
+  );
 
   constructor(
     private fb: FormBuilder,
@@ -87,7 +180,9 @@ export class CompanyOnboardingComponent implements OnInit {
     private globelService: GlobalService,
     private industriesService: IndustriesService,
     private companyService: CompanyService,
-    private countryService: CountryService
+    private countryService: CountryService,
+    private deviceInfoService: DeviceInfoService,
+    private accountService: AccountService
   ) { }
 
   ngOnInit(): void {
@@ -95,8 +190,10 @@ export class CompanyOnboardingComponent implements OnInit {
     this.loadIndustries();
     this.loadCountries();
     this.loadCompanyData();
+    this.detectCurrencyFromIP();
   }
 
+  // ─── Form Init ────────────────────────────────────────────────
   initializeForms(): void {
     this.industryForm = this.fb.group({
       industriesId: [null, Validators.required]
@@ -108,17 +205,33 @@ export class CompanyOnboardingComponent implements OnInit {
       phone: ['', [Validators.required, Validators.pattern(/^[\+]?[1-9][\d]{0,15}$/)]]
     });
 
+    this.subscriptionForm = this.fb.group({
+      assetCount: [null, [Validators.required, Validators.min(1)]],
+      systemUserCount: [null, [Validators.required, Validators.min(1)]],
+      totalUserCount: [null, [Validators.required, Validators.min(1)]]
+    });
+
     this.addressForm = this.fb.group({
       address: [''],
       city: [''],
-      country: ['']
+      country: [''],
+      currency: ['']
     });
 
     this.websiteForm = this.fb.group({
-      website: ['', Validators.pattern(/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/)]
+      website: ['', Validators.pattern(
+        /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+      )]
+    });
+
+    // When user manually changes currency → mark as manual
+    this.addressForm.get('currency')!.valueChanges.subscribe(() => {
+      if (this.currencyDetectionStatus() === 'detected') return; // skip reactive patch
+      this.currencyDetectionStatus.set('manual');
     });
   }
 
+  // ─── Data Loaders ─────────────────────────────────────────────
   loadIndustries(): void {
     this.isLoading.set(true);
     this.industriesService.getAllIndustries().subscribe({
@@ -140,6 +253,94 @@ export class CompanyOnboardingComponent implements OnInit {
     this.countries.set(this.countryService.getAllCountries());
   }
 
+  private loadCompanyData(): void {
+    this.companyService.getCurrentUserCompany().subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          const company = response.data;
+          this.companyId = company.id;
+
+          this.industryForm.patchValue({ industriesId: company.industriesId });
+          this.basicInfoForm.patchValue({
+            name: company.name,
+            email: company.email,
+            phone: company.phone
+          });
+          this.addressForm.patchValue({
+            address: company.address,
+            city: company.city,
+            country: company.country,
+            currency: company.currency
+          });
+          this.websiteForm.patchValue({ website: company.website });
+
+          // If company already has a currency, show as detected
+          if (company.currency) {
+            this.currencyDetectionStatus.set('detected');
+          }
+        }
+      },
+      error: (error) => {
+        console.warn('No existing company found or failed to load:', error);
+      }
+    });
+  }
+
+  // ─── Currency Detection ───────────────────────────────────────
+
+  /**
+   * Step 1: Try to detect currency from IP geolocation on init.
+   * Only sets value if no currency is already set.
+   */
+  private detectCurrencyFromIP(): void {
+    // Only attempt if currency not already prefilled
+    if (this.addressForm?.get('currency')?.value) return;
+
+    this.currencyDetectionStatus.set('detecting');
+
+    this.accountService.getUserLocation().subscribe({
+      next: (loc) => {
+        const countryCode = loc?.country_code?.toUpperCase();
+        const currency = countryCode ? COUNTRY_CURRENCY_MAP[countryCode] : null;
+
+        if (currency) {
+          // Silently patch — don't trigger the manual-detection listener
+          this.currencyDetectionStatus.set('detected');
+          this.addressForm.patchValue({ currency }, { emitEvent: false });
+
+          // Also pre-fill country name if not already set
+          if (!this.addressForm.get('country')?.value) {
+            const matched = this.countries().find(c => c.code === countryCode);
+            if (matched) {
+              this.addressForm.patchValue({ country: matched.name }, { emitEvent: false });
+            }
+          }
+        } else {
+          this.currencyDetectionStatus.set('idle');
+        }
+      },
+      error: () => {
+        this.currencyDetectionStatus.set('idle');
+      }
+    });
+  }
+
+  /**
+   * Step 2: When user picks a country from the dropdown,
+   * immediately update currency from the map (overrides IP detection).
+   */
+  onCountryChange(countryName: string): void {
+    const matched = this.countries().find(c => c.name === countryName);
+    if (!matched) return;
+
+    const currency = COUNTRY_CURRENCY_MAP[matched.code?.toUpperCase()];
+    if (currency) {
+      this.currencyDetectionStatus.set('detected');
+      this.addressForm.patchValue({ currency }, { emitEvent: false });
+    }
+  }
+
+  // ─── Navigation ───────────────────────────────────────────────
   nextStep(): void {
     const step = this.currentStep();
 
@@ -154,57 +355,43 @@ export class CompanyOnboardingComponent implements OnInit {
       return;
     }
 
-    if (this.currentStep() < 3) {
+    if (step === 2 && this.subscriptionForm.invalid) {
+      this.markFormGroupTouched(this.subscriptionForm);
+      this.globelService.showToastr('Please fill in all capacity fields', 'Required');
+      return;
+    }
+
+    if (step < this.totalSteps - 1) {
+      this.slideDir.set('forward');
       this.currentStep.update(v => v + 1);
     }
   }
 
-  private loadCompanyData(): void {
-    this.companyService.getCurrentUserCompany().subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          const company = response.data;
-          this.companyId = company.id;
-
-          // 🟢 Pre-fill all forms with existing data
-          this.industryForm.patchValue({ industriesId: company.industriesId });
-          this.basicInfoForm.patchValue({
-            name: company.name,
-            email: company.email,
-            phone: company.phone
-          });
-          this.addressForm.patchValue({
-            address: company.address,
-            city: company.city,
-            country: company.country
-          });
-          this.websiteForm.patchValue({
-            website: company.website
-          });
-        }
-      },
-      error: (error) => {
-        console.warn('No existing company found or failed to load:', error);
-      }
-    });
-  }
-
   previousStep(): void {
     if (this.currentStep() > 0) {
+      this.slideDir.set('back');
       this.currentStep.update(v => v - 1);
     }
   }
 
   skipStep(): void {
-    if (this.currentStep() === 2) {
-      // Skip address step
+    const step = this.currentStep();
+    if (step === 3) {
+      this.slideDir.set('forward');
       this.currentStep.update(v => v + 1);
-    } else if (this.currentStep() === 3) {
-      // Skip website and submit
+    } else if (step === 4) {
       this.submitCompany();
     }
   }
 
+  goToStep(index: number): void {
+    if (index < this.currentStep()) {
+      this.slideDir.set('back');
+      this.currentStep.set(index);
+    }
+  }
+
+  // ─── Submit ───────────────────────────────────────────────────
   submitCompany(): void {
     this.isSubmitting.set(true);
 
@@ -216,12 +403,17 @@ export class CompanyOnboardingComponent implements OnInit {
       address: this.addressForm.value.address || null,
       city: this.addressForm.value.city || null,
       country: this.addressForm.value.country || null,
-      website: this.websiteForm.value.website || null
+      currency: this.addressForm.value.currency || null,
+      website: this.websiteForm.value.website || null,
+      subscription: {
+        assetCount: this.subscriptionForm.value.assetCount,
+        systemUserCount: this.subscriptionForm.value.systemUserCount,
+        totalUserCount: this.subscriptionForm.value.totalUserCount
+      }
     };
 
-    // 🟢 Check if updating or creating
     const apiCall = this.companyId
-      ? this.companyService.updateCompany({ ...companyRequest, id: this.companyId })
+      ? this.companyService.updateCompanyWithSubscription({ ...companyRequest, id: this.companyId })
       : this.companyService.createCompany(companyRequest);
 
     apiCall.subscribe({
@@ -233,12 +425,15 @@ export class CompanyOnboardingComponent implements OnInit {
           this.globelService.showToastr(message, 'success');
 
           setTimeout(() => {
-            this.router.navigateByUrl('/dashboard');
+            // ── CHANGED: always go to pending-activation after onboarding ──
+            // The activation guard on /dashboard will also redirect here
+            // if the admin hasn't activated yet, but routing directly is cleaner UX.
+            this.router.navigateByUrl('/pending-activation');
           }, 1500);
         } else {
           this.globelService.showToastr(response.message || 'Operation failed', 'error');
+          this.isSubmitting.set(false);
         }
-        this.isSubmitting.set(false);
       },
       error: (error) => {
         console.error('Error creating company:', error);
@@ -248,6 +443,7 @@ export class CompanyOnboardingComponent implements OnInit {
     });
   }
 
+  // ─── Helpers ──────────────────────────────────────────────────
   private markFormGroupTouched(formGroup: FormGroup): void {
     Object.keys(formGroup.controls).forEach(key => {
       formGroup.get(key)?.markAsTouched();
@@ -256,5 +452,41 @@ export class CompanyOnboardingComponent implements OnInit {
 
   getFlagUrl(code: string): string {
     return this.countryService.getFlagUrl(code);
+  }
+
+  /** Returns true when at least one capacity value has been filled */
+  hasCapacityValues(): boolean {
+    const { assetCount, systemUserCount, totalUserCount } = this.subscriptionForm.value;
+    return assetCount > 0 || systemUserCount > 0 || totalUserCount > 0;
+  }
+
+  /** Maps an industry name to an appropriate Material icon */
+  getIndustryIcon(name: string): string {
+    const map: Record<string, string> = {
+      'Technology': 'computer',
+      'Healthcare': 'local_hospital',
+      'Finance': 'account_balance',
+      'Education': 'school',
+      'Manufacturing': 'factory',
+      'Retail': 'storefront',
+      'Construction': 'construction',
+      'Transportation': 'local_shipping',
+      'Hospitality': 'hotel',
+      'Agriculture': 'agriculture',
+      'Energy': 'bolt',
+      'Government': 'account_balance',
+      'Non-Profit': 'volunteer_activism',
+      'Real Estate': 'apartment',
+      'Media': 'movie',
+      'Telecommunications': 'cell_tower',
+      'Consulting': 'work',
+      'Legal': 'gavel',
+      'Food & Beverage': 'restaurant',
+      'Automotive': 'directions_car'
+    };
+    const key = Object.keys(map).find(k =>
+      name?.toLowerCase().includes(k.toLowerCase())
+    );
+    return key ? map[key] : 'business';
   }
 }

@@ -1109,6 +1109,9 @@ namespace SAMS.Migrations
                     b.Property<long?>("IndustriesId")
                         .HasColumnType("bigint");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Logo")
                         .HasColumnType("nvarchar(max)");
 
@@ -1128,6 +1131,15 @@ namespace SAMS.Migrations
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("SubscriptionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("SubscriptionExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("SubscriptionId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Website")
                         .HasColumnType("nvarchar(max)");
 
@@ -1138,6 +1150,8 @@ namespace SAMS.Migrations
                         .HasFilter("[Email] IS NOT NULL");
 
                     b.HasIndex("IndustriesId");
+
+                    b.HasIndex("SubscriptionId");
 
                     b.ToTable("CompanyInfo");
                 });
@@ -1641,6 +1655,111 @@ namespace SAMS.Migrations
                     b.ToTable("SubDepartment");
                 });
 
+            modelBuilder.Entity("SAMS.Models.SubscriptionHistory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("AmountPaid")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("Cancelled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PaymentReference")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("SubscriptionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("SubscriptionPlanId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubscriptionPlanId");
+
+                    b.ToTable("SubscriptionHistory");
+                });
+
+            modelBuilder.Entity("SAMS.Models.SubscriptionPlan", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("AssetLimit")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Cancelled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsPlanActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("PlanAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SystemUserLimit")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalUserLimit")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SubscriptionPlans");
+                });
+
             modelBuilder.Entity("SAMS.Models.SubscriptionRequest", b =>
                 {
                     b.Property<long>("Id")
@@ -1919,6 +2038,9 @@ namespace SAMS.Migrations
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("UserType")
+                        .HasColumnType("int");
+
                     b.HasKey("UserProfileId");
 
                     b.HasIndex("AreaNavigationId");
@@ -2182,7 +2304,14 @@ namespace SAMS.Migrations
                         .WithMany("Companies")
                         .HasForeignKey("IndustriesId");
 
+                    b.HasOne("SAMS.Models.SubscriptionPlan", "SubscriptionPlan")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Industry");
+
+                    b.Navigation("SubscriptionPlan");
                 });
 
             modelBuilder.Entity("SAMS.Models.ManageUserRolesDetail", b =>
@@ -2205,6 +2334,15 @@ namespace SAMS.Migrations
                         .IsRequired();
 
                     b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("SAMS.Models.SubscriptionHistory", b =>
+                {
+                    b.HasOne("SAMS.Models.SubscriptionPlan", "SubscriptionPlan")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionPlanId");
+
+                    b.Navigation("SubscriptionPlan");
                 });
 
             modelBuilder.Entity("SAMS.Models.UserProfile", b =>

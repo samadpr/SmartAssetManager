@@ -13,6 +13,7 @@ import { AuthService } from '../../../core/services/auth/auth.service';
 import { GlobalService } from '../../../core/services/global/global.service';
 import { CompanyService } from '../../../core/services/company/company.service';
 import { AccountService } from '../../../core/services/account/account.service';
+import { CompanyStorageService } from '../../../core/services/localStorage/company/company-storage.service';
 
 @Component({
   selector: 'app-header',
@@ -37,6 +38,7 @@ export class HeaderComponent implements OnInit {
   private companyService = inject(CompanyService);
   private globalService = inject(GlobalService);
   private accountService = inject(AccountService);
+  private companyStorage = inject(CompanyStorageService);
 
   sideNavCollapsed = signal(false);
   companyLogo = signal<string>('assets/images/logos/company_logo.png');
@@ -51,19 +53,33 @@ export class HeaderComponent implements OnInit {
     public layoutService: LayoutService
   ) { }
 
-   ngOnInit(): void {
+  ngOnInit(): void {
     this.loadCompanyData();
   }
 
   private loadCompanyData(): void {
+    const storedCompany = this.companyStorage.get();
+
+    // If already saved in localStorage
+    if (storedCompany) {
+      this.companyName.set(storedCompany.name || 'Company');
+      this.companyEmail.set(storedCompany.email || '');
+      this.companyLogo.set(storedCompany.logo || 'assets/images/logos/company_logo.png');
+      return;
+    }
     this.companyService.getCurrentUserCompany().subscribe({
       next: (response) => {
         if (response.success && response.data) {
+
+          const company = response.data;
+          
           this.companyName.set(response.data.name || 'Company');
           this.companyEmail.set(response.data.email || '');
           if (response.data.logo) {
             this.companyLogo.set(response.data.logo);
           }
+          // 🔥 Save to localStorage
+          this.companyStorage.save(company);
         }
       },
       error: (err) => {

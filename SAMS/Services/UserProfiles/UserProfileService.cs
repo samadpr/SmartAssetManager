@@ -652,6 +652,7 @@ public class UserProfileService : IUserProfileService
             getUserProfile.user.ProfilePicture = userProfileDto.ProfilePicture;
             getUserProfile.user.ModifiedBy = modifiedBy;
             getUserProfile.user.ModifiedDate = DateTime.Now;
+            getUserProfile.user.UserType = userProfileDto.UserType;
 
             /*//var mappedProfile = _mapper.Map<UserProfile>(userProfileDto);
             //mappedProfile.CreatedBy = getUserProfile.user.CreatedBy;

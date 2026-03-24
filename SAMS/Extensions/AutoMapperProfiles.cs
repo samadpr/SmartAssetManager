@@ -15,6 +15,7 @@ using SAMS.API.SupplierAPIs.RequestObject;
 using SAMS.API.UserProfileAPIs.RequestObject;
 using SAMS.Models;
 using SAMS.Services.Account.DTOs;
+using SAMS.Services.Admin.Subscriptions.DTOs;
 using SAMS.Services.AssetAreas.DTOs;
 using SAMS.Services.AssetCategory.DTOs;
 using SAMS.Services.AssetsIssue.DTOs;
@@ -93,6 +94,8 @@ namespace SAMS.Extensions
             CreateMap<AssetIssueRequestObject, AssetIssueDto>().ReverseMap();
 
             CreateMap<AssetIssue, AssetIssueDto>().ReverseMap();
+
+            CreateMap<SubscriptionPlan, SubscriptionDto>().ReverseMap();
 
         }
     }

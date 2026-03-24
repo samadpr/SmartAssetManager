@@ -10,7 +10,7 @@ import { LoginComponent } from './pages/account/login/login.component';
 import { RegisterComponent } from './pages/account/register/register.component';
 import { LayoutbodyComponent } from './shared/layout/layoutbody/layoutbody.component';
 import { ConfirmotpComponent } from './pages/account/confirmotp/confirmotp.component';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard, portalGuard } from './core/guards/auth.guard';
 import { ManageRolesComponent } from './pages/roles/manage-roles/manage-roles.component';
 import { DepartmentComponent } from './pages/department-subdepartment/department/department.component';
 import { SubDepartmentComponent } from './pages/department-subdepartment/sub-department/sub-department.component';
@@ -30,6 +30,12 @@ import { ReportsComponent } from './pages/reports/reports/reports.component';
 import { AssetReportComponent } from './pages/reports/asset-report/asset-report.component';
 import { AssetQrBarcodeComponent } from './pages/assets/asset-qr-barcode/asset-qr-barcode.component';
 import { AssetsIssueComponent } from './pages/assets-issue/assets-issue.component';
+import { roleGuard } from './core/guards/role.guard';
+import { SelectPlanComponent } from './pages/account/select-plan/select-plan.component';
+import { activationGuard } from './core/guards/subscription.guard';
+import { PendingActivationComponent } from './pages/account/pending-activation/pending-activation.component';
+import { SiteAssetOverviewComponent } from './pages/sites-or-branchs/site-asset-overview/site-asset-overview.component';
+import { AssetBulkUploadComponent } from './pages/assets/manage-assets/asset-bulk-upload/asset-bulk-upload.component';
 
 export const routes: Routes = [
     {
@@ -39,127 +45,180 @@ export const routes: Routes = [
     },
     {
         path: 'login',
-        component: LoginComponent
+        component: LoginComponent,
+        title: 'Login'
     },
     {
         path: 'register',
-        component: RegisterComponent
+        component: RegisterComponent,
+        title: 'Register'
     },
     {
         path: 'confirmotp',
-        component: ConfirmotpComponent
+        component: ConfirmotpComponent,
+        title: 'Confirm OTP'
     },
     {
         path: 'company-onboarding',
         component: CompanyOnboardingComponent,
-        canActivate: [authGuard]
+        canActivate: [authGuard],
+        title: 'Company Onboarding'
+    },
+    // ── Pending activation waiting room ──────────────────────────────────────
+    // Requires auth only (not activationGuard — that would cause a redirect loop)
+    {
+        path: 'pending-activation',
+        component: PendingActivationComponent,
+        canActivate: [authGuard],
+        title: 'Awaiting Activation'
     },
     {
         path: 'user-email-verification',
-        component: UserEmailVerificationComponent
+        component: UserEmailVerificationComponent,
+        title: 'Email Verification'
     },
     {
         path: 'user-password-setup',
-        component: UserPasswordSetupComponent
+        component: UserPasswordSetupComponent,
+        title: 'Password Setup'
     },
     {
         path: '',
-        canActivate: [authGuard],
+        canActivate: [authGuard, portalGuard, activationGuard],
+        data: { portal: 'tenant' },
         component: LayoutbodyComponent,
         children: [
             {
                 path: 'dashboard',
-                component: DashboardComponent
+                component: DashboardComponent,
+                title: 'Dashboard'
             },
             {
                 path: 'assets',
-                component: ManageAssetsComponent
+                component: ManageAssetsComponent,
+                title: 'Manage Assets'
+            },
+            {
+                path: 'assets/site-branch-assets-overview',
+                component: SiteAssetOverviewComponent,
+                title: 'Site & Branch Assets Overview'
+            },
+            {
+                path: 'assets/bulk-upload',
+                component: AssetBulkUploadComponent,
+                title: 'Bulk Asset Upload'
             },
             {
                 path: 'assets/suppliers',
-                component: SupplierComponent
+                component: SupplierComponent,
+                title: 'Suppliers'
             },
             {
                 path: 'assets/asset-approve',
-                component: AssetApproveComponent
+                component: AssetApproveComponent,
+                title: 'Asset Approve'
             },
             {
                 path: 'assets/asset-issue',
-                component: AssetsIssueComponent
+                component: AssetsIssueComponent,
+                title: 'Asset Issue'
             },
             {
                 path: 'assets/asset-qr-barcode',
-                component: AssetQrBarcodeComponent
+                component: AssetQrBarcodeComponent,
+                title: 'Asset QR & Barcode'
             },
             {
                 path: 'asset-category',
-                component: AssetCategoryComponent
+                component: AssetCategoryComponent,
+                title: 'Asset Category'
             },
             {
                 path: 'asset-category/asset-sub-category',
-                component: AssetSubCategoryComponent
+                component: AssetSubCategoryComponent,
+                title: 'Asset Sub Category'
             },
             {
                 path: 'sites-branchs',
-                component: SitesOrBranchsComponent
+                component: SitesOrBranchsComponent,
+                title: 'Sites & Branchs'
             },
             {
                 path: 'sites-branchs/cities',
-                component: CitiesComponent
+                component: CitiesComponent,
+                title: 'Cities'
             },
             {
                 path: 'sites-branchs/areas',
-                component: AreasComponent
+                component: AreasComponent,
+                title: 'Areas'
             },
             {
                 path: 'manage-users',
                 component: ManageUserComponent,
+                title: 'Manage Users'
             },
             {
                 path: 'manage-users/login-access',
-                component: LoginAccessComponent
+                component: LoginAccessComponent,
+                title: 'Login Access'
             },
             {
                 path: 'manage-users/user-profile',
                 component: UserProfilesComponent,
+                title: 'User Profiles'
             },
             {
                 path: 'manage-users/designations',
                 component: DesignationComponent,
+                title: 'Designations'
             },
             {
                 path: 'department',
-                component: DepartmentComponent
+                component: DepartmentComponent,
+                title: 'Department'
             },
             {
                 path: 'manage-roles',
-                component: ManageRolesComponent
+                component: ManageRolesComponent,
+                title: 'Manage Roles'
             },
             {
                 path: 'profile',
-                component: ProfileComponent
+                component: ProfileComponent,
+                title: 'Profile'
             },
             {
                 path: 'department/sub-department',
-                component: SubDepartmentComponent
+                component: SubDepartmentComponent,
+                title: 'Sub Department'
             },
             {
                 path: 'settings',
-                component: SettingsComponent
+                component: SettingsComponent,
+                title: 'Settings'
             },
             {
                 path: 'company',
-                component: CompanyComponent
+                component: CompanyComponent,
+                title: 'Company'
             },
             {
                 path: 'reports',
-                component: ReportsComponent
+                component: ReportsComponent,
+                title: 'Reports'
             },
             {
                 path: 'reports/asset-reports',
-                component: AssetReportComponent
+                component: AssetReportComponent,
+                title: 'Asset Reports'
             }
         ]
-    }
+    },
+    {
+        path: 'admin',
+        loadChildren: () =>
+            import('./admin/admin.routes').then(m => m.ADMIN_ROUTES)
+    },
 
 ];

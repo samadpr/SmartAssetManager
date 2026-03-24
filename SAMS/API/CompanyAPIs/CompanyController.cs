@@ -44,6 +44,16 @@ namespace SAMS.API.CompanyAPIs
             return Ok(new { success = response.isSuccess, message = response.message });
         }
 
+        [Authorize(Roles = RoleModels.Admin)]
+        [HttpPut("company/update-company-with-subscription")]
+        public async Task<IActionResult> UpdateCompanyWithSubscription([FromBody] CompanyRequestObjectWithSubscription companyRequestObject)
+        {
+            var user = HttpContext.User.Identity?.Name ?? "System";
+
+            var response = await _companyService.UpdateCompanyWithSubscriptionAsync(companyRequestObject, user);
+            return Ok(new { success = response.isSuccess, message = response.message });
+        }
+
         [Authorize(Roles = RoleModels.CompanyInfo)]
         [HttpGet("company/get-company")]
         public async Task<IActionResult> GetCompanies()
@@ -69,6 +79,15 @@ namespace SAMS.API.CompanyAPIs
             var user = HttpContext.User.Identity?.Name ?? "System";
             var response = await _companyService.DeleteCompanyAsync(id, user);
             return Ok(new { success = response.isSuccess, message = response.message });
+        }
+
+        [Authorize(Roles = RoleModels.SuperAdmin)]
+        [HttpGet("company/get-all-companies-with-user")]
+        public async Task<IActionResult> GetAllCompaniesWithUser()
+        {
+            var user = HttpContext.User.Identity?.Name ?? "System";
+            var response = await _companyService.GetAllCompaniesWithUser(user);
+            return Ok(new { success = response.isSuccess, message = response.message, data = response.data });
         }
     }
 }
