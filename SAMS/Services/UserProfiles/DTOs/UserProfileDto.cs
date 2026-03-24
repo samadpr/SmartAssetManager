@@ -1,4 +1,5 @@
 ﻿using SAMS.Helpers;
+using SAMS.Helpers.Enum;
 using SAMS.Models;
 
 namespace SAMS.Services.UserProfiles.DTOs
@@ -52,5 +53,7 @@ namespace SAMS.Services.UserProfiles.DTOs
         public bool? Level2Approval { get; set; }
 
         public bool? Level3Approval { get; set; }
+
+        public UserType UserType { get; set; }
     }
 }

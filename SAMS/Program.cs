@@ -59,7 +59,7 @@ builder.Services.AddSwaggerGen(c =>
 //builder.Services.AddSession(options =>
 //{
 //    options.IdleTimeout = TimeSpan.FromMinutes(60);
-//});*/
+//});
 
 //builder.Services.ConfigureApplicationCookie(options =>
 //{
@@ -73,7 +73,7 @@ builder.Services.AddSwaggerGen(c =>
 //        context.Response.StatusCode = 403; // Forbidden
 //        return Task.CompletedTask;
 //    };
-//});
+//});*/
 
 
 builder.Services.AddAuthentication(options =>
@@ -118,7 +118,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowLocalNetwork", policy =>
         policy.WithOrigins(
             "http://localhost:4200",
-            "http://172.16.0.1:4200"
+            "http://192.168.0.31:4200"
         )
         .AllowAnyHeader()
         .AllowAnyMethod()

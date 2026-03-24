@@ -29,7 +29,7 @@
         {
             NotAssigned = 0,
             User = 1,
-            Location = 2,
+            SiteOrBranch = 2,
             Disposed = 3
         }
 

@@ -1,4 +1,5 @@
-﻿using SAMS.Models.CommonModels.Abstract;
+﻿using SAMS.Helpers.Enum;
+using SAMS.Models.CommonModels.Abstract;
 
 namespace SAMS.Services.UserProfiles.DTOs
 {
@@ -41,5 +42,9 @@ namespace SAMS.Services.UserProfiles.DTOs
         public string? ProfilePicture { get; set; }
 
         public int? IsApprover { get; set; }
+
+        public UserType UserType { get; set; }
+
+        public string? UserTypeDisplay { get; set; }
     }
 }

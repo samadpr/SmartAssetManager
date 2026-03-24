@@ -1,4 +1,6 @@
-﻿namespace SAMS.Services.Dashboard.DTOs
+﻿using static SAMS.Helpers.Enum.AssetEnums;
+
+namespace SAMS.Services.Dashboard.DTOs
 {
     // ─── 1. KPI Stats ───────────────────────────────────────────────────────────
     public class KpiStatItemDto
@@ -78,10 +80,16 @@
     // ─── 9. Sites Asset Summary ─────────────────────────────────────────────────
     public class SiteAssetMiniDto
     {
+        public long Id { get; set; }
         public string AssetId { get; set; } = null!;
         public string Name { get; set; } = null!;
         public string Status { get; set; } = null!;
         public string StatusKey { get; set; } = null!;
+        public string? CategoryDisplay { get; set; }
+        public double? UnitPrice { get; set; }
+        public string? AssetImageUrl { get; set; }
+        public AssignToType? AssetAssignTo { get; set; }
+
     }
 
     public class SiteAssetSummaryDto

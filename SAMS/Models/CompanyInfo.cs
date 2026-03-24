@@ -33,5 +33,17 @@ public class CompanyInfo : EntityBase
 
     public string? Website { get; set; }
 
+    // NEW SUBSCRIPTION FIELDS
+
+    public long? SubscriptionId { get; set; }
+
+    public DateTime? SubscriptionDate { get; set; }
+
+    public DateTime? SubscriptionExpiryDate { get; set; }
+
+    public bool IsActive { get; set; }
+
+    public SubscriptionPlan? SubscriptionPlan { get; set; }
+
     public Industries? Industry { get; set; }
 }

@@ -447,7 +447,7 @@ namespace SAMS.Services.Dashboard
             var siteIds = sites.Select(s => s.Site.Id).ToList();
 
             var assets = await _context.Asset
-                .Where(a => a.OrganizationId == orgId && !a.Cancelled && a.SiteId.HasValue && siteIds.Contains(a.SiteId.Value))
+                .Where(a => a.OrganizationId == orgId && !a.Cancelled && a.SiteId.HasValue && siteIds.Contains(a.SiteId.Value) && a.AssignTo != (int)AssignToType.Disposed)
                 .Join(_context.AssetStatuses, a => a.AssetStatus, s => s.Id, (a, s) => new
                 {
                     a.Id,
@@ -458,7 +458,10 @@ namespace SAMS.Services.Dashboard
                     a.Quantity,
                     StatusName = s.Name,
                     a.AssetStatus,
-                    a.CreatedDate
+                    a.CreatedDate,
+                    a.Category,
+                    a.ImageUrl,
+                    a.AssignTo
                 })
                 .ToListAsync();
 
@@ -489,12 +492,17 @@ namespace SAMS.Services.Dashboard
                     .Take(8)
                     .Select(a => new SiteAssetMiniDto
                     {
+                        Id = a.Id,
                         AssetId = a.AssetId,
                         Name = a.Name ?? string.Empty,
                         Status = a.StatusName ?? string.Empty,
                         StatusKey = a.AssetStatus.HasValue && statusKeyMap.ContainsKey((int)a.AssetStatus.Value)
                             ? statusKeyMap[(int)a.AssetStatus.Value]
-                            : "unknown"
+                            : "unknown",
+                        CategoryDisplay = a.Category.HasValue ? _context.AssetCategorie.FirstOrDefault(c => c.Id == a.Category && c.OrganizationId == orgId)?.Name ?? string.Empty : string.Empty,
+                        UnitPrice = a.UnitPrice,
+                        AssetImageUrl = a.ImageUrl,
+                        AssetAssignTo = (AssignToType)a.AssignTo!
                     })
                     .ToList()
             }).ToList();

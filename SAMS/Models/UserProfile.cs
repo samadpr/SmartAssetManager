@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SAMS.Helpers.Enum;
+using System;
 using System.Collections.Generic;
 
 namespace SAMS.Models;
@@ -54,6 +55,8 @@ public class UserProfile : EntityBase
     public bool? Level3Approval { get; set; }
 
     public Guid OrganizationId { get; set; }
+
+    public UserType UserType { get; set; }
 
     public virtual ICollection<AssetAssigned> AssetAssigneds { get; set; } = new List<AssetAssigned>();
 

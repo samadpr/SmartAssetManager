@@ -1,4 +1,6 @@
-﻿namespace SAMS.API.UserProfileAPIs.ResponseObject
+﻿using SAMS.Helpers.Enum;
+
+namespace SAMS.API.UserProfileAPIs.ResponseObject
 {
     public class GetProfileDetailsResponseObject
     {
@@ -55,5 +57,9 @@
         public string? ProfilePicture { get; set; }
 
         public bool? IsAllowLoginAccess { get; set; }
+
+        public UserType UserType { get; set; }
+
+        public string? UserTypeDisplay { get; set; }
     }
 }
