@@ -89,6 +89,15 @@ namespace SAMS.Services.AssetSitesOrBranches
             return (true, "Fetched successfully", list);
         }
 
+        public async Task<(bool success, string message, AssetSiteDto? data)> GetBySiteOrBranchIdAsync(long id)
+        {
+            var orgId = _companyContext.OrganizationId;
+            var siteOrBranch = await _repo.GetBySiteOrBranchIdAsync(id, orgId);
+
+            if(siteOrBranch == null) return (false, "Not found in your organization", null);
+            return (true, "Fetched successfully", siteOrBranch);
+        }
+
         public async Task<(bool success, string message, IEnumerable<AssetSiteDto>? data)> GetByCityIdAsync(long cityId)
         {
             try

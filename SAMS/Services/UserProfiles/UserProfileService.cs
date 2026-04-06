@@ -1,11 +1,13 @@
-﻿using System.Text;
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using SAMS.API.UserProfileAPIs.RequestObject;
 using SAMS.API.UserProfileAPIs.ResponseObject;
+using SAMS.Data;
 using SAMS.Helpers;
+using SAMS.Helpers.Enum;
 using SAMS.Models;
 using SAMS.Models.EmailServiceModels;
 using SAMS.Services.Account;
@@ -16,6 +18,7 @@ using SAMS.Services.ManageUserRoles.Interface;
 using SAMS.Services.Profile.Interface;
 using SAMS.Services.Roles.Interface;
 using SAMS.Services.UserProfiles.DTOs;
+using System.Text;
 
 namespace SAMS.Services.Profile;
 
@@ -32,6 +35,7 @@ public class UserProfileService : IUserProfileService
     private readonly IConfiguration _configuration;
     private readonly IEmailService _emailService;
     private readonly ICompanyContext _companyContext;
+    private readonly ApplicationDbContext _context;
 
     public UserProfileService(IUserProfileRepository userProfileRepository,
                                 ILogger<AccountRepository> logger,
@@ -43,7 +47,8 @@ public class UserProfileService : IUserProfileService
                                 ICommonService commonService,
                                 IConfiguration configuration,
                                 IEmailService emailService,
-                                ICompanyContext companyContext)
+                                ICompanyContext companyContext,
+                                ApplicationDbContext context)
     {
         _userProfileRepository = userProfileRepository;
         _logger = logger;
@@ -56,6 +61,7 @@ public class UserProfileService : IUserProfileService
         _configuration = configuration;
         _emailService = emailService;
         _companyContext = companyContext;
+        _context = context;
     }
 
 
@@ -137,14 +143,45 @@ public class UserProfileService : IUserProfileService
 
     }
 
+    private async Task<(bool allowed, string message)> CheckUsersLimitAsync(Guid orgId)
+    {
+        var company = await _context.CompanyInfo
+                .Where(x => x.OrganizationId == orgId)
+                .Select(x => new { x.SubscriptionId })
+                .FirstOrDefaultAsync();
+
+        if (company == null)
+            return (true, "");
+
+        var subscription = await _context.SubscriptionPlans
+            .Where(x => x.Id == company.SubscriptionId)
+            .Select(x => new { x.TotalUserLimit })
+            .FirstOrDefaultAsync();
+
+        if (subscription == null)
+            return (true, "");
+
+        var userCount = await _context.UserProfiles
+            .Where(x => x.OrganizationId == orgId && !x.Cancelled)
+            .CountAsync();
+
+        if(userCount >= subscription.TotalUserLimit)
+            return (false, "You have reached your subscription limit. Please upgrade your plan to add more users.");
+
+        return (true, "");
+    }
+
     public async Task<(bool Success, string Message)> CreateUserProfileAsync(UserProfileDto userProfileDto, string createdby)
     {
         try
         {
-            var emails = await _commonService.GetEmailsUnderAdminAsync(createdby);
-            int createdUsersCount = Convert.ToInt32(await _userProfileRepository.GetCreatedUsersCount(emails));
+            //var emails = await _commonService.GetEmailsUnderAdminAsync(createdby);
+            //int createdUsersCount = Convert.ToInt32(await _userProfileRepository.GetCreatedUsersCount(emails));
+            var orgId = _companyContext.OrganizationId;
 
-            if (createdUsersCount < 100)
+            var (allowed, message) = await CheckUsersLimitAsync(orgId);
+
+            if (allowed)
             {
                 userProfileDto.CreatedBy = createdby;
                 userProfileDto.CreatedDate = DateTime.Now;
@@ -214,7 +251,7 @@ public class UserProfileService : IUserProfileService
                 return (userCreated.isSuccess, $"{userCreated.message}");
             }
             _logger.LogWarning("User creation limit reached for user: {CreatedBy}", createdby);
-            return (false, "You have reached the maximum limit of 100 users.");
+            return (false, message);
 
         }
         catch (Exception ex)
@@ -792,13 +829,45 @@ public class UserProfileService : IUserProfileService
         }
     }
 
+    private async Task<(bool allowed, string message)> CheckSystemUsersLimitAsync(Guid orgId)
+    {
+        var company = await _context.CompanyInfo
+                .Where(x => x.OrganizationId == orgId)
+                .Select(x => new { x.SubscriptionId })
+                .FirstOrDefaultAsync();
+
+        if (company == null)
+            return (true, "");
+
+        var subscription = await _context.SubscriptionPlans
+            .Where(x => x.Id == company.SubscriptionId)
+            .Select(x => new { x.SystemUserLimit })
+            .FirstOrDefaultAsync();
+
+        if (subscription == null)
+            return (true, "");
+
+        var userCount = await _context.UserProfiles
+            .Where(x => x.OrganizationId == orgId && x.ApplicationUserId != null  && x.UserType == UserType.User && !x.Cancelled)
+            .CountAsync();
+
+        if (userCount >= subscription.SystemUserLimit)
+            return (false, "You have reached the maximum limit of system users.");
+
+        return (true, "");
+    }
+
     public async Task<(bool Success, string Message)> AllowLoginAccessForCreatedUserAsync(LoginAccessRequestObject loginAccessRequestObject, string createdBy)
     {
         try
         {
-            if(loginAccessRequestObject.IsAllowLoginAccess == false)
+            if (loginAccessRequestObject.IsAllowLoginAccess == false)
                 return (false, "Login access is not allowed.");
             var orgId = _companyContext.OrganizationId;
+
+            var (allowed, message) = await CheckSystemUsersLimitAsync(orgId);
+            if (!allowed)
+                return (false, message);
 
             //var emails = await _commonService.GetEmailsUnderAdminAsync(createdBy);
 
@@ -2566,6 +2635,25 @@ public class UserProfileService : IUserProfileService
                 return (null!, false, "User profiles not found.");
 
             return (userList.users, true, userList.message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while getting user list.");
+            throw new Exception("An error occurred while getting user list.", ex);
+        }
+    }
+
+    public async Task<(UsersListDto User, bool Success, string Message)> GetOrganizationUserById(long id, string email)
+    {
+        try
+        {
+            var orgId = _companyContext.OrganizationId;
+
+            var user = await _userProfileRepository.GetOrganizationUserById(orgId, id);
+            if (user.users == null)
+                return (null!, false, "User profiles not found.");
+
+            return (user.users, true, user.message);
         }
         catch (Exception ex)
         {

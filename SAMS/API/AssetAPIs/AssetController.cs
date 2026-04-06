@@ -116,6 +116,33 @@ namespace SAMS.API.AssetAPIs
         }
 
         [Authorize(Roles = RoleModels.Asset)]
+        [HttpGet("asset/get-by-asset-id")]
+        public async Task<IActionResult> GetByAssetId([FromQuery] string assetId)
+        {
+            try
+            {
+                if (assetId == null)
+                    return BadRequest(new { success = false, message = "Asset ID is required" });
+                var result = await _assetsService.GetByAssetIdAsync(assetId);
+
+                if (!result.success)
+                    return NotFound(new { success = false, message = result.message });
+
+                return Ok(new
+                {
+                    success = true,
+                    message = result.message,
+                    data = result.data
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving asset");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        [Authorize(Roles = RoleModels.Asset)]
         [HttpGet("asset/get-by-org-id")]
         public async Task<IActionResult> GetByOrgIdWithValidAssets()
         {

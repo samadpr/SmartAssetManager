@@ -72,8 +72,10 @@ namespace SAMS.Helpers
         public static string GenerateAssetId(long maxId)
         {
             var nextId = maxId + 1;
-            var datePrefix = DateTime.Now.ToString("yyyyMMdd");
-            return $"{datePrefix}{nextId:D6}";
+            var datePart = DateTime.Now.ToString("yyyyMMdd");
+            var seqPart = nextId.ToString("D7");              // 7 digit sequence
+            var random = new Random().Next(10, 99);           // 2 digit random
+            return $"{datePart}{seqPart}{random}";
         }
 
         public static string RandomDigits(int length)

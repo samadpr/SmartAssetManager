@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using SAMS.API.CompanyAPIs.RequestObject;
 using SAMS.Data;
 using SAMS.Helpers;
 using SAMS.Models;
@@ -159,7 +160,7 @@ namespace SAMS.Services.Account
                 }
                 //create company initial
                 Guid OrganizationId = Guid.NewGuid();
-                var company = new CompanyInfo
+                var company = new CompanyRequestObject
                 {
                     OrganizationId = OrganizationId,
                 };

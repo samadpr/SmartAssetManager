@@ -14,6 +14,7 @@ namespace SAMS.Services.Dashboard.DTOs
     {
         public KpiStatItemDto TotalAssets { get; set; } = null!;
         public KpiStatItemDto ActiveUsers { get; set; } = null!;
+        public KpiStatItemDto SystemUsers { get; set; } = null!;
         public KpiStatItemDto OpenIssues { get; set; } = null!;
         public KpiStatItemDto PendingApprovals { get; set; } = null!;
         public KpiStatItemDto TotalAssetValue { get; set; } = null!;

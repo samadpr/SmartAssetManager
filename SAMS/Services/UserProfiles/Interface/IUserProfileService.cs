@@ -23,6 +23,8 @@ public interface IUserProfileService
 
     Task<(IEnumerable<UsersListDto> UserList, bool Success, string Message)> GetAllOrganizationUsers();
 
+    Task<(UsersListDto User, bool Success, string Message)> GetOrganizationUserById(long id, string email);
+
     Task<(bool success, string message)> UpdateCreatedUserProfileAsync( UserProfileDto userProfile, string createdBy);
 
     Task<(bool success, string message)> DeleteCreatedUserProfile(long id, string modifiedBy);

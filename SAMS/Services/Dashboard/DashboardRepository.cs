@@ -47,6 +47,26 @@ namespace SAMS.Services.Dashboard
 
             var userSparkline = GetMonthlySparkline(allUsers.Select(u => u.CreatedDate).ToList(), 12);
 
+            // System Users
+            var aspNetUserIds = await _context.Users
+                .Where(u => u.EmailConfirmed == true)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            var systemUsersList = allUsers
+                .Where(u => u.ApplicationUserId != null
+                         && u.UserType == UserType.User
+                         && aspNetUserIds.Contains(u.ApplicationUserId))
+                .ToList();
+
+            var systemUsers = systemUsersList.Count;
+            var prevSystemUsers = systemUsersList.Count(u => u.CreatedDate < currMonthStart);
+            var systemUsersTrend = prevSystemUsers == 0 ? 0
+                : Math.Round((decimal)(systemUsers - prevSystemUsers) / prevSystemUsers * 100, 1);
+
+            var systemUserSparkline = GetMonthlySparkline(
+                systemUsersList.Select(u => u.CreatedDate).ToList(), 12);
+
             // Open Issues (excluding Closed=9 and Resolved=3)
             var allIssues = await _context.AssetIssue
                 .Where(i => i.OrganizationId == orgId && !i.Cancelled)
@@ -125,6 +145,7 @@ namespace SAMS.Services.Dashboard
             {
                 TotalAssets = new KpiStatItemDto { Value = totalAssets, Trend = totalAssetsTrend, Sparkline = assetSparkline },
                 ActiveUsers = new KpiStatItemDto { Value = activeUsers, Trend = activeUsersTrend, Sparkline = userSparkline },
+                SystemUsers = new KpiStatItemDto { Value = systemUsers, Trend = systemUsersTrend, Sparkline = systemUserSparkline },
                 OpenIssues = new KpiStatItemDto { Value = openIssues, Trend = openIssuesTrend, Sparkline = issueSparkline },
                 PendingApprovals = new KpiStatItemDto { Value = pendingApprovals, Trend = pendingApprovalsTrend, Sparkline = new List<object>() },
                 TotalAssetValue = new KpiStatItemDto { Value = totalValue, Trend = totalValueTrend, Sparkline = valueSparkline },

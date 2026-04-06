@@ -20,59 +20,75 @@ namespace SAMS.API.SupplierAPIs
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<SuppliersController> _logger;
         private readonly ICompanyContext _companyContext;
+        private readonly FileUploadHelper _fileUploadHelper;
 
-        public SuppliersController(ISuppliersService suppliersService, IMapper mapper, IWebHostEnvironment env, ILogger<SuppliersController> logger, ICompanyContext companyContext)
+        public SuppliersController(ISuppliersService suppliersService, IMapper mapper, IWebHostEnvironment env, ILogger<SuppliersController> logger, ICompanyContext companyContext, FileUploadHelper fileUploadHelper)
         {
             _service = suppliersService;
             _mapper = mapper;
             _env = env;
             _logger = logger;
             _companyContext = companyContext;
+            _fileUploadHelper = fileUploadHelper;
         }
 
         [Authorize(Roles = RoleModels.Supplier)]
         [HttpPost("supplier/create")]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> Create(SuppliersRequestObject request)
+        public async Task<IActionResult> Create([FromForm] SuppliersRequestObject request)
         {
             try
             {
+                var orgId = _companyContext.OrganizationId;
                 string tradeLicensePath = null;
 
                 // 1. File upload
                 if (request.TradeLicense != null)
                 {
+
                     var file = request.TradeLicense;
 
-                    var allowedTypes = new[] { "image/jpeg", "image/png", "application/pdf" };
-                    if (!allowedTypes.Contains(file.ContentType))
-                        return BadRequest("Only JPG, PNG, and PDF allowed.");
+                    var (success, path, message) =
+                        await _fileUploadHelper.UploadFileAsync(
+                            file,
+                            $"{orgId}/TradeLicense",
+                            FileUploadHelper.GetAllowedExtensions("all"),
+                            5 * 1024 * 1024 // Optional: 5MB limit
+                        );
 
-                    var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                    var uploadPath = Path.Combine(rootPath, "uploads", "TradeLicense");
+                    tradeLicensePath = path;
 
-                    if (!Directory.Exists(uploadPath))
-                        Directory.CreateDirectory(uploadPath);
+                    //var file = request.TradeLicense;
 
-                    // keep original name, handle duplicates
-                    var baseName = Path.GetFileNameWithoutExtension(file.FileName);
-                    var ext = Path.GetExtension(file.FileName);
-                    var finalName = file.FileName;
-                    int counter = 1;
+                    //var allowedTypes = new[] { "image/jpeg", "image/png", "application/pdf" };
+                    //if (!allowedTypes.Contains(file.ContentType))
+                    //    return BadRequest("Only JPG, PNG, and PDF allowed.");
 
-                    while (System.IO.File.Exists(Path.Combine(uploadPath, finalName)))
-                    {
-                        finalName = $"{baseName}({counter}){ext}";
-                        counter++;
-                    }
+                    //var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                    //var uploadPath = Path.Combine(rootPath, "uploads", "TradeLicense");
 
-                    var filePath = Path.Combine(uploadPath, finalName);
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
+                    //if (!Directory.Exists(uploadPath))
+                    //    Directory.CreateDirectory(uploadPath);
 
-                    tradeLicensePath = $"/uploads/TradeLicense/{finalName}";
+                    //// keep original name, handle duplicates
+                    //var baseName = Path.GetFileNameWithoutExtension(file.FileName);
+                    //var ext = Path.GetExtension(file.FileName);
+                    //var finalName = file.FileName;
+                    //int counter = 1;
+
+                    //while (System.IO.File.Exists(Path.Combine(uploadPath, finalName)))
+                    //{
+                    //    finalName = $"{baseName}({counter}){ext}";
+                    //    counter++;
+                    //}
+
+                    //var filePath = Path.Combine(uploadPath, finalName);
+                    //using (var stream = new FileStream(filePath, FileMode.Create))
+                    //{
+                    //    await file.CopyToAsync(stream);
+                    //}
+
+                    //tradeLicensePath = $"/uploads/TradeLicense/{finalName}";
                 }
 
                 // 2. Map to DTO
@@ -102,7 +118,7 @@ namespace SAMS.API.SupplierAPIs
         [Authorize(Roles = RoleModels.Supplier)]
         [HttpPut("supplier/update")]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> Update(SuppliersRequestObject request)
+        public async Task<IActionResult> Update([FromForm] SuppliersRequestObject request)
         {
             try
             {
@@ -119,38 +135,48 @@ namespace SAMS.API.SupplierAPIs
                 {
                     var file = request.TradeLicense;
 
-                    var allowedTypes = new[] { "image/jpeg", "image/png", "application/pdf" };
-                    if (!allowedTypes.Contains(file.ContentType))
-                        return BadRequest("Only JPG, PNG, and PDF files are allowed.");
+                    var (success, path, message) =
+                        await _fileUploadHelper.UploadFileAsync(
+                            file,
+                            $"{orgId}/TradeLicense", 
+                            FileUploadHelper.GetAllowedExtensions("all"),
+                            5 * 1024 * 1024 // Optional: 5MB limit
+                        );
 
-                    var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                    var uploadPath = Path.Combine(rootPath, "uploads", "TradeLicense");
+                    tradeLicensePath = path;
 
-                    if (!Directory.Exists(uploadPath))
-                        Directory.CreateDirectory(uploadPath);
+                    //var allowedTypes = new[] { "image/jpeg", "image/png", "application/pdf" };
+                    //if (!allowedTypes.Contains(file.ContentType))
+                    //    return BadRequest("Only JPG, PNG, and PDF files are allowed.");
 
-                    // keep original name, generate suffix if duplicate
-                    var fileName = file.FileName;
-                    var ext = Path.GetExtension(fileName);
-                    var baseName = Path.GetFileNameWithoutExtension(fileName);
+                    //var rootPath = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                    //var uploadPath = Path.Combine(rootPath, "uploads", "TradeLicense");
 
-                    int counter = 1;
-                    string finalName = fileName;
+                    //if (!Directory.Exists(uploadPath))
+                    //    Directory.CreateDirectory(uploadPath);
 
-                    while (System.IO.File.Exists(Path.Combine(uploadPath, finalName)))
-                    {
-                        finalName = $"{baseName}({counter}){ext}";
-                        counter++;
-                    }
+                    //// keep original name, generate suffix if duplicate
+                    //var fileName = file.FileName;
+                    //var ext = Path.GetExtension(fileName);
+                    //var baseName = Path.GetFileNameWithoutExtension(fileName);
 
-                    var filePath = Path.Combine(uploadPath, finalName);
+                    //int counter = 1;
+                    //string finalName = fileName;
 
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
+                    //while (System.IO.File.Exists(Path.Combine(uploadPath, finalName)))
+                    //{
+                    //    finalName = $"{baseName}({counter}){ext}";
+                    //    counter++;
+                    //}
 
-                    tradeLicensePath = $"/uploads/TradeLicense/{finalName}";
+                    //var filePath = Path.Combine(uploadPath, finalName);
+
+                    //using (var stream = new FileStream(filePath, FileMode.Create))
+                    //{
+                    //    await file.CopyToAsync(stream);
+                    //}
+
+                    //tradeLicensePath = $"/uploads/TradeLicense/{finalName}";
                 }
 
                 // Map update values

@@ -10,6 +10,7 @@ namespace SAMS.Services.Assets.Interface
         Task<(bool success, string message, AssetDetailDto? data)> CreateAsync(AssetRequestObject request, string createdBy);
         Task<(bool success, string message, AssetDetailDto? data)> UpdateAsync(AssetRequestObject request, string modifiedBy);
         Task<(bool success, string message, AssetDetailDto data)> GetByIdAsync(long id);
+        Task<(bool success, string message, AssetDetailDto data)> GetByAssetIdAsync(string assetId);
         Task<(bool success, string message, IEnumerable<AssetDetailDto> data)> GetByOrgIdWithValidAssetsAsync();
 
         Task<(bool success, string message)> DeleteAsync(long id, string deletedBy);

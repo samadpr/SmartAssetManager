@@ -9,6 +9,7 @@ namespace SAMS.Services.AssetSitesOrBranches.Interface
         Task<(bool success, string message, AssetSiteDto? data)> UpdateAsync(AssetSiteDto dto, string modifiedBy);
         Task<(bool success, string message, IEnumerable<AssetSite>? data)> GetAllAsync();
         Task<(bool success, string message, IEnumerable<AssetSiteDto>? data)> GetByOrganizationAsync();
+        Task<(bool success, string message, AssetSiteDto? data)> GetBySiteOrBranchIdAsync(long id);
         Task<(bool success, string message)> DeleteAsync(long id, string deletedBy);
         Task<(bool success, string message, IEnumerable<AssetSiteDto>? data)> GetByCityIdAsync(long cityId);
     }

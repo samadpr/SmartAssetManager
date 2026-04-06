@@ -145,6 +145,10 @@ public partial class ApplicationDbContext : AuditableIdentityContext
 
     public DbSet<AssetStatus> AssetStatuses { get; set; }
 
+    public DbSet<AssetQrBarcodeBatch> AssetQrBarcodeBatches { get; set; }
+
+    public DbSet<AssetQrBarcodePool> AssetQrBarcodePools { get; set; }
+
     public DbSet<Supplier> Suppliers { get; set; }
 
     public DbSet<Department> Department { get; set; }

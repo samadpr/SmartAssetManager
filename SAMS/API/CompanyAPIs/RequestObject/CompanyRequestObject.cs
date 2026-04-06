@@ -2,13 +2,15 @@
 {
     public class CompanyRequestObject
     {
+        public Guid? OrganizationId { get; set; }
+
         public long Id { get; set; }
 
         public long? IndustriesId { get; set; }
 
         public string? Name { get; set; }
 
-        public string? Logo { get; set; }
+        public IFormFile? Logo { get; set; }
 
         public string? Currency { get; set; }
 
@@ -35,7 +37,7 @@
 
         public string? Name { get; set; }
 
-        public string? Logo { get; set; }
+        public IFormFile? Logo { get; set; }
 
         public string? Currency { get; set; }
 

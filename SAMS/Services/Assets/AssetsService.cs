@@ -52,6 +52,10 @@ namespace SAMS.Services.Assets
             {
                 var orgId = _companyContext.OrganizationId;
 
+                var (allowed, message) = await CheckAssetLimitAsync(orgId);
+                if (!allowed)
+                    return (false, message, null!);
+
                 // Generate unique Asset ID
                 var maxId = await _repo.GetMaxIdAsync(orgId);
                 var assetId = BarcodeQRGenerator.GenerateAssetId(maxId);
@@ -68,7 +72,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.ImageFile,
-                            "Assets/AssetImages",
+                            $"{orgId}/AssetImages",
                             FileUploadHelper.GetAllowedExtensions("image"));
 
                     if (success)
@@ -81,7 +85,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.DeliveryNoteFile,
-                            "Assets/DeliveryNotes",
+                            $"{orgId}/DeliveryNotes",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -94,7 +98,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.PurchaseReceiptFile,
-                            "Assets/PurchaseReceipts",
+                            $"{orgId}/PurchaseReceipts",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -107,7 +111,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.InvoiceFile,
-                            "Assets/Invoices",
+                            $"{orgId}/Invoices",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -239,6 +243,33 @@ namespace SAMS.Services.Assets
             }
         }
 
+        private async Task<(bool allowed, string message)> CheckAssetLimitAsync(Guid orgId)
+        {
+            var company = await _context.CompanyInfo
+                .Where(x => x.OrganizationId == orgId)
+                .Select(x => new { x.SubscriptionId })
+                .FirstOrDefaultAsync();
+
+            if (company == null)
+                return (true, "");
+
+            var subscription = await _context.SubscriptionPlans
+                .Where(x => x.Id == company.SubscriptionId)
+                .Select(x => new { x.AssetLimit })
+                .FirstOrDefaultAsync();
+
+            if (subscription == null)
+                return (true, "");
+
+            var assetCount = await _context.Asset
+                .CountAsync(x => x.OrganizationId == orgId && !x.Cancelled);
+
+            if (assetCount >= subscription.AssetLimit)
+                return (false, $"Asset limit reached ({subscription.AssetLimit})");
+
+            return (true, "");
+        }
+
         public async Task<(bool success, string message, AssetDetailDto? data)> UpdateAsync( AssetRequestObject request, string modifiedBy)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -260,7 +291,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.ImageFile,
-                            "Assets/AssetImages",
+                            $"{orgId}/AssetImages",
                             FileUploadHelper.GetAllowedExtensions("image"));
 
                     if (success)
@@ -273,7 +304,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.DeliveryNoteFile,
-                            "Assets/DeliveryNotes",
+                            $"{orgId}/DeliveryNotes",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -286,7 +317,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.PurchaseReceiptFile,
-                            "Assets/PurchaseReceipts",
+                            $"{orgId}/PurchaseReceipts",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -299,7 +330,7 @@ namespace SAMS.Services.Assets
                     var (success, path, _) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.InvoiceFile,
-                            "Assets/Invoices",
+                            $"{orgId}/Invoices",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (success)
@@ -429,6 +460,33 @@ namespace SAMS.Services.Assets
                 return (false, $"Error retrieving asset: {ex.Message}", null!);
             }
         }
+
+        public async Task<(bool success, string message, AssetDetailDto data)> GetByAssetIdAsync(string assetId)
+        {
+            try
+            {
+                var orgId = _companyContext.OrganizationId;
+                var asset = await _repo.GetDetailsByAssetIdAsync(assetId, orgId);
+
+                if (asset == null)
+                    return (false, "Asset not found", null!);
+
+                // Calculate depreciation schedule if asset is depreciable
+                if (asset.IsDepreciable && asset.DateOfPurchase.HasValue && asset.DepreciationMethod.HasValue && asset.DepreciationInMonth.HasValue && asset.DepreciationInMonth > 0)
+                {
+                    asset.DepreciationSchedule = await CalculateDepreciationScheduleAsync(asset);
+                }
+
+
+                return (true, "Asset retrieved successfully", asset);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving asset");
+                return (false, $"Error retrieving asset: {ex.Message}", null!);
+            }
+        }
+
         public async Task<(bool success, string message, IEnumerable<AssetDetailDto> data)> GetByOrgIdWithValidAssetsAsync()
         {
             try
@@ -934,7 +992,7 @@ namespace SAMS.Services.Assets
                 {
                     var upload = await _fileUploadHelper.UploadFileAsync(
                         request.DisposalDocument,
-                        "Assets/DisposalDocuments",
+                        $"{orgId}/DisposalDocuments",
                         FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (!upload.success)
