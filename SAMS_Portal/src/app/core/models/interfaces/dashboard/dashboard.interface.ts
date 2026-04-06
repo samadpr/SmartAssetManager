@@ -9,6 +9,7 @@ export interface KpiStatItem {
 export interface KpiStats {
   totalAssets: KpiStatItem;
   activeUsers: KpiStatItem;
+  systemUsers: KpiStatItem;
   openIssues: KpiStatItem;
   pendingApprovals: KpiStatItem;
   totalAssetValue: KpiStatItem;

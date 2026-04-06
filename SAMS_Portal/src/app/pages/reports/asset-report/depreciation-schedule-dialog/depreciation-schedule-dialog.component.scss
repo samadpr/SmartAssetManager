@@ -113,26 +113,27 @@
             margin-bottom: 8px;
           }
 
+          // Compact display value (large, prominent)
           .financial-value {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 700;
             font-family: 'Roboto Mono', monospace;
+            line-height: 1.2;
+            word-break: break-word;
 
-            &.primary {
-              color: #673ab7;
-            }
+            &.primary  { color: #673ab7; }
+            &.success  { color: #4caf50; }
+            &.warning  { color: #ff9800; }
+            &.info     { color: #2196f3; }
+          }
 
-            &.success {
-              color: #4caf50;
-            }
-
-            &.warning {
-              color: #ff9800;
-            }
-
-            &.info {
-              color: #2196f3;
-            }
+          // Full precision shown below in smaller text
+          .financial-value-full {
+            font-size: 0.75rem;
+            color: var(--mat-sys-on-surface-variant);
+            font-family: 'Roboto Mono', monospace;
+            margin-top: 4px;
+            opacity: 0.8;
           }
         }
       }
@@ -290,6 +291,12 @@
 
       .chart-card .chart-container {
         height: 250px;
+      }
+
+      .financial-item {
+        .financial-value {
+          font-size: 1.15rem;
+        }
       }
     }
   }

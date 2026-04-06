@@ -677,7 +677,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 20px 24px;
     border-bottom: 1px solid var(--mat-sys-outline-variant);
     background: var(--mat-sys-surface-variant);
     flex-shrink: 0;
@@ -1201,3 +1201,402 @@
 }
 
 .req { color: var(--mat-sys-error); }
+
+// ── CURRENCY INFO BAR (Step 2 header) ─────────────────────────────────────────
+// Shows active currency code + total portfolio value above the review table.
+.currency-info-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 18px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 22%, transparent);
+  border-radius: 10px;
+  font-size: 0.85rem;
+
+  .cib-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--mat-sys-primary);
+      flex-shrink: 0;
+    }
+
+    .cib-label { color: var(--mat-sys-on-surface-variant); font-weight: 500; }
+
+    .cib-code {
+      font-weight: 800;
+      color: var(--mat-sys-primary);
+      font-size: 0.9rem;
+      letter-spacing: 0.5px;
+    }
+
+    .cib-symbol {
+      color: var(--mat-sys-on-surface-variant);
+      font-size: 0.82rem;
+    }
+  }
+
+  .cib-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .cib-total-label {
+      color: var(--mat-sys-on-surface-variant);
+      font-weight: 500;
+    }
+
+    .cib-total-value {
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--mat-sys-on-surface);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cib-dep-label {
+      font-size: 0.78rem;
+      color: var(--mat-sys-on-surface-variant);
+    }
+  }
+}
+
+// ── AMOUNT CELL in review table ──────────────────────────────────────────────
+.amount-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--mat-sys-primary);
+  display: inline-block;
+
+  &.amount-zero {
+    font-weight: 400;
+    color: var(--mat-sys-on-surface-variant);
+    font-style: italic;
+  }
+}
+
+// ── CURRENCY PREFIX inside mat-form-field ─────────────────────────────────────
+// Used with matTextPrefix — renders the currency symbol inline before the input.
+.currency-prefix {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--mat-sys-primary);
+  line-height: 1;
+  user-select: none;
+}
+
+// ── CURRENCY BADGE in drawer header ──────────────────────────────────────────
+.drawer-currency-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 25%, transparent);
+  cursor: default;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+    color: var(--mat-sys-primary);
+  }
+
+  .dcb-sym {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: var(--mat-sys-primary);
+    line-height: 1;
+  }
+
+  .dcb-code {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--mat-sys-on-surface-variant);
+    letter-spacing: 0.4px;
+    line-height: 1;
+  }
+}
+
+// ── DEPRECIATION SUMMARY CARD (live calculation inside drawer) ───────────────
+// Shows net depreciable amount and annual depreciation while user types.
+.depr-summary-card {
+  background: color-mix(in srgb, #f59e0b 8%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+
+  .depr-sum-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    .dsr-label {
+      font-size: 0.8rem;
+      color: var(--mat-sys-on-surface-variant);
+      font-weight: 500;
+    }
+
+    .dsr-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--mat-sys-on-surface);
+      font-variant-numeric: tabular-nums;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+
+      &.accent { color: #d97706; }
+
+      .dsr-sub {
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--mat-sys-on-surface-variant);
+      }
+    }
+  }
+}
+
+// ── ITEM PRICE in import list (Step 3) ───────────────────────────────────────
+.item-price {
+  font-variant-numeric: tabular-nums;
+  color: var(--mat-sys-primary);
+  font-weight: 600;
+}
+
+// ── FAILED ITEM PRICE in Step 4 ──────────────────────────────────────────────
+.fi-price {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--mat-sys-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+// Slide-in animation
+@keyframes bannerSlide {
+  from { opacity: 0; transform: translateY(-10px); max-height: 0; }
+  to   { opacity: 1; transform: translateY(0);     max-height: 300px; }
+}
+ 
+.bulk-limit-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 18px 22px;
+  border-radius: 14px;
+  border: 1.5px solid color-mix(in srgb, var(--mat-sys-error) 35%, transparent);
+  background: color-mix(in srgb, var(--mat-sys-error) 6%, transparent);
+  flex-wrap: wrap;
+  animation: bannerSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+ 
+  // Left section
+  .blb-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    flex: 1;
+    min-width: 260px;
+ 
+    .blb-icon-wrap {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--mat-sys-error) 14%, transparent);
+      border: 1.5px solid color-mix(in srgb, var(--mat-sys-error) 28%, transparent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+ 
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+        color: var(--mat-sys-error);
+      }
+    }
+ 
+    .blb-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+ 
+      .blb-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--mat-sys-error);
+        line-height: 1.2;
+      }
+ 
+      .blb-desc {
+        font-size: 0.83rem;
+        color: var(--mat-sys-on-surface-variant);
+        line-height: 1.5;
+ 
+        strong {
+          font-weight: 700;
+          color: var(--mat-sys-on-surface);
+        }
+      }
+    }
+  }
+ 
+  // Right section
+  .blb-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    flex-shrink: 0;
+ 
+    // Quota pill row
+    .blb-quota-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+ 
+      .blb-pill {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 8px 14px;
+        border-radius: 10px;
+        min-width: 64px;
+        border: 1px solid var(--mat-sys-outline-variant);
+        background: var(--mat-sys-surface);
+ 
+        .bqp-num {
+          font-size: 1.2rem;
+          font-weight: 800;
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
+ 
+        .bqp-lbl {
+          font-size: 0.68rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: var(--mat-sys-on-surface-variant);
+          margin-top: 3px;
+        }
+ 
+        &.blb-pill-total {
+          .bqp-num { color: var(--mat-sys-primary); }
+        }
+ 
+        &.blb-pill-used {
+          .bqp-num { color: var(--mat-sys-on-surface); }
+        }
+ 
+        &.blb-pill-remain {
+          .bqp-num { color: #10b981; }
+ 
+          &.zero {
+            background: color-mix(in srgb, var(--mat-sys-error) 8%, transparent);
+            border-color: color-mix(in srgb, var(--mat-sys-error) 25%, transparent);
+            .bqp-num { color: var(--mat-sys-error); }
+          }
+        }
+ 
+        &.blb-pill-excess {
+          background: color-mix(in srgb, var(--mat-sys-error) 10%, transparent);
+          border-color: color-mix(in srgb, var(--mat-sys-error) 28%, transparent);
+          .bqp-num { color: var(--mat-sys-error); }
+        }
+      }
+    }
+ 
+    // Upgrade button
+    .blb-upgrade-btn {
+      border-radius: 20px;
+      height: 38px;
+      padding: 0 20px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      background: var(--mat-sys-error);
+      color: var(--mat-sys-on-error);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+ 
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-right: 6px;
+      }
+ 
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--mat-sys-error) 35%, transparent);
+      }
+    }
+  }
+ 
+  // Responsive
+  @media (max-width: 768px) {
+    flex-direction: column;
+ 
+    .blb-right {
+      align-items: flex-start;
+      width: 100%;
+ 
+      .blb-quota-pills {
+        justify-content: flex-start;
+        width: 100%;
+      }
+ 
+      .blb-upgrade-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  }
+ 
+  @media (max-width: 480px) {
+    padding: 14px 16px;
+    gap: 14px;
+ 
+    .blb-left {
+      gap: 10px;
+      min-width: unset;
+ 
+      .blb-icon-wrap {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+ 
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+      }
+    }
+ 
+    .blb-right .blb-quota-pills .blb-pill {
+      min-width: 54px;
+      padding: 6px 10px;
+ 
+      .bqp-num { font-size: 1rem; }
+      .bqp-lbl { font-size: 0.62rem; }
+    }
+  }
+}
+ 

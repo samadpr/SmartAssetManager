@@ -1,4 +1,355 @@
-<app-page-header [title]="'Report'" [breadcrumbs]="[
+<app-page-header [title]="'Reports'" [breadcrumbs]="[
     { label: 'Reports' }
   ]">
 </app-page-header>
+
+<div class="reports-hub-container">
+
+  <!-- ══════════════════════ HERO ══════════════════════ -->
+  <div class="reports-hero">
+    <div class="hero-bg-pattern"></div>
+    <div class="hero-content">
+      <div class="hero-icon-wrap">
+        <mat-icon>analytics</mat-icon>
+      </div>
+      <div class="hero-text">
+        <h1 class="hero-title">Reports &amp; Analytics</h1>
+        <p class="hero-subtitle">
+          Comprehensive insights into your asset lifecycle — from acquisition to disposal and every transfer in between.
+        </p>
+      </div>
+    </div>
+    <div class="hero-shape hero-shape-1"></div>
+    <div class="hero-shape hero-shape-2"></div>
+    <div class="hero-shape hero-shape-3"></div>
+  </div>
+
+  <!-- ══════════════════ KPI STRIP ══════════════════ -->
+  <div class="kpi-strip" *ngIf="!loadingKpi()">
+    <div class="kpi-item" *ngFor="let kpi of kpiItems(); let i = index"
+      [style.animation-delay]="(i * 0.07) + 's'">
+      <div class="kpi-icon-wrap" [style.background]="kpi.gradient">
+        <mat-icon>{{ kpi.icon }}</mat-icon>
+      </div>
+      <div class="kpi-detail">
+        <div class="kpi-val">{{ kpi.value }}</div>
+        <div class="kpi-label">{{ kpi.label }}</div>
+      </div>
+      <div class="kpi-accent-line" [style.background]="kpi.gradient"></div>
+    </div>
+  </div>
+  <!-- KPI skeleton -->
+  <div class="kpi-strip" *ngIf="loadingKpi()">
+    <div class="kpi-item kpi-skeleton" *ngFor="let s of [1,2,3,4,5,6]">
+      <div class="skel-icon"></div>
+      <div class="skel-text">
+        <div class="skel-line skel-val"></div>
+        <div class="skel-line skel-lbl"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ REPORT NAV CARDS ══════════════════ -->
+  <div class="report-nav-section">
+    <h2 class="section-heading">
+      <mat-icon>folder_open</mat-icon>
+      Available Reports
+    </h2>
+    <div class="report-cards-grid">
+
+      <!-- Asset Report Card -->
+      <div class="report-nav-card report-card-asset"
+        (click)="navigateTo('/reports/asset-reports')"
+        matRipple role="button" tabindex="0"
+        (keydown.enter)="navigateTo('/reports/asset-reports')">
+        <div class="rnc-glow"></div>
+        <div class="rnc-top">
+          <div class="rnc-icon-wrap"><mat-icon>assessment</mat-icon></div>
+          <mat-chip class="rnc-badge">3 report types</mat-chip>
+        </div>
+        <div class="rnc-body">
+          <h3 class="rnc-title">Asset Reports</h3>
+          <p class="rnc-desc">
+            Full asset inventory, depreciation schedules, and disposal summaries — with advanced filters, export to PDF/Excel/CSV, and print.
+          </p>
+        </div>
+        <div class="rnc-features">
+          <span class="feat-chip"><mat-icon>inventory_2</mat-icon> Full Inventory</span>
+          <span class="feat-chip"><mat-icon>trending_down</mat-icon> Depreciation</span>
+          <span class="feat-chip"><mat-icon>delete_forever</mat-icon> Disposal</span>
+        </div>
+        <div class="rnc-footer">
+          <button mat-flat-button class="rnc-btn" color="primary"
+            (click)="$event.stopPropagation(); navigateTo('/reports/asset-reports')">
+            <mat-icon>open_in_new</mat-icon>
+            Open Report
+          </button>
+          <mat-icon class="rnc-arrow">arrow_forward</mat-icon>
+        </div>
+      </div>
+
+      <!-- Transfer Report Card -->
+      <div class="report-nav-card report-card-transfer"
+        (click)="navigateTo('/reports/asset-transfer-reports')"
+        matRipple role="button" tabindex="0"
+        (keydown.enter)="navigateTo('/reports/asset-transfer-reports')">
+        <div class="rnc-glow"></div>
+        <div class="rnc-top">
+          <div class="rnc-icon-wrap"><mat-icon>receipt_long</mat-icon></div>
+          <mat-chip class="rnc-badge">Timeline &amp; Table</mat-chip>
+        </div>
+        <div class="rnc-body">
+          <h3 class="rnc-title">Transfer Reports</h3>
+          <p class="rnc-desc">
+            Complete transfer chain history per asset — holders, approval stages, hold durations, and full lifecycle visibility.
+          </p>
+        </div>
+        <div class="rnc-features">
+          <span class="feat-chip"><mat-icon>swap_horiz</mat-icon> Transfer Chain</span>
+          <span class="feat-chip"><mat-icon>timeline</mat-icon> Timeline View</span>
+          <span class="feat-chip"><mat-icon>how_to_reg</mat-icon> Approval Track</span>
+        </div>
+        <div class="rnc-footer">
+          <button mat-flat-button class="rnc-btn rnc-btn-transfer"
+            (click)="$event.stopPropagation(); navigateTo('/reports/asset-transfer-reports')">
+            <mat-icon>open_in_new</mat-icon>
+            Open Report
+          </button>
+          <mat-icon class="rnc-arrow">arrow_forward</mat-icon>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════ CHARTS ══════════════════ -->
+  <div class="charts-section" *ngIf="!loadingCharts()">
+    <h2 class="section-heading">
+      <mat-icon>bar_chart</mat-icon>
+      Quick Overview
+    </h2>
+    <div class="charts-grid">
+
+      <!-- ── Donut: Asset Status ── -->
+      <mat-card class="chart-card chart-donut-card">
+        <mat-card-content>
+          <div class="cc-header">
+            <div class="cc-title-row">
+              <mat-icon class="cc-icon" style="color: var(--mat-sys-primary)">donut_large</mat-icon>
+              <span class="cc-title">Asset Status Distribution</span>
+            </div>
+            <span class="cc-badge">All Assets</span>
+          </div>
+
+          <!-- SVG donut — fixed viewBox so circle is perfectly centred -->
+          <div class="donut-wrap">
+            <svg viewBox="0 0 200 200" class="donut-svg"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-label="Asset status distribution donut chart">
+              <!-- Track ring -->
+              <circle cx="100" cy="100" r="72"
+                fill="none"
+                stroke="var(--mat-sys-surface-container-highest)"
+                stroke-width="24"/>
+              <!-- Data segments -->
+              <circle *ngFor="let seg of donutSegments(); let i = index"
+                cx="100" cy="100" r="72"
+                fill="none"
+                [attr.stroke]="seg.color"
+                stroke-width="24"
+                stroke-linecap="butt"
+                [attr.stroke-dasharray]="seg.dash"
+                [attr.stroke-dashoffset]="seg.offset"
+                transform="rotate(-90 100 100)"
+                class="donut-seg"
+                [style.animation-delay]="(i * 0.1) + 's'"/>
+              <!-- Centre label -->
+              <text x="100" y="96" text-anchor="middle" class="donut-centre-val">{{ totalAssetsCount() }}</text>
+              <text x="100" y="114" text-anchor="middle" class="donut-centre-lbl">TOTAL</text>
+            </svg>
+          </div>
+
+          <!-- Legend -->
+          <div class="donut-legend">
+            <div class="dl-item" *ngFor="let seg of donutSegments()">
+              <span class="dl-dot" [style.background]="seg.color"></span>
+              <span class="dl-label">{{ seg.label }}</span>
+              <span class="dl-val">{{ seg.count }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- ── Bar: Asset Growth ── -->
+      <mat-card class="chart-card chart-bar-card">
+        <mat-card-content>
+          <div class="cc-header">
+            <div class="cc-title-row">
+              <mat-icon class="cc-icon" style="color: #4caf50">bar_chart</mat-icon>
+              <span class="cc-title">Asset Growth (Last 6 Months)</span>
+            </div>
+            <span class="cc-badge">Acquired vs Disposed</span>
+          </div>
+
+          <div class="bar-chart-outer">
+            <!-- Y-axis hint lines -->
+            <div class="bar-grid-lines">
+              <div class="bar-grid-line" *ngFor="let l of [1,2,3,4]"></div>
+            </div>
+            <!-- Bars -->
+            <div class="bar-chart">
+              <div *ngFor="let bar of growthBars(); let i = index" class="bar-group"
+                [style.animation-delay]="(i * 0.09) + 's'">
+                <div class="bars-col">
+                  <div class="bar bar-acquired"
+                    [style.height.%]="bar.acquiredPct || 0"
+                    [matTooltip]="'Acquired: ' + bar.acquired"
+                    matTooltipPosition="above"></div>
+                  <div class="bar bar-disposed"
+                    [style.height.%]="bar.disposedPct || 0"
+                    [matTooltip]="'Disposed: ' + bar.disposed"
+                    matTooltipPosition="above"></div>
+                </div>
+                <div class="bar-label">{{ bar.month }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bar-legend">
+            <span class="bl-item"><span class="bl-dot bl-acquired"></span>Acquired</span>
+            <span class="bl-item"><span class="bl-dot bl-disposed"></span>Disposed</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- ── Horizontal bar: Top Categories ── -->
+      <mat-card class="chart-card chart-hbar-card">
+        <mat-card-content>
+          <div class="cc-header">
+            <div class="cc-title-row">
+              <mat-icon class="cc-icon" style="color: #ff9800">category</mat-icon>
+              <span class="cc-title">Top Categories by Value</span>
+            </div>
+            <span class="cc-badge">Asset Value</span>
+          </div>
+
+          <div class="hbar-list">
+            <div *ngFor="let cat of topCategories(); let i = index" class="hbar-item"
+              [style.animation-delay]="(i * 0.09) + 's'">
+              <div class="hbar-meta-row">
+                <div class="hbar-rank" [style.background]="cat.color">{{ i + 1 }}</div>
+                <span class="hbar-label">{{ cat.label }}</span>
+                <span class="hbar-value" [style.color]="cat.color">{{ cat.valueDisplay }}</span>
+              </div>
+              <div class="hbar-track">
+                <div class="hbar-fill"
+                  [style.width.%]="cat.pct"
+                  [style.background]="'linear-gradient(90deg,' + cat.color + ' 0%, ' + cat.colorLight + ' 100%)'">
+                </div>
+              </div>
+              <div class="hbar-footer-row">
+                <span class="hbar-count">{{ cat.count }} asset{{ cat.count !== 1 ? 's' : '' }}</span>
+                <span class="hbar-pct-lbl">{{ cat.pct }}%</span>
+              </div>
+            </div>
+            <div *ngIf="topCategories().length === 0" class="no-chart-data">
+              <mat-icon>info</mat-icon>
+              <span>No category data available</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+  </div>
+
+  <!-- Charts loading skeleton -->
+  <div class="charts-section" *ngIf="loadingCharts()">
+    <h2 class="section-heading"><mat-icon>bar_chart</mat-icon> Quick Overview</h2>
+    <div class="charts-grid">
+      <mat-card class="chart-card" *ngFor="let s of [1,2,3]">
+        <mat-card-content>
+          <div class="skel-line" style="width:55%;height:13px;border-radius:6px;margin-bottom:18px;
+            background:var(--mat-sys-surface-container-highest);animation:shimmer 1.4s infinite;"></div>
+          <div class="skel-chart-body"></div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- ══════════════════ QUICK INSIGHTS ══════════════════ -->
+  <div class="insights-section" *ngIf="!loadingCharts()">
+    <h2 class="section-heading">
+      <mat-icon>lightbulb</mat-icon>
+      Quick Insights
+    </h2>
+    <div class="insights-grid">
+
+      <mat-card class="insight-card insight-warning" *ngIf="warrantyAlertCount() > 0">
+        <mat-card-content>
+          <div class="insight-inner">
+            <div class="insight-icon-wrap warning-icon"><mat-icon>warning_amber</mat-icon></div>
+            <div class="insight-detail">
+              <div class="insight-val">{{ warrantyAlertCount() }}</div>
+              <div class="insight-label">Assets Warranty Expiring (90 days)</div>
+            </div>
+            <button mat-icon-button color="warn" matTooltip="View in Asset Reports"
+              (click)="navigateTo('/reports/asset-reports')">
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="insight-card insight-pending" *ngIf="pendingApprovalCount() > 0">
+        <mat-card-content>
+          <div class="insight-inner">
+            <div class="insight-icon-wrap pending-icon"><mat-icon>pending_actions</mat-icon></div>
+            <div class="insight-detail">
+              <div class="insight-val">{{ pendingApprovalCount() }}</div>
+              <div class="insight-label">Pending Transfer Approvals</div>
+            </div>
+            <button mat-icon-button color="accent" matTooltip="View in Transfer Reports"
+              (click)="navigateTo('/reports/asset-transfer-reports')">
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="insight-card insight-info">
+        <mat-card-content>
+          <div class="insight-inner">
+            <div class="insight-icon-wrap info-icon"><mat-icon>trending_down</mat-icon></div>
+            <div class="insight-detail">
+              <div class="insight-val">{{ depreciableCount() }}</div>
+              <div class="insight-label">Depreciable Assets Tracked</div>
+            </div>
+            <button mat-icon-button color="primary" matTooltip="View Depreciation Report"
+              (click)="navigateTo('/reports/asset-reports')">
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="insight-card insight-success">
+        <mat-card-content>
+          <div class="insight-inner">
+            <div class="insight-icon-wrap success-icon"><mat-icon>swap_horiz</mat-icon></div>
+            <div class="insight-detail">
+              <div class="insight-val">{{ totalTransferLegs() }}</div>
+              <div class="insight-label">Total Transfer Legs Recorded</div>
+            </div>
+            <button mat-icon-button matTooltip="View Transfer Reports"
+              (click)="navigateTo('/reports/asset-transfer-reports')">
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+  </div>
+
+</div>

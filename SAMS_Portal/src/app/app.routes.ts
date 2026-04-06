@@ -36,6 +36,8 @@ import { activationGuard } from './core/guards/subscription.guard';
 import { PendingActivationComponent } from './pages/account/pending-activation/pending-activation.component';
 import { SiteAssetOverviewComponent } from './pages/sites-or-branchs/site-asset-overview/site-asset-overview.component';
 import { AssetBulkUploadComponent } from './pages/assets/manage-assets/asset-bulk-upload/asset-bulk-upload.component';
+import { AssetBulkTransferComponent } from './pages/assets/asset-bulk-transfer/asset-bulk-transfer.component';
+import { AssetTransferReportComponent } from './pages/reports/asset-transfer-report/asset-transfer-report.component';
 
 export const routes: Routes = [
     {
@@ -129,6 +131,11 @@ export const routes: Routes = [
                 title: 'Asset QR & Barcode'
             },
             {
+                path: 'assets/bulk-transfer',
+                component: AssetBulkTransferComponent,
+                title: 'Asset Bulk Transfer'
+            },
+            {
                 path: 'asset-category',
                 component: AssetCategoryComponent,
                 title: 'Asset Category'
@@ -212,6 +219,11 @@ export const routes: Routes = [
                 path: 'reports/asset-reports',
                 component: AssetReportComponent,
                 title: 'Asset Reports'
+            },
+            {
+                path: 'reports/asset-transfer-reports',
+                component: AssetTransferReportComponent,
+                title: 'Asset Transfer Reports'
             }
         ]
     },

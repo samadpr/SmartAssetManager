@@ -115,6 +115,11 @@ export class SidebarComponent implements OnInit {
           icon: 'qr_code_scanner',
           label: 'Asset Qr & Barcode',
           route: 'asset-qr-barcode'
+        },
+        {
+          icon: 'multiple_stop',
+          label: 'Bulk Transfer',
+          route: 'bulk-transfer'
         }
       ]
     },
@@ -217,6 +222,11 @@ export class SidebarComponent implements OnInit {
           icon: 'assessment',
           label: 'Asset Reports',
           route: 'asset-reports'
+        },
+        {
+          icon: 'receipt_long',
+          label: 'Transfer Reports',
+          route: 'asset-transfer-reports'
         }
       ]
     },

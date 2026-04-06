@@ -22,16 +22,21 @@ export class CompanyService {
 
   // 🔹 Update Company
   updateCompany(request: CompanyRequest): Observable<ApiResponse<null>> {
+    const formData = this.toFormData(request);
+
     return this.http.put<ApiResponse<null>>(
       `${this.baseUrl}/update-company`,
-      request
+      formData
     );
   }
 
+  // 🔹 Update Company With Subscription
   updateCompanyWithSubscription(request: CompanyRequest): Observable<ApiResponse<null>> {
+    const formData = this.toFormData(request);
+
     return this.http.put<ApiResponse<null>>(
       `${this.baseUrl}/update-company-with-subscription`,
-      request
+      formData
     );
   }
 
@@ -60,5 +65,50 @@ export class CompanyService {
     return this.http.get<ApiResponse<CompanyWithUserInfo[]>>(
       `${this.baseUrl}/get-all-companies-with-user`
     );
+  }
+
+  private toFormData(obj: any): FormData {
+    const formData = new FormData();
+
+    Object.entries(obj).forEach(([key, value]) => {
+      if (value === null || value === undefined) return;
+
+      // ✅ File
+      if (value instanceof File) {
+        formData.append(key, value, value.name);
+        return;
+      }
+
+      // ✅ Date
+      if (value instanceof Date) {
+        formData.append(key, value.toISOString());
+        return;
+      }
+
+      // ✅ Boolean
+      if (typeof value === 'boolean') {
+        formData.append(key, String(value));
+        return;
+      }
+
+      // ✅ Number
+      if (typeof value === 'number') {
+        formData.append(key, String(value));
+        return;
+      }
+
+      // ✅ String
+      if (typeof value === 'string') {
+        if (value.trim() !== '') {
+          formData.append(key, value);
+        }
+        return;
+      }
+
+      // fallback
+      formData.append(key, String(value));
+    });
+
+    return formData;
   }
 }

@@ -21,11 +21,11 @@ mat-sidenav-container.admin-shell {
 // ── Sidenav panel ──
 .admin-sidenav {
     border-right: 2px solid var(--mat-sys-primary-container) !important;
+    overflow: hidden; // sidebar itself doesn't scroll — inner container does
     @include mat.sidenav-overrides((container-divider-color: rgba(0, 0, 0, 0.1),
             container-shape: 0px,
             container-background-color: var(--mat-sys-surface),
         ));
-    overflow: hidden; // sidebar itself doesn't scroll — inner container does
 }
 
 // ── Main content area: only this scrolls vertically ──

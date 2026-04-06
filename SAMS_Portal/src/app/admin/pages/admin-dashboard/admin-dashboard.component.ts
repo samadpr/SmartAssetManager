@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { AdminPageHeaderComponent } from '../shared/widgets/admin-page-header/admin-page-header.component';
+import { AdminPageHeaderComponent } from '../../shared/widgets/admin-page-header/admin-page-header.component';
 
 @Component({
   selector: 'app-admin-dashboard',

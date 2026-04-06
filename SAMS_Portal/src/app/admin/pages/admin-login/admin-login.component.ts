@@ -9,11 +9,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
-import { AccountService } from '../../core/services/account/account.service';
-import { AuthService } from '../../core/services/auth/auth.service';
+import { AccountService } from '../../../core/services/account/account.service';
+import { AuthService } from '../../../core/services/auth/auth.service';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { loginresponse, userLogin } from '../../core/models/interfaces/account/user.model';
-import { DeviceInfoService } from '../../core/services/account/device/device-info.service';
+import { loginresponse, userLogin } from '../../../core/models/interfaces/account/user.model';
+import { DeviceInfoService } from '../../../core/services/account/device/device-info.service';
 
 // Microsoft .NET JWT uses these long claim URIs instead of short names
 const MS_ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';

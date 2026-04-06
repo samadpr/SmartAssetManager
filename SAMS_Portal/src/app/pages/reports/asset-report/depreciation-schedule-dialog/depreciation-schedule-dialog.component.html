@@ -1,5 +1,5 @@
 <div class="depreciation-dialog">
-  
+
   <!-- Dialog Header -->
   <div class="dialog-header">
     <div class="header-content">
@@ -18,38 +18,38 @@
 
   <!-- Dialog Content -->
   <mat-dialog-content>
-    
+
     <!-- Asset Details Card -->
     <mat-card class="details-card">
       <mat-card-content>
         <h3>Asset Information</h3>
-        
+
         <div class="details-grid">
           <div class="detail-item">
             <span class="label">Asset ID:</span>
             <span class="value">{{ asset.assetId }}</span>
           </div>
-          
+
           <div class="detail-item">
             <span class="label">Name:</span>
             <span class="value">{{ asset.name }}</span>
           </div>
-          
+
           <div class="detail-item">
             <span class="label">Category:</span>
             <span class="value">{{ asset.categoryDisplay || '-' }}</span>
           </div>
-          
+
           <div class="detail-item">
             <span class="label">Department:</span>
             <span class="value">{{ asset.departmentDisplay || '-' }}</span>
           </div>
-          
+
           <div class="detail-item">
             <span class="label">Date Acquired:</span>
             <span class="value">{{ formatDate(asset.dateAquired) }}</span>
           </div>
-          
+
           <div class="detail-item">
             <span class="label">Depreciation Method:</span>
             <mat-chip class="method-chip">{{ getDepreciationMethodName() }}</mat-chip>
@@ -61,21 +61,26 @@
         <div class="financial-grid">
           <div class="financial-item">
             <div class="financial-label">Depreciable Cost</div>
-            <div class="financial-value primary">{{ formatCurrency(asset.depreciableCost) }}</div>
+            <div class="financial-value primary">{{ formatCurrencyCompact(asset.depreciableCost) }}</div>
+            <div class="financial-value-full">{{ formatCurrency(asset.depreciableCost) }}</div>
           </div>
-          
+
           <div class="financial-item">
             <div class="financial-label">Salvage Value</div>
-            <div class="financial-value success">{{ formatCurrency(asset.salvageValue) }}</div>
+            <div class="financial-value success">{{ formatCurrencyCompact(asset.salvageValue) }}</div>
+            <div class="financial-value-full">{{ formatCurrency(asset.salvageValue) }}</div>
           </div>
-          
+
           <div class="financial-item">
             <div class="financial-label">Total Depreciation</div>
             <div class="financial-value warning">
+              {{ formatCurrencyCompact((asset.depreciableCost || 0) - (asset.salvageValue || 0)) }}
+            </div>
+            <div class="financial-value-full">
               {{ formatCurrency((asset.depreciableCost || 0) - (asset.salvageValue || 0)) }}
             </div>
           </div>
-          
+
           <div class="financial-item" *ngIf="asset.depreciationInMonth">
             <div class="financial-label">Depreciation Period</div>
             <div class="financial-value info">{{ asset.depreciationInMonth }} months</div>
@@ -89,7 +94,7 @@
       <mat-card-content>
         <h3>Depreciation Over Time</h3>
         <div class="chart-container">
-          <canvas 
+          <canvas
             baseChart
             [data]="lineChartData"
             [options]="lineChartOptions"
@@ -103,11 +108,10 @@
     <mat-card class="table-card" *ngIf="asset.depreciationSchedule && asset.depreciationSchedule.length > 0">
       <mat-card-content>
         <h3>Depreciation Schedule</h3>
-        
+
         <div class="table-wrapper">
           <table mat-table [dataSource]="dataSource" class="schedule-table">
-            
-            <!-- Year Column -->
+
             <ng-container matColumnDef="year">
               <th mat-header-cell *matHeaderCellDef>Year</th>
               <td mat-cell *matCellDef="let row">
@@ -115,7 +119,6 @@
               </td>
             </ng-container>
 
-            <!-- Book Value (Beginning) Column -->
             <ng-container matColumnDef="bookValueYearBegining">
               <th mat-header-cell *matHeaderCellDef class="text-right">Book Value (Beginning)</th>
               <td mat-cell *matCellDef="let row" class="text-right">
@@ -123,7 +126,6 @@
               </td>
             </ng-container>
 
-            <!-- Depreciation Column -->
             <ng-container matColumnDef="depreciation">
               <th mat-header-cell *matHeaderCellDef class="text-right">Depreciation</th>
               <td mat-cell *matCellDef="let row" class="text-right">
@@ -131,7 +133,6 @@
               </td>
             </ng-container>
 
-            <!-- Book Value (End) Column -->
             <ng-container matColumnDef="bookValueYearEnd">
               <th mat-header-cell *matHeaderCellDef class="text-right">Book Value (End)</th>
               <td mat-cell *matCellDef="let row" class="text-right">

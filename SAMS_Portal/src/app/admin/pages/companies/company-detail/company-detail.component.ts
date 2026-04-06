@@ -20,13 +20,13 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartData, ChartConfiguration } from 'chart.js';
 
-import { AdminPageHeaderComponent } from '../../shared/widgets/admin-page-header/admin-page-header.component';
-import { GlobalService } from '../../../core/services/global/global.service';
-import { FileUrlHelper } from '../../../core/helper/get-file-url';
+import { AdminPageHeaderComponent } from '../../../shared/widgets/admin-page-header/admin-page-header.component';
+import { GlobalService } from '../../../../core/services/global/global.service';
+import { FileUrlHelper } from '../../../../core/helper/get-file-url';
 import { AssignSubscriptionDialogComponent } from '../assign-subscription-dialog/assign-subscription-dialog.component';
 import { ToggleActiveDialogComponent } from '../toggle-active-dialog/toggle-active-dialog.component';
-import { AdminUserDetail, CompanyDetailResponse, CompanyFullInfo, CompanyStats, LoginAccessUser, SubscriptionDetail } from '../../../core/models/admin/companies-details.interface';
-import { CompanyDetailService } from '../../../core/services/admin/company/company-detail.service';
+import { AdminUserDetail, CompanyDetailResponse, CompanyFullInfo, CompanyStats, LoginAccessUser, SubscriptionDetail } from '../../../../core/models/admin/companies-details.interface';
+import { CompanyDetailService } from '../../../../core/services/admin/company/company-detail.service';
 import { SubscriptionStatus } from '../companies-list/companies-list.component';
 
 

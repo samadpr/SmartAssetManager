@@ -4,7 +4,84 @@
 </app-page-header>
 
 <div class="assets-page">
-   
+ 
+  <!-- ═══ ASSET LIMIT BANNER — only when limit is near (≤10 remaining) or reached ═══ -->
+  <div class="limit-banner"
+       *ngIf="showLimitBanner()"
+       [class.limit-reached]="isLimitReached()"
+       [class.limit-warning]="!isLimitReached() && remainingAssets() <= 10"
+       [@bannerSlide]>
+ 
+    <!-- Icon ring -->
+    <div class="limit-banner-icon">
+      <mat-icon *ngIf="isLimitReached()">lock</mat-icon>
+      <mat-icon *ngIf="!isLimitReached()">warning_amber</mat-icon>
+    </div>
+ 
+    <!-- Text content -->
+    <div class="limit-banner-body">
+      <span class="limit-banner-title" *ngIf="isLimitReached()">
+        Asset Limit Reached
+      </span>
+      <span class="limit-banner-title" *ngIf="!isLimitReached()">
+        Approaching Asset Limit
+      </span>
+ 
+      <span class="limit-banner-desc" *ngIf="isLimitReached()">
+        You have reached your plan's asset limit of
+        <strong>{{ assetLimit() }}</strong> assets.
+        Upgrade your plan to add more assets.
+      </span>
+      <span class="limit-banner-desc" *ngIf="!isLimitReached()">
+        You have used <strong>{{ totalAssets() }}</strong> of
+        <strong>{{ assetLimit() }}</strong> assets.
+        Only <strong>{{ remainingAssets() }}</strong> slot{{ remainingAssets() === 1 ? '' : 's' }} remaining.
+      </span>
+    </div>
+ 
+    <!-- Progress pill -->
+    <div class="limit-banner-progress">
+      <div class="limit-pill">
+        <span class="pill-used">{{ totalAssets() }}</span>
+        <span class="pill-sep">/</span>
+        <span class="pill-total">{{ assetLimit() }}</span>
+      </div>
+      <div class="limit-bar-wrap">
+        <div class="limit-bar-track">
+          <div class="limit-bar-fill"
+               [style.width]="limitPercent() + '%'"
+               [class.bar-warning]="!isLimitReached() && remainingAssets() <= 10"
+               [class.bar-danger]="isLimitReached()">
+          </div>
+        </div>
+        <span class="limit-pct">{{ limitPercent() | number:'1.0-0' }}%</span>
+      </div>
+    </div>
+ 
+    <!-- CTA -->
+    <div class="limit-banner-actions">
+      <button mat-raised-button
+              class="upgrade-btn"
+              (click)="goToUpgrade()"
+              *ngIf="isLimitReached()">
+        <mat-icon>rocket_launch</mat-icon>
+        Upgrade Plan
+      </button>
+      <!-- <button mat-stroked-button
+              class="upgrade-btn-stroked"
+              (click)="goToUpgrade()"
+              *ngIf="!isLimitReached()">
+        <mat-icon>upgrade</mat-icon>
+        View Plans
+      </button> -->
+    </div>
+ 
+    <!-- Dismiss -->
+    <button mat-icon-button class="limit-dismiss-btn" (click)="dismissLimitBanner()" matTooltip="Dismiss">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+ 
   <!-- ═══ STATS CARDS — only render when assets exist ═══ -->
   <div class="stats-grid" *ngIf="totalAssets() > 0">
  
@@ -97,18 +174,18 @@
   </div>
  
   <!-- ═══ ASSET LIST TABLE ═══ -->
-  <app-list-widget 
-    [config]="listConfig" 
-    [data]="assets()" 
+  <app-list-widget
+    [config]="listConfig"
+    [data]="assets()"
     [loading]="loading()"
-    (actionClick)="onActionClick($event)" 
-    (addClick)="onAddAsset()" 
+    (actionClick)="onActionClick($event)"
+    (addClick)="onAddAsset()"
     (refreshClick)="onRefresh()"
     (selectionChange)="onSelectionChange($event)"
     (selectionAction)="onSelectionAction($event)"
     (rowClick)="onRowClick($event)">
   </app-list-widget>
-
+ 
   <div class="bulk-upload-bar" (click)="goToBulkUpload()">
     <div class="bulk-bar-left">
       <div class="bulk-bar-icon-wrap">
@@ -130,8 +207,8 @@
       </button>
     </div>
   </div>
-  
-  <!-- Download animation overlay — add inside the same host -->
+ 
+  <!-- Download animation overlay -->
   <div class="download-overlay" *ngIf="downloadingTemplate()" [@fadeInOut]>
     <div class="download-overlay-inner">
       <div class="download-spinner-ring"></div>

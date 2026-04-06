@@ -6,7 +6,7 @@
 <div class="dashboard-wrapper" [@dashFade]>
 
   <!-- ═══════════════════════════════════════════════════════════
-       ROW 0  KPI CARDS  — 4 cols desktop / 2 cols tablet+mobile
+       ROW 0  KPI CARDS
        ═══════════════════════════════════════════════════════════ -->
   <section class="kpi-row">
     @for (card of kpiCards(); track card.key; let i = $index) {
@@ -279,7 +279,7 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
-       ROW 4  Sites / Branches  (full width, auto-fill grid)
+       ROW 4  Sites / Branches  — horizontal scroll (Fix #2)
        ═══════════════════════════════════════════════════════════ -->
   <mat-card class="dc dc--full">
     <mat-card-header>
@@ -298,62 +298,80 @@
       <button mat-icon-button
         routerLink="/assets/site-branch-assets-overview"
         matTooltip="Asset Overview">
-      <mat-icon>dashboard_customize</mat-icon>
-      </button>
-      <button mat-icon-button routerLink="/sites-branchs" matTooltip="Manage sites">
         <mat-icon>open_in_new</mat-icon>
       </button>
     </mat-card-header>
+
     <mat-card-content>
       @if (siteLoading()) {
-        <div class="site-grid">
-          @for (i of [1,2,3,4]; track i) { <div class="sk sk--site"></div> }
+        <!-- Skeleton — horizontal row -->
+        <div class="site-scroll-row">
+          <div class="site-grid">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="sk sk--site"></div>
+            }
+          </div>
         </div>
       } @else if (filteredSites().length === 0) {
-        <div class="empty-state"><mat-icon>location_off</mat-icon><p>No sites found</p></div>
+        <div class="empty-state">
+          <mat-icon>location_off</mat-icon>
+          <p>No sites found</p>
+        </div>
       } @else {
-        <div class="site-grid">
-          @for (site of filteredSites(); track site.siteId) {
-            <div class="stile">
-              <div class="stile-head">
-                <div class="stile-ico stile-ico--{{ site.type === 1 ? 'site' : 'branch' }}">
-                  <mat-icon>{{ site.type === 1 ? 'domain' : 'account_tree' }}</mat-icon>
+        <!-- Horizontal scroll wrapper -->
+        <div class="site-scroll-row">
+          <div class="site-grid">
+            @for (site of filteredSites(); track site.siteId) {
+              <div class="stile">
+
+                <!-- Card header -->
+                <div class="stile-head">
+                  <div class="stile-ico stile-ico--{{ site.type === 1 ? 'site' : 'branch' }}">
+                    <mat-icon>{{ site.type === 1 ? 'domain' : 'account_tree' }}</mat-icon>
+                  </div>
+                  <div class="stile-meta">
+                    <span class="stile-name">{{ site.name }}</span>
+                    <span class="stile-city">
+                      <mat-icon class="pin">place</mat-icon>{{ site.city }}
+                    </span>
+                  </div>
+                  <div class="stile-badge stile-badge--{{ site.type === 1 ? 'site' : 'branch' }}">
+                    {{ site.type === 1 ? 'Site' : 'Branch' }}
+                  </div>
                 </div>
-                <div class="stile-meta">
-                  <span class="stile-name">{{ site.name }}</span>
-                  <span class="stile-city"><mat-icon class="pin">place</mat-icon>{{ site.city }}</span>
+
+                <!-- Stats band -->
+                <div class="stile-stats">
+                  <div class="ss">
+                    <span class="ss-n">{{ site.assetCount }}</span>
+                    <span class="ss-l">Assets</span>
+                  </div>
+                  <div class="ss-sep"></div>
+                  <div class="ss">
+                    <span class="ss-n ss-n--g">{{ formatKpi(site.totalValue) }}</span>
+                    <span class="ss-l">Value</span>
+                  </div>
                 </div>
-                <div class="stile-badge stile-badge--{{ site.type === 1 ? 'site' : 'branch' }}">
-                  {{ site.type === 1 ? 'Site' : 'Branch' }}
-                </div>
-              </div>
-              <div class="stile-stats">
-                <div class="ss">
-                  <span class="ss-n">{{ site.assetCount }}</span>
-                  <span class="ss-l">Assets</span>
-                </div>
-                <div class="ss-sep"></div>
-                <div class="ss">
-                  <span class="ss-n ss-n--g">{{ formatKpi(site.totalValue) }}</span>
-                  <span class="ss-l">Value</span>
-                </div>
-              </div>
-              <div class="stile-list">
-                @if (site.assets.length === 0) {
-                  <div class="stile-empty">No assets assigned</div>
-                } @else {
-                  @for (a of site.assets; track a.assetId) {
-                    <div class="sa-row">
-                      <span class="sdot sdot--{{ a.statusKey }}"></span>
-                      <span class="sa-nm">{{ a.name }}</span>
-                      <span class="sa-id">{{ a.assetId }}</span>
-                      <span class="schip schip--{{ a.statusKey }}">{{ a.status }}</span>
-                    </div>
+
+                <!-- Asset list — scrolls vertically inside fixed-height card -->
+                <div class="stile-list">
+                  @if (site.assets.length === 0) {
+                    <div class="stile-empty">No assets assigned</div>
+                  } @else {
+                    @for (a of site.assets; track a.assetId) {
+                      <div class="sa-row">
+                        <span class="sdot sdot--{{ a.statusKey }}"></span>
+                        <span class="sa-nm">{{ a.name }}</span>
+                        <span class="sa-id">{{ a.assetId }}</span>
+                        <span class="schip schip--{{ a.statusKey }}">{{ a.status }}</span>
+                      </div>
+                    }
                   }
-                }
+                </div>
+
               </div>
-            </div>
-          }
+            }
+          </div>
         </div>
       }
     </mat-card-content>
@@ -372,10 +390,10 @@
           <span class="ct">Recent Assets</span>
         </div>
         <span class="sp"></span>
-        <mat-form-field appearance="outline" class="mf mf--search">
+        <!-- <mat-form-field appearance="outline" class="mf mf--search">
           <mat-icon matPrefix>search</mat-icon>
           <input matInput placeholder="Search…" [(ngModel)]="assetSearch" (ngModelChange)="filterAssets()">
-        </mat-form-field>
+        </mat-form-field> -->
         <button mat-stroked-button class="va-btn" routerLink="/assets">
           View All<mat-icon iconPositionEnd>chevron_right</mat-icon>
         </button>
@@ -389,32 +407,25 @@
           <div class="tscroll">
             <table mat-table [dataSource]="recentAssetsDS" class="dt">
 
-              <!-- Asset column: show real image OR category-icon fallback -->
               <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef>Asset</th>
                 <td mat-cell *matCellDef="let r">
                   <div class="ta-cell">
-
-                    <!-- Thumb wrapper — always present -->
                     <div class="thumb thumb--asset">
                       @if (hasImg(r.imageUrl)) {
-                        <!-- Real image from API -->
                         <img class="thumb-img"
                              [src]="r.imageUrl"
                              [alt]="r.name"
                              (error)="onImgError($event)" />
-                        <!-- Icon fallback shown via JS when img errors -->
                         <div class="img-fb at" [style.background]="catColor(r.category)">
                           <mat-icon>{{ catIcon(r.category) }}</mat-icon>
                         </div>
                       } @else {
-                        <!-- No image at all — show category icon -->
                         <div class="at" [style.background]="catColor(r.category)">
                           <mat-icon>{{ catIcon(r.category) }}</mat-icon>
                         </div>
                       }
                     </div>
-
                     <div class="cell-text">
                       <div class="tp">{{ r.name }}</div>
                       <div class="ts">{{ r.assetId }}</div>
@@ -437,10 +448,11 @@
                 </td>
               </ng-container>
 
+              <!-- Value column — uses company currency via formatKpi -->
               <ng-container matColumnDef="value">
                 <th mat-header-cell *matHeaderCellDef>Value</th>
                 <td mat-cell *matCellDef="let r" class="tm">
-                  {{ r.value | currency:'USD':'symbol':'1.0-0' }}
+                  {{ formatKpi(r.value) }}
                 </td>
               </ng-container>
 
@@ -489,32 +501,25 @@
           <div class="tscroll">
             <table mat-table [dataSource]="recentUsersDS" class="dt">
 
-              <!-- User column: show profile picture OR first+last initials -->
               <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef>User</th>
                 <td mat-cell *matCellDef="let r">
                   <div class="tu-cell">
-
-                    <!-- Avatar wrapper -->
                     <div class="thumb thumb--user">
                       @if (hasImg(r.profilePic)) {
-                        <!-- Real profile picture -->
                         <img class="thumb-img thumb-img--round"
                              [src]="r.profilePic"
                              [alt]="r.fullName"
                              (error)="onImgError($event)" />
-                        <!-- Initials fallback shown via JS when img errors -->
                         <div class="img-fb ua" [style.background]="userColor(r.fullName)">
                           {{ initials(r.firstName, r.lastName) }}
                         </div>
                       } @else {
-                        <!-- No picture — initials circle using firstName + lastName -->
                         <div class="ua" [style.background]="userColor(r.fullName)">
                           {{ initials(r.firstName, r.lastName) }}
                         </div>
                       }
                     </div>
-
                     <div class="cell-text">
                       <div class="tp">{{ r.fullName }}</div>
                       <div class="ts">{{ r.email }}</div>
@@ -559,7 +564,7 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
-       ROW 6  Alerts Triptych  (3 equal columns → 2 → 1)
+       ROW 6  Alerts Triptych
        ═══════════════════════════════════════════════════════════ -->
   <div class="alerts-row">
 
@@ -584,8 +589,6 @@
         } @else {
           @for (item of pendingApprovals(); track item.assignmentId) {
             <div class="aitem aitem--warn">
-
-              <!-- Asset thumb: show assetImageUrl if present, else icon -->
               <div class="thumb thumb--alert">
                 @if (hasImg(item.assetImageUrl)) {
                   <img class="thumb-img" [src]="item.assetImageUrl" [alt]="item.assetId"
@@ -599,17 +602,14 @@
                   </div>
                 }
               </div>
-
               <div class="ai-body">
                 <div class="tp">{{ item.assetName }}</div>
                 <div class="ts">
-                  <!-- Requester: show profile pic if available, else initials -->
                   @if (hasImg(item.requesterPic)) {
                     <img class="req-pic" [src]="item.requesterPic"
                          [alt]="item.requesterName" (error)="onImgError($event)" />
                   } @else {
-                    <span class="req-ini"
-                          [style.background]="userColor(item.requesterName)">
+                    <span class="req-ini" [style.background]="userColor(item.requesterName)">
                       {{ item.requesterName[0].toUpperCase() }}
                     </span>
                   }

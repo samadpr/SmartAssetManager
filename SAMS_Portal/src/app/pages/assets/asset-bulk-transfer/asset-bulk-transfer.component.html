@@ -1,0 +1,518 @@
+<app-page-header [title]="'Asset Bulk Transfer'" [breadcrumbs]="[
+    { label: 'Asset', url: '/assets' },
+    { label: 'Bulk Transfer' }
+  ]">
+</app-page-header>
+
+
+<div class="bulk-transfer-page">
+ 
+  <!-- ═══ TOP STATS BAR ═══ -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-icon-wrap stat-icon--scan">
+        <mat-icon>qr_code_scanner</mat-icon>
+      </div>
+      <div class="stat-body">
+        <span class="stat-num">{{ scannedCount() }}</span>
+        <span class="stat-lbl">Scanned</span>
+      </div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-icon-wrap stat-icon--bucket">
+        <mat-icon>inventory</mat-icon>
+      </div>
+      <div class="stat-body">
+        <span class="stat-num">{{ bucketCount() }}</span>
+        <span class="stat-lbl">In Bucket</span>
+      </div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-icon-wrap stat-icon--limit">
+        <mat-icon>rule</mat-icon>
+      </div>
+      <div class="stat-body">
+        <span class="stat-num">{{ BUCKET_LIMIT - bucketCount() }}</span>
+        <span class="stat-lbl">Slots Left</span>
+      </div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-icon-wrap" [class]="transferDoneCount() > 0 ? 'stat-icon--success' : 'stat-icon--idle'">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <div class="stat-body">
+        <span class="stat-num">{{ transferDoneCount() }}</span>
+        <span class="stat-lbl">Transferred</span>
+      </div>
+    </div>
+ 
+    <!-- Capacity bar -->
+    <div class="capacity-bar-wrap">
+      <div class="capacity-label">
+        <mat-icon>storage</mat-icon>
+        Bucket Capacity
+        <span class="capacity-pct">{{ capacityPct() }}%</span>
+      </div>
+      <div class="capacity-track">
+        <div class="capacity-fill"
+          [style.width.%]="capacityPct()"
+          [class.capacity-fill--warn]="capacityPct() >= 75"
+          [class.capacity-fill--full]="capacityPct() >= 100">
+        </div>
+      </div>
+      <span class="capacity-count">{{ bucketCount() }} / {{ BUCKET_LIMIT }}</span>
+    </div>
+  </div>
+ 
+  <!-- ═══ MAIN GRID ═══ -->
+  <div class="main-grid">
+ 
+    <!-- ─── LEFT: SCANNER PANEL ─── -->
+    <div class="panel scanner-panel" [class.panel--scanning]="scannerActive()">
+ 
+      <div class="panel-header">
+        <div class="panel-title">
+          <div class="panel-title-icon">
+            <mat-icon>qr_code_scanner</mat-icon>
+          </div>
+          <div>
+            <h3>Scan Asset</h3>
+            <p>Scan QR code or barcode to add assets to bucket</p>
+          </div>
+        </div>
+        <div class="scanner-status-badge" [class.badge--active]="scannerActive()">
+          <span class="status-dot"></span>
+          {{ scannerActive() ? 'Ready to Scan' : 'Idle' }}
+        </div>
+      </div>
+ 
+      <!-- Scan Input Zone -->
+      <div class="scan-input-zone" (click)="focusScanInput()">
+        <div class="scan-animation-ring" [class.ring--active]="scannerActive()">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="ring ring-3"></div>
+          <mat-icon class="scan-center-icon">{{ lastScanSuccess() === null ? 'qr_code_2' : lastScanSuccess() ? 'check_circle' : 'error' }}</mat-icon>
+        </div>
+        <div class="scan-status-text">
+          <ng-container *ngIf="scanning()">
+            <mat-progress-spinner diameter="20" mode="indeterminate" class="inline-spinner"></mat-progress-spinner>
+            Looking up asset…
+          </ng-container>
+          <ng-container *ngIf="!scanning() && lastScanSuccess() === null">
+            Point scanner at QR or Barcode
+          </ng-container>
+          <ng-container *ngIf="!scanning() && lastScanSuccess() === true">
+            <mat-icon class="inline-icon success-icon">check_circle</mat-icon>
+            Asset added!
+          </ng-container>
+          <ng-container *ngIf="!scanning() && lastScanSuccess() === false">
+            <mat-icon class="inline-icon error-icon">cancel</mat-icon>
+            {{ scanError() }}
+          </ng-container>
+        </div>
+      </div>
+ 
+      <!-- Hidden barcode input (captures scanner input) -->
+      <input #scanInput
+        class="barcode-input"
+        [class.barcode-input--active]="scannerActive()"
+        [(ngModel)]="scanBuffer"
+        (keydown)="onScanKeyDown($event)"
+        (input)="onScanInput()"
+        placeholder="Focus here for scanner input..."
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        readonly="false" />
+ 
+      <!-- Manual input toggle -->
+      <div class="manual-toggle">
+        <button mat-stroked-button
+          class="toggle-manual-btn"
+          (click)="toggleManualInput()">
+          <mat-icon>{{ showManual() ? 'keyboard_hide' : 'keyboard' }}</mat-icon>
+          {{ showManual() ? 'Hide Manual Input' : 'Type Asset ID Manually' }}
+        </button>
+      </div>
+ 
+      <!-- Manual Input -->
+      <div class="manual-input-area" *ngIf="showManual()" [@slideDown]>
+        <mat-form-field appearance="outline" class="manual-field">
+          <mat-label>Asset ID</mat-label>
+          <input matInput
+            [(ngModel)]="manualAssetId"
+            (keydown.enter)="lookupManual()"
+            placeholder="e.g. AST-0001"
+            autocomplete="off" />
+          <mat-icon matPrefix>fingerprint</mat-icon>
+          <button matSuffix mat-icon-button
+            (click)="lookupManual()"
+            [disabled]="!manualAssetId.trim() || scanning()"
+            matTooltip="Lookup Asset">
+            <mat-icon>search</mat-icon>
+          </button>
+        </mat-form-field>
+        <button mat-flat-button color="primary"
+          class="lookup-btn"
+          (click)="lookupManual()"
+          [disabled]="!manualAssetId.trim() || scanning()">
+          <mat-progress-spinner *ngIf="scanning()" diameter="18" mode="indeterminate" class="btn-spinner"></mat-progress-spinner>
+          <mat-icon *ngIf="!scanning()">add_circle</mat-icon>
+          {{ scanning() ? 'Looking up…' : 'Add to Bucket' }}
+        </button>
+      </div>
+ 
+      <!-- Scanner Tips -->
+      <div class="scanner-tips">
+        <div class="tip-header">
+          <mat-icon>lightbulb</mat-icon>
+          <span>Scanner Tips</span>
+        </div>
+        <ul class="tip-list">
+          <li><mat-icon>check</mat-icon> USB / Bluetooth barcode scanners work automatically</li>
+          <li><mat-icon>check</mat-icon> POS devices (Zebra TC58, Sunmi L2s) — click the scan input field first</li>
+          <li><mat-icon>check</mat-icon> Supports QR codes, Code128, Code39, EAN, UPC formats</li>
+          <li><mat-icon>check</mat-icon> Scan or type to add up to {{ BUCKET_LIMIT }} assets</li>
+        </ul>
+      </div>
+ 
+      <!-- Activate / Deactivate Scanner Button -->
+      <button mat-flat-button
+        class="activate-scanner-btn"
+        [color]="scannerActive() ? 'warn' : 'primary'"
+        (click)="toggleScanner()">
+        <mat-icon>{{ scannerActive() ? 'stop_circle' : 'play_circle' }}</mat-icon>
+        {{ scannerActive() ? 'Deactivate Scanner' : 'Activate Scanner' }}
+      </button>
+    </div>
+ 
+    <!-- ─── RIGHT: BUCKET PANEL ─── -->
+    <div class="panel bucket-panel">
+ 
+      <div class="panel-header">
+        <div class="panel-title">
+          <div class="panel-title-icon">
+            <mat-icon>shopping_basket</mat-icon>
+          </div>
+          <div>
+            <h3>Transfer Bucket</h3>
+            <p>{{ bucketCount() }} asset{{ bucketCount() !== 1 ? 's' : '' }} ready for transfer</p>
+          </div>
+        </div>
+        <div class="bucket-actions">
+          <button mat-icon-button
+            matTooltip="Select All"
+            (click)="selectAll()"
+            *ngIf="bucketCount() > 0">
+            <mat-icon>select_all</mat-icon>
+          </button>
+          <button mat-icon-button
+            matTooltip="Remove Selected"
+            color="warn"
+            (click)="removeSelected()"
+            *ngIf="selectedInBucket().length > 0">
+            <mat-icon>delete_sweep</mat-icon>
+          </button>
+          <button mat-icon-button
+            matTooltip="Clear All"
+            color="warn"
+            (click)="clearBucket()"
+            *ngIf="bucketCount() > 0">
+            <mat-icon>delete_forever</mat-icon>
+          </button>
+        </div>
+      </div>
+ 
+      <!-- Empty Bucket State -->
+      <div class="empty-bucket" *ngIf="bucketCount() === 0" [@fadeIn]>
+        <div class="empty-bucket-icon">
+          <mat-icon>shopping_basket</mat-icon>
+        </div>
+        <h4>Bucket is Empty</h4>
+        <p>Scan or enter asset IDs to add them here</p>
+      </div>
+ 
+      <!-- Bucket List -->
+      <div class="bucket-list" *ngIf="bucketCount() > 0">
+        <div class="bucket-list-inner">
+          <div class="bucket-item"
+            *ngFor="let item of bucket(); let i = index; trackBy: trackByAssetId"
+            [class.bucket-item--selected]="isBucketItemSelected(item)"
+            [class.bucket-item--transferred]="item.transferred"
+            [class.bucket-item--failed]="item.failed"
+            [@itemEnter]>
+ 
+            <!-- Checkbox -->
+            <mat-checkbox
+              [checked]="isBucketItemSelected(item)"
+              (change)="toggleBucketSelect(item)"
+              (click)="$event.stopPropagation()"
+              [disabled]="item.transferred || item.failed"
+              class="bucket-checkbox">
+            </mat-checkbox>
+ 
+            <!-- Asset Image -->
+            <div class="bucket-item-img">
+              <img *ngIf="item.imageUrl" [src]="item.imageUrl" [alt]="item.name" />
+              <mat-icon *ngIf="!item.imageUrl">inventory_2</mat-icon>
+            </div>
+ 
+            <!-- Asset Info -->
+            <div class="bucket-item-info">
+              <div class="bucket-item-name">{{ item.name }}</div>
+              <div class="bucket-item-meta">
+                <span class="meta-chip"><mat-icon>fingerprint</mat-icon>{{ item.assetId }}</span>
+                <span class="meta-chip" *ngIf="item.assetBrand"><mat-icon>business</mat-icon>{{ item.assetBrand }}</span>
+                <span class="meta-chip" *ngIf="item.categoryDisplay"><mat-icon>category</mat-icon>{{ item.categoryDisplay }}</span>
+              </div>
+              <div class="bucket-item-location" *ngIf="item.siteDisplay || item.assignUserDisplay">
+                <span class="loc-chip" *ngIf="item.siteDisplay">
+                  <mat-icon>location_city</mat-icon>{{ item.siteDisplay }}
+                </span>
+                <span class="loc-chip" *ngIf="item.assignUserDisplay">
+                  <mat-icon>person</mat-icon>{{ item.assignUserDisplay }}
+                </span>
+              </div>
+            </div>
+ 
+            <!-- Transfer Status -->
+            <div class="bucket-item-status" *ngIf="item.transferred || item.failed || item.transferring">
+              <div class="transfer-badge transfer-badge--progress" *ngIf="item.transferring">
+                <mat-progress-spinner diameter="16" mode="indeterminate"></mat-progress-spinner>
+                Transferring…
+              </div>
+              <div class="transfer-badge transfer-badge--success" *ngIf="item.transferred">
+                <mat-icon>check_circle</mat-icon>
+                Done
+              </div>
+              <div class="transfer-badge transfer-badge--fail" *ngIf="item.failed">
+                <mat-icon>error</mat-icon>
+                Failed
+              </div>
+            </div>
+ 
+            <!-- Remove Button -->
+            <button mat-icon-button
+              class="remove-btn"
+              (click)="removeFromBucket(i)"
+              [disabled]="item.transferring"
+              matTooltip="Remove">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Transfer Actions Footer -->
+      <div class="bucket-footer" *ngIf="bucketCount() > 0">
+        <div class="transfer-summary" *ngIf="isTransferring()">
+          <div class="transfer-progress-bar">
+            <div class="transfer-progress-fill"
+              [style.width.%]="transferProgress()">
+            </div>
+          </div>
+          <span class="transfer-progress-text">
+            Transferring {{ transferDoneCount() + transferFailCount() }} of {{ transferTotal() }}…
+          </span>
+        </div>
+ 
+        <div class="footer-actions">
+          <button mat-stroked-button
+            class="select-all-btn"
+            (click)="selectAll()"
+            *ngIf="selectedInBucket().length < bucketCount() && !isTransferring()">
+            <mat-icon>select_all</mat-icon>
+            Select All ({{ bucketCount() }})
+          </button>
+          <button mat-stroked-button
+            color="warn"
+            (click)="clearBucket()"
+            *ngIf="!isTransferring()"
+            [disabled]="isTransferring()">
+            <mat-icon>delete_outline</mat-icon>
+            Clear
+          </button>
+          <button mat-flat-button
+            color="primary"
+            class="transfer-btn"
+            (click)="openTransferDialog()"
+            [disabled]="transferableCount() === 0 || isTransferring()">
+            <mat-progress-spinner *ngIf="isTransferring()" diameter="18" mode="indeterminate" class="btn-spinner"></mat-progress-spinner>
+            <mat-icon *ngIf="!isTransferring()">swap_horiz</mat-icon>
+            {{ isTransferring() ? 'Transferring…' : 'Transfer ' + transferableCount() + ' Asset' + (transferableCount() !== 1 ? 's' : '') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- ═══ TRANSFER RESULTS ═══ -->
+  <div class="results-panel" *ngIf="showResults()" [@fadeIn]>
+    <div class="results-header">
+      <div class="results-icon">
+        <mat-icon>assignment_turned_in</mat-icon>
+      </div>
+      <div>
+        <h3>Transfer Results</h3>
+        <p>
+          <span class="badge-success">{{ transferDoneCount() }} succeeded</span>
+          <span class="badge-fail" *ngIf="transferFailCount() > 0">{{ transferFailCount() }} failed</span>
+        </p>
+      </div>
+      <button mat-icon-button (click)="showResults.set(false)">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+ 
+    <div class="results-list">
+      <div class="result-row" *ngFor="let item of bucket()">
+        <mat-icon class="result-icon" [class.icon-success]="item.transferred" [class.icon-fail]="item.failed">
+          {{ item.transferred ? 'check_circle' : 'cancel' }}
+        </mat-icon>
+        <span class="result-name">{{ item.name }}</span>
+        <span class="result-id">{{ item.assetId }}</span>
+        <span class="result-msg" *ngIf="item.failMessage">{{ item.failMessage }}</span>
+      </div>
+    </div>
+ 
+    <div class="results-footer">
+      <button mat-stroked-button (click)="retryFailed()" *ngIf="transferFailCount() > 0">
+        <mat-icon>refresh</mat-icon>
+        Retry Failed
+      </button>
+      <button mat-flat-button color="primary" (click)="clearAndReset()">
+        <mat-icon>restart_alt</mat-icon>
+        Start New Transfer
+      </button>
+    </div>
+  </div>
+</div>
+ 
+<!-- ═══ TRANSFER DIALOG ═══ -->
+<ng-template #transferDialogTpl>
+  <div class="transfer-dialog">
+    <div class="dialog-header">
+      <div class="dialog-header-icon">
+        <mat-icon>swap_horiz</mat-icon>
+      </div>
+      <div>
+        <h2 mat-dialog-title>Transfer {{ transferableCount() }} Asset{{ transferableCount() !== 1 ? 's' : '' }}</h2>
+        <p>Set destination details for the bulk transfer</p>
+      </div>
+    </div>
+ 
+    <mat-dialog-content class="dialog-content">
+      <form [formGroup]="transferForm" class="transfer-form">
+ 
+        <div class="form-section">
+          <div class="form-section-title">
+            <mat-icon>event</mat-icon>
+            Transfer Dates
+          </div>
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Transfer Date *</mat-label>
+              <input matInput [matDatepicker]="transferDatePicker" formControlName="transferDate" />
+              <mat-datepicker-toggle matIconSuffix [for]="transferDatePicker"></mat-datepicker-toggle>
+              <mat-datepicker #transferDatePicker></mat-datepicker>
+              <mat-error *ngIf="transferForm.get('transferDate')?.hasError('required')">Required</mat-error>
+            </mat-form-field>
+ 
+            <mat-form-field appearance="outline">
+              <mat-label>Due Date</mat-label>
+              <input matInput [matDatepicker]="dueDatePicker" formControlName="dueDate" />
+              <mat-datepicker-toggle matIconSuffix [for]="dueDatePicker"></mat-datepicker-toggle>
+              <mat-datepicker #dueDatePicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+        </div>
+ 
+        <div class="form-section">
+          <div class="form-section-title">
+            <mat-icon>assignment_ind</mat-icon>
+            Destination
+          </div>
+ 
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Assign To *</mat-label>
+            <mat-select formControlName="assignTo">
+              <mat-option [value]="0">Not Assigned</mat-option>
+              <mat-option [value]="1">User / Employee</mat-option>
+              <mat-option [value]="2">Site / Branch</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>assignment_ind</mat-icon>
+            <mat-error *ngIf="transferForm.get('assignTo')?.hasError('required')">Required</mat-error>
+          </mat-form-field>
+ 
+          <mat-form-field appearance="outline" class="full-width"
+            *ngIf="transferForm.get('assignTo')?.value === 1">
+            <mat-label>Employee</mat-label>
+            <mat-select formControlName="assignUserId">
+              <mat-option *ngFor="let u of usersList()" [value]="u.value">{{ u.label }}</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>person</mat-icon>
+          </mat-form-field>
+ 
+          <div class="form-row" *ngIf="transferForm.get('assignTo')?.value === 2">
+            <mat-form-field appearance="outline">
+              <mat-label>Site / Branch</mat-label>
+              <mat-select formControlName="siteId" (selectionChange)="onSiteChange($event.value)">
+                <mat-option *ngFor="let s of sitesList()" [value]="s.value">{{ s.label }}</mat-option>
+              </mat-select>
+              <mat-icon matPrefix>location_city</mat-icon>
+            </mat-form-field>
+ 
+            <mat-form-field appearance="outline">
+              <mat-label>Area</mat-label>
+              <mat-select formControlName="areaId">
+                <mat-option *ngFor="let a of filteredAreasList()" [value]="a.value">{{ a.label }}</mat-option>
+              </mat-select>
+              <mat-icon matPrefix>map</mat-icon>
+            </mat-form-field>
+          </div>
+        </div>
+ 
+        <div class="form-section">
+          <div class="form-section-title">
+            <mat-icon>notes</mat-icon>
+            Notes
+          </div>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Transfer Note</mat-label>
+            <textarea matInput formControlName="note" rows="2" placeholder="Optional note…"></textarea>
+            <mat-icon matPrefix>description</mat-icon>
+          </mat-form-field>
+        </div>
+ 
+        <!-- Preview -->
+        <div class="transfer-preview">
+          <div class="preview-label">
+            <mat-icon>inventory</mat-icon>
+            Assets to Transfer
+          </div>
+          <div class="preview-chips">
+            <span class="preview-chip" *ngFor="let item of transferableItems()">
+              {{ item.assetId }}
+            </span>
+          </div>
+        </div>
+      </form>
+    </mat-dialog-content>
+ 
+    <mat-dialog-actions class="dialog-actions">
+      <button mat-stroked-button mat-dialog-close>
+        <mat-icon>close</mat-icon> Cancel
+      </button>
+      <button mat-flat-button color="primary"
+        (click)="executeTransfer()"
+        [disabled]="transferForm.invalid">
+        <mat-icon>swap_horiz</mat-icon>
+        Confirm Transfer
+      </button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>

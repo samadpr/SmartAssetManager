@@ -43,6 +43,13 @@ export class SitesOrBranchesService {
     );
   }
 
+  // 📌 Get Site/Branch by ID
+  getSiteOrBranchById(id: number): Observable<ApiResponse<AssetSite>> {
+    return this.http.get<ApiResponse<AssetSite>>(
+      `${this.baseUrl}/get-by-site-or-branch-id?id=${id}`
+    );
+  }
+
   // 📌 Get Sites/Branches by CityId
   getSitesByCityId(cityId: number): Observable<ApiResponse<AssetSite[]>> {
     return this.http.get<ApiResponse<AssetSite[]>>(

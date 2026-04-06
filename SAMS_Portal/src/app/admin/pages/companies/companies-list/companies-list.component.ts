@@ -18,15 +18,15 @@ import { MatTableModule } from '@angular/material/table';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
-import { AdminPageHeaderComponent } from '../../shared/widgets/admin-page-header/admin-page-header.component';
-import { CompanyService } from '../../../core/services/company/company.service';
-import { CompanyWithUserInfo } from '../../../core/models/interfaces/company/company.interface';
-import { GlobalService } from '../../../core/services/global/global.service';
-import { JoinNonNullPipe } from '../../../core/pipe/join-non-null.pipe';
-import { FileUrlHelper } from '../../../core/helper/get-file-url';
+import { AdminPageHeaderComponent } from '../../../shared/widgets/admin-page-header/admin-page-header.component';
+import { CompanyService } from '../../../../core/services/company/company.service';
+import { CompanyWithUserInfo } from '../../../../core/models/interfaces/company/company.interface';
+import { GlobalService } from '../../../../core/services/global/global.service';
+import { JoinNonNullPipe } from '../../../../core/pipe/join-non-null.pipe';
+import { FileUrlHelper } from '../../../../core/helper/get-file-url';
 import { AssignSubscriptionDialogComponent } from '../assign-subscription-dialog/assign-subscription-dialog.component';
 import { ToggleActiveDialogComponent } from '../toggle-active-dialog/toggle-active-dialog.component';
-import { CompanyDetailService } from '../../../core/services/admin/company/company-detail.service';
+import { CompanyDetailService } from '../../../../core/services/admin/company/company-detail.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Subscription status type — single source of truth for badge + toggle guard

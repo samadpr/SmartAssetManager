@@ -4,9 +4,9 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { CompanyWithUserInfo } from '../../../core/models/interfaces/company/company.interface';
-import { GlobalService } from '../../../core/services/global/global.service';
-import { CompanyDetailService } from '../../../core/services/admin/company/company-detail.service';
+import { CompanyWithUserInfo } from '../../../../core/models/interfaces/company/company.interface';
+import { GlobalService } from '../../../../core/services/global/global.service';
+import { CompanyDetailService } from '../../../../core/services/admin/company/company-detail.service';
 
 export interface ToggleActiveDialogData {
   company: CompanyWithUserInfo;

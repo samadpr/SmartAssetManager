@@ -11,6 +11,11 @@ import { BaseChartDirective } from 'ng2-charts';
 import { AssetDepreciationDto, AssetReportDepreciationDto } from '../../../../core/models/interfaces/asset-report/assetReportDto.interface';
 import { ChartConfiguration } from 'chart.js';
 
+interface DialogData {
+  asset: AssetReportDepreciationDto;
+  currencyCode: string;
+}
+
 @Component({
   selector: 'app-depreciation-schedule-dialog',
   standalone: true,
@@ -30,11 +35,13 @@ import { ChartConfiguration } from 'chart.js';
 })
 export class DepreciationScheduleDialogComponent implements OnInit {
   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
-
+ 
+  asset: AssetReportDepreciationDto;
+  private _currencyCode: string;
+ 
   dataSource = new MatTableDataSource<AssetDepreciationDto>([]);
   displayedColumns: string[] = ['year', 'bookValueYearBegining', 'depreciation', 'bookValueYearEnd'];
-
-  // Chart configuration
+ 
   public lineChartData: ChartConfiguration<'line'>['data'] = {
     labels: [],
     datasets: [
@@ -64,7 +71,7 @@ export class DepreciationScheduleDialogComponent implements OnInit {
       }
     ]
   };
-
+ 
   public lineChartOptions: ChartConfiguration<'line'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -77,16 +84,11 @@ export class DepreciationScheduleDialogComponent implements OnInit {
         mode: 'index',
         intersect: false,
         callbacks: {
-          label: function (context) {
+          label: (context) => {
             let label = context.dataset.label || '';
-            if (label) {
-              label += ': ';
-            }
+            if (label) label += ': ';
             if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD'
-              }).format(context.parsed.y);
+              label += this.formatCurrency(context.parsed.y);
             }
             return label;
           }
@@ -97,8 +99,9 @@ export class DepreciationScheduleDialogComponent implements OnInit {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: function (value) {
-            return '$' + value.toLocaleString();
+          callback: (value) => {
+            if (typeof value !== 'number') return value;
+            return this.formatCurrencyCompact(value);
           }
         }
       }
@@ -109,33 +112,34 @@ export class DepreciationScheduleDialogComponent implements OnInit {
       intersect: false
     }
   };
-
+ 
   constructor(
     public dialogRef: MatDialogRef<DepreciationScheduleDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public asset: AssetReportDepreciationDto
-  ) { }
-
+    @Inject(MAT_DIALOG_DATA) public data: DialogData
+  ) {
+    this.asset = data.asset;
+    this._currencyCode = data.currencyCode || 'USD';
+  }
+ 
   ngOnInit(): void {
     if (this.asset.depreciationSchedule && this.asset.depreciationSchedule.length > 0) {
       this.dataSource.data = this.asset.depreciationSchedule;
       this.prepareChartData();
     }
   }
-
+ 
   prepareChartData(): void {
     const schedule = this.asset.depreciationSchedule || [];
-
+ 
     this.lineChartData.labels = schedule.map(s => `Year ${s.year}`);
     this.lineChartData.datasets[0].data = schedule.map(s => s.bookValueYearEnd);
     this.lineChartData.datasets[1].data = schedule.map(s => s.depreciation);
-
-    // Update chart if it exists
+ 
     this.chart?.update();
   }
-
+ 
   getDepreciationMethodName(): string {
     if (!this.asset.depreciationMethod) return 'None';
-
     const methods: { [key: number]: string } = {
       0: 'None',
       1: 'Straight Line',
@@ -144,30 +148,79 @@ export class DepreciationScheduleDialogComponent implements OnInit {
       4: '150% Declining Balance',
       5: 'Sum of Years Digits'
     };
-
     return methods[this.asset.depreciationMethod] || 'Unknown';
   }
-
-  formatCurrency(value: number | undefined): string {
-    if (!value && value !== 0) return '$0.00';
-    return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+ 
+  // ── Currency symbol helper ────────────────────────────────────────────────
+  get currencySymbol(): string {
+    try {
+      return (
+        new Intl.NumberFormat('en', { style: 'currency', currency: this._currencyCode })
+          .formatToParts(0)
+          .find(p => p.type === 'currency')?.value ?? '$'
+      );
+    } catch {
+      return '$';
+    }
   }
-
+ 
+  /**
+   * Full precision currency format for table cells.
+   */
+  formatCurrency(value: number | undefined): string {
+    if (!value && value !== 0) return `${this.currencySymbol}0.00`;
+    try {
+      return new Intl.NumberFormat('en', {
+        style: 'currency',
+        currency: this._currencyCode,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(value);
+    } catch {
+      return `${this.currencySymbol}${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+  }
+ 
+  /**
+   * Compact format used in chart axis ticks and summary card values.
+   */
+  formatCurrencyCompact(value: number | undefined): string {
+    if (!value && value !== 0) return `${this.currencySymbol}0`;
+    try {
+      if (value >= 1_000_000) {
+        return new Intl.NumberFormat('en', {
+          style: 'currency', currency: this._currencyCode,
+          maximumFractionDigits: 1, notation: 'compact'
+        }).format(value);
+      }
+      if (value >= 10_000) {
+        return new Intl.NumberFormat('en', {
+          style: 'currency', currency: this._currencyCode,
+          maximumFractionDigits: 0, notation: 'compact'
+        }).format(value);
+      }
+      return new Intl.NumberFormat('en', {
+        style: 'currency', currency: this._currencyCode,
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+      }).format(value);
+    } catch {
+      const sym = this.currencySymbol;
+      if (value >= 1_000_000) return `${sym}${(value / 1_000_000).toFixed(1)}M`;
+      if (value >= 10_000) return `${sym}${(value / 1_000).toFixed(0)}K`;
+      return `${sym}${value.toFixed(2)}`;
+    }
+  }
+ 
   formatDate(date: any): string {
     if (!date) return '';
     return new Date(date).toLocaleDateString();
   }
-
+ 
   close(): void {
     this.dialogRef.close();
   }
-
+ 
   print(): void {
     window.print();
-  }
-
-  exportToExcel(): void {
-    // You can implement Excel export here using XLSX library
-    console.log('Export to Excel');
   }
 }

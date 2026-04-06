@@ -12,10 +12,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
-import { CompanyWithUserInfo } from '../../../core/models/interfaces/company/company.interface';
-import { SubscriptionsService } from '../../../core/services/admin/subscriptions/subscriptions.service';
-import { GlobalService } from '../../../core/services/global/global.service';
-import { SubscriptionsRequest } from '../../../core/models/admin/subscriptions.interface';
+import { CompanyWithUserInfo } from '../../../../core/models/interfaces/company/company.interface';
+import { SubscriptionsService } from '../../../../core/services/admin/subscriptions/subscriptions.service';
+import { GlobalService } from '../../../../core/services/global/global.service';
+import { SubscriptionsRequest } from '../../../../core/models/admin/subscriptions.interface';
  
 export interface AssignSubscriptionDialogData {
   company: CompanyWithUserInfo;

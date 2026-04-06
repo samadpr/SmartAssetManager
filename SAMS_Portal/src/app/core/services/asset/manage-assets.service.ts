@@ -37,6 +37,13 @@ export class ManageAssetsService {
     return this.http.get<ApiResponse<AssetDetail>>(`${this.baseUrl}/get-by-id?id=${id}`);
   }
 
+  // GET BY ASSET ID
+  getByAssetId(assetId: string): Observable<ApiResponse<AssetDetail>> {
+    return this.http.get<ApiResponse<AssetDetail>>(
+      `${this.baseUrl}/get-by-asset-id?assetId=${assetId}`
+    );
+  }
+
   // GET BY ORG
   getByOrg(): Observable<ApiResponse<AssetDetail[]>> {
     return this.http.get<ApiResponse<AssetDetail[]>>(`${this.baseUrl}/get-by-org-id`);
