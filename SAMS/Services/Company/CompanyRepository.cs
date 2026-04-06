@@ -58,7 +58,7 @@ namespace SAMS.Services.Company
         {
             try
             {
-                var company = await _context.CompanyInfo.FirstOrDefaultAsync(c => c.OrganizationId == OrganizationId && !c.Cancelled);
+                var company = await _context.CompanyInfo.Include(c => c.SubscriptionPlan).FirstOrDefaultAsync(c => c.OrganizationId == OrganizationId && !c.Cancelled);
                 if (company == null)
                     return (false, "No companies found", null!);
                 return (true, "Companies found successfully", company);

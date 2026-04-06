@@ -24,6 +24,8 @@ public interface IUserProfileRepository
 
     Task<(IEnumerable<UsersListDto> users, string message)> GetUsersListByOrg(Guid? orgId);
 
+    Task<(UsersListDto users, string message)> GetOrganizationUserById(Guid? orgId, long id);
+
     Task<(UserProfile user, string message)> GetUserProfileByOrganizationId(long userProfileId, Guid organizationId);
 
     Task<(bool success, string message)> UpdateUserProfileAsync(UserProfile user);

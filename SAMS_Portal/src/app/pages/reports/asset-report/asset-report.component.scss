@@ -102,17 +102,6 @@
       background: var(--mat-sys-primary-container);
       border-radius: 8px;
       margin-top: 16px;
-
-      mat-checkbox {
-        ::ng-deep .mdc-checkbox__background {
-          border-color: var(--mat-sys-primary);
-        }
-
-        ::ng-deep .mdc-label {
-          color: var(--mat-sys-on-primary-container);
-          font-weight: 500;
-        }
-      }
     }
 
     .active-filters {
@@ -137,205 +126,156 @@
         flex-wrap: wrap;
         gap: 8px;
       }
-
-      .filter-chip {
-        background: var(--mat-sys-primary-container);
-        color: var(--mat-sys-on-primary-container);
-        font-weight: 500;
-        border-radius: 16px;
-        padding: 8px 12px;
-
-        ::ng-deep .mdc-evolution-chip__action--primary {
-          padding: 0 12px;
-        }
-
-        button[matChipRemove] {
-          mat-icon {
-            font-size: 18px;
-            width: 18px;
-            height: 18px;
-            color: var(--mat-sys-on-primary-container);
-          }
-        }
-      }
     }
   }
 
-  // Statistics Grid
-  .statistics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 24px;
+  // ── Stat Cards ─────────────────────────────────────────────────────────────
+  .stat-card {
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    .stat-card {
-      border-radius: 16px;
+    @include mat.card-overrides((
+      elevated-container-elevation: 2
+    ));
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    mat-card-content {
+      padding: 20px 24px !important;
+    }
+
+    // Inner layout: icon on left, details on right
+    .stat-inner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-height: 72px;
+    }
+
+    .stat-icon-wrap {
+      flex-shrink: 0;
+      width: 60px;
+      height: 60px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+
+      mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+    .stat-details {
+      flex: 1;
+      min-width: 0; // prevent overflow
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    // ── Responsive value font sizes based on content length ─────────────────
+    .stat-value {
+      font-weight: 700;
+      line-height: 1.1;
+      white-space: nowrap;
       overflow: hidden;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
+      text-overflow: ellipsis;
 
-      @include mat.card-overrides((
-        elevated-container-elevation: 2
-      ));
-
-      &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      // Default / large numbers (counts)
+      &.stat-value--lg {
+        font-size: 2rem;
       }
 
-      mat-card-content {
-        padding: 24px !important;
-        display: flex;
-        align-items: center;
-        gap: 20px;
+      // Medium — e.g. "$12,340" (7–10 chars)
+      &.stat-value--md {
+        font-size: 1.6rem;
       }
 
-      .stat-icon {
-        width: 64px;
-        height: 64px;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-
-        mat-icon {
-          font-size: 32px;
-          width: 32px;
-          height: 32px;
-        }
+      // Small — e.g. "$1,339,820" or "₹1,23,456" (11–14 chars)
+      &.stat-value--sm {
+        font-size: 1.25rem;
       }
 
-      .stat-details {
-        flex: 1;
-
-        .stat-value {
-          font-size: 2rem;
-          font-weight: 700;
-          line-height: 1.2;
-          margin-bottom: 4px;
-        }
-
-        .stat-label {
-          font-size: 0.875rem;
-          font-weight: 500;
-          opacity: 0.8;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
+      // Extra small — very long currency strings (15+ chars)
+      &.stat-value--xs {
+        font-size: 1rem;
+        white-space: normal;
+        word-break: break-word;
+        line-height: 1.3;
       }
+    }
 
-      &.primary-stat {
-        background: linear-gradient(135deg, var(--mat-sys-primary-container) 0%, var(--mat-sys-primary) 100%);
-        color: var(--mat-sys-on-primary);
+    .stat-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      opacity: 0.85;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
 
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
+    // Color variants
+    &.primary-stat {
+      background: linear-gradient(135deg, var(--mat-sys-primary-container) 0%, var(--mat-sys-primary) 100%);
+      color: var(--mat-sys-on-primary);
+    }
 
-      &.success-stat {
-        background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
-        color: white;
+    &.success-stat {
+      background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+      color: white;
+    }
 
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
+    &.warning-stat {
+      background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+      color: white;
+    }
 
-      &.warning-stat {
-        background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-        color: white;
+    &.info-stat {
+      background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%);
+      color: white;
+    }
 
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
+    &.disposal-stat {
+      background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+      color: white;
+    }
 
-      &.info-stat {
-        background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%);
-        color: white;
+    &.disposal-value-stat {
+      background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+      color: white;
+    }
 
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
+    &.method-stat {
+      background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+      color: white;
+    }
 
-      // Disposal specific stats
-      &.disposal-stat {
-        background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
-        color: white;
+    &.depreciation-count-stat {
+      background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+      color: white;
+    }
 
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
+    &.depreciation-value-stat {
+      background: linear-gradient(135deg, #673ab7 0%, #512da8 100%);
+      color: white;
+    }
 
-      &.disposal-value-stat {
-        background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-        color: white;
+    &.salvage-value-stat {
+      background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+      color: white;
+    }
 
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
-
-      &.method-stat {
-        background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
-        color: white;
-
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
-
-      // Depreciation specific stats
-      &.depreciation-count-stat {
-        background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-        color: white;
-
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
-
-      &.depreciation-value-stat {
-        background: linear-gradient(135deg, #673ab7 0%, #512da8 100%);
-        color: white;
-
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
-
-      &.salvage-value-stat {
-        background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
-        color: white;
-
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
-
-      &.net-depreciation-stat {
-        background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-        color: white;
-
-        .stat-icon {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-        }
-      }
+    &.net-depreciation-stat {
+      background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+      color: white;
     }
   }
 
@@ -359,13 +299,6 @@
       mat-radio-group {
         display: flex;
         gap: 24px;
-
-        mat-radio-button {
-          ::ng-deep .mdc-label {
-            font-weight: 500;
-            font-size: 1rem;
-          }
-        }
       }
 
       .export-actions {
@@ -377,10 +310,6 @@
           font-weight: 600;
           padding: 0 24px;
           height: 42px;
-
-          mat-icon {
-            margin-right: 8px;
-          }
         }
       }
     }
@@ -399,16 +328,10 @@
       padding: 0 !important;
     }
 
-    .table-container {
-      overflow: hidden;
-      border-radius: 16px;
-    }
-
     .table-wrapper {
       overflow-x: auto;
       max-width: 100%;
 
-      // Custom scrollbar
       &::-webkit-scrollbar {
         height: 8px;
       }
@@ -466,7 +389,6 @@
         }
       }
 
-      // Asset ID
       .asset-id {
         font-family: 'Courier New', monospace;
         font-weight: 600;
@@ -482,7 +404,6 @@
         }
       }
 
-      // Asset Name Cell
       .asset-name-cell {
         display: flex;
         flex-direction: column;
@@ -500,7 +421,6 @@
         }
       }
 
-      // Category Cell
       .category-cell {
         display: flex;
         flex-direction: column;
@@ -523,7 +443,6 @@
         }
       }
 
-      // Department Cell
       .department-cell {
         display: flex;
         flex-direction: column;
@@ -539,7 +458,6 @@
         }
       }
 
-      // Quantity Badge
       .quantity-badge {
         display: inline-block;
         background: var(--mat-sys-secondary-container);
@@ -557,15 +475,13 @@
         }
       }
 
-      // Price Text
       .price-text {
         font-weight: 700;
         color: #2e7d32;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-family: 'Roboto Mono', monospace;
       }
 
-      // Status Badges
       .status-badge {
         display: inline-block;
         padding: 6px 16px;
@@ -586,7 +502,6 @@
         }
       }
 
-      // Disposal specific styles
       &.disposal-table {
         .disposal-row {
           &:hover {
@@ -603,7 +518,6 @@
           font-size: 0.8125rem;
           text-transform: uppercase;
           letter-spacing: 0.3px;
-          transition: all 0.2s ease;
 
           &.method-sold {
             background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
@@ -660,7 +574,6 @@
         }
       }
 
-      // No Data Cell
       .no-data-cell {
         text-align: center;
         padding: 60px 20px !important;
@@ -702,52 +615,22 @@
         padding: 12px 16px;
       }
     }
-
-    .loading-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 100px 20px;
-      gap: 24px;
-
-      mat-spinner {
-        ::ng-deep circle {
-          stroke: var(--mat-sys-primary);
-        }
-      }
-
-      p {
-        margin: 0;
-        font-size: 1.125rem;
-        font-weight: 500;
-        color: var(--mat-sys-on-surface-variant);
-      }
-    }
   }
 }
 
-// Responsive Design
+// ── Responsive Design ─────────────────────────────────────────────────────────
+
 @media (max-width: 1200px) {
   .report-container {
     .filter-card .filter-grid {
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     }
 
-    .statistics-grid {
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-
-      .stat-card {
-        .stat-details {
-          .stat-value {
-            font-size: 1.5rem;
-          }
-
-          .stat-label {
-            font-size: 0.8125rem;
-          }
-        }
+    .stat-card {
+      .stat-value {
+        &.stat-value--lg  { font-size: 1.75rem; }
+        &.stat-value--md  { font-size: 1.4rem; }
+        &.stat-value--sm  { font-size: 1.1rem; }
       }
     }
   }
@@ -776,46 +659,27 @@
       }
     }
 
-    .statistics-grid {
-      grid-template-columns: 1fr;
-      gap: 12px;
+    .stat-card {
+      mat-card-content {
+        padding: 16px 20px !important;
+      }
 
-      .stat-card {
-        mat-card-content {
-          padding: 16px !important;
-        }
+      .stat-icon-wrap {
+        width: 52px;
+        height: 52px;
 
-        .stat-icon {
-          width: 56px;
-          height: 56px;
-
-          mat-icon {
-            font-size: 28px;
-            width: 28px;
-            height: 28px;
-          }
+        mat-icon {
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
         }
       }
-    }
 
-    .report-type-card {
-      .report-type-header {
-        flex-direction: column;
-        align-items: flex-start;
-
-        mat-radio-group {
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .export-actions {
-          width: 100%;
-
-          button {
-            flex: 1;
-            min-width: 0;
-          }
-        }
+      .stat-value {
+        &.stat-value--lg  { font-size: 1.6rem; }
+        &.stat-value--md  { font-size: 1.3rem; }
+        &.stat-value--sm  { font-size: 1.05rem; }
+        &.stat-value--xs  { font-size: 0.9rem; }
       }
     }
 
@@ -823,8 +687,7 @@
       border-radius: 12px;
 
       .asset-table {
-        th,
-        td {
+        th, td {
           padding: 12px 16px;
           font-size: 0.875rem;
         }
@@ -835,40 +698,36 @@
 
 @media (max-width: 480px) {
   .report-container {
-    .statistics-grid .stat-card {
-      .stat-icon {
-        width: 48px;
-        height: 48px;
+    .stat-card {
+      .stat-inner {
+        gap: 12px;
+      }
+
+      .stat-icon-wrap {
+        width: 44px;
+        height: 44px;
 
         mat-icon {
-          font-size: 24px;
-          width: 24px;
-          height: 24px;
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
         }
       }
 
-      .stat-details {
-        .stat-value {
-          font-size: 1.25rem;
-        }
-
-        .stat-label {
-          font-size: 0.75rem;
-        }
+      .stat-value {
+        &.stat-value--lg  { font-size: 1.4rem; }
+        &.stat-value--md  { font-size: 1.1rem; }
+        &.stat-value--sm  { font-size: 0.95rem; }
+        &.stat-value--xs  { font-size: 0.85rem; }
       }
-    }
 
-    .export-actions {
-      flex-direction: column;
-
-      button {
-        width: 100%;
+      .stat-label {
+        font-size: 0.7rem;
       }
     }
 
     .asset-table {
-      th,
-      td {
+      th, td {
         padding: 8px 12px;
         font-size: 0.8125rem;
       }
@@ -899,12 +758,8 @@
       background: var(--mat-sys-surface-container);
     }
 
-    .statistics-grid {
-      .stat-card {
-        &:hover {
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        }
-      }
+    .stat-card:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
 
     .asset-table {
@@ -927,18 +782,9 @@
       display: none;
     }
 
-    .statistics-grid {
-      page-break-inside: avoid;
-      margin-bottom: 20px;
-    }
-
     .table-card {
       box-shadow: none;
       border: 1px solid #ddd;
-
-      .table-wrapper {
-        overflow: visible;
-      }
 
       .asset-table {
         page-break-inside: auto;
@@ -950,10 +796,6 @@
 
         thead {
           display: table-header-group;
-        }
-
-        tfoot {
-          display: table-footer-group;
         }
       }
 
@@ -974,16 +816,10 @@
   }
 }
 
-// Animation Classes
+// Animation
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .report-container > * {

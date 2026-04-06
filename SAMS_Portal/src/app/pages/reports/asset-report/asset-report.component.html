@@ -3,14 +3,14 @@
     { label: 'Asset Reports' }
   ]">
 </app-page-header>
-
+ 
 <!-- Main Container -->
 <div class="report-container" style="padding: 24px; display: block !important;">
-  
+ 
   <!-- FILTER CARD -->
   <mat-card class="filter-card" style="margin-bottom: 24px; display: block !important;">
     <mat-card-content style="display: block !important;">
-      
+ 
       <!-- Filter Header -->
       <div class="filter-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <div class="filter-title" style="display: flex; align-items: center; gap: 12px;">
@@ -22,26 +22,26 @@
           Clear All
         </button>
       </div>
-
+ 
       <!-- Search Bar -->
       <div class="search-section" style="margin-bottom: 16px;">
         <mat-form-field appearance="outline" style="width: 100%;">
           <mat-label>Search Assets</mat-label>
-          <input 
-            matInput 
-            [formControl]="searchControl" 
+          <input
+            matInput
+            [formControl]="searchControl"
             placeholder="Search by ID, Name, Brand, Model, Description...">
           <mat-icon matPrefix>search</mat-icon>
-          <button 
-            matSuffix 
-            mat-icon-button 
+          <button
+            matSuffix
+            mat-icon-button
             (click)="searchControl.setValue('')"
             *ngIf="searchControl.value">
             <mat-icon>close</mat-icon>
           </button>
         </mat-form-field>
       </div>
-
+ 
       <!-- Advanced Filters -->
       <mat-expansion-panel class="filter-expansion" style="margin-top: 16px;">
         <mat-expansion-panel-header>
@@ -53,10 +53,10 @@
             {{ activeFilters().length }} active filter(s)
           </mat-panel-description>
         </mat-expansion-panel-header>
-
+ 
         <!-- Filter Grid -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 24px;">
-          
+ 
           <!-- Category -->
           <mat-form-field appearance="outline">
             <mat-label>Category</mat-label>
@@ -68,7 +68,7 @@
             </mat-select>
             <mat-icon matPrefix>category</mat-icon>
           </mat-form-field>
-
+ 
           <!-- Sub Category -->
           <mat-form-field appearance="outline">
             <mat-label>Sub Category</mat-label>
@@ -80,7 +80,7 @@
             </mat-select>
             <mat-icon matPrefix>subdirectory_arrow_right</mat-icon>
           </mat-form-field>
-
+ 
           <!-- Department -->
           <mat-form-field appearance="outline">
             <mat-label>Department</mat-label>
@@ -92,7 +92,7 @@
             </mat-select>
             <mat-icon matPrefix>account_tree</mat-icon>
           </mat-form-field>
-
+ 
           <!-- Sub Department -->
           <mat-form-field appearance="outline">
             <mat-label>Sub Department</mat-label>
@@ -104,7 +104,7 @@
             </mat-select>
             <mat-icon matPrefix>subdirectory_arrow_right</mat-icon>
           </mat-form-field>
-
+ 
           <!-- Site -->
           <mat-form-field appearance="outline">
             <mat-label>Site/Branch</mat-label>
@@ -116,7 +116,7 @@
             </mat-select>
             <mat-icon matPrefix>location_city</mat-icon>
           </mat-form-field>
-
+ 
           <!-- Area -->
           <mat-form-field appearance="outline">
             <mat-label>Area</mat-label>
@@ -128,7 +128,7 @@
             </mat-select>
             <mat-icon matPrefix>map</mat-icon>
           </mat-form-field>
-
+ 
           <!-- Supplier -->
           <mat-form-field appearance="outline">
             <mat-label>Supplier</mat-label>
@@ -140,7 +140,7 @@
             </mat-select>
             <mat-icon matPrefix>local_shipping</mat-icon>
           </mat-form-field>
-
+ 
           <!-- Asset Status -->
           <mat-form-field appearance="outline">
             <mat-label>Asset Status</mat-label>
@@ -152,8 +152,8 @@
             </mat-select>
             <mat-icon matPrefix>info</mat-icon>
           </mat-form-field>
-
-          <!-- Asset Type (Excluded Disposed for common filters) -->
+ 
+          <!-- Asset Type -->
           <mat-form-field appearance="outline">
             <mat-label>Asset Type</mat-label>
             <mat-select [formControl]="assetTypeControl">
@@ -164,8 +164,8 @@
             </mat-select>
             <mat-icon matPrefix>inventory_2</mat-icon>
           </mat-form-field>
-
-          <!-- Assigned To (Excluded Disposed for common filters) -->
+ 
+          <!-- Assigned To -->
           <mat-form-field appearance="outline">
             <mat-label>Assigned To</mat-label>
             <mat-select [formControl]="assignTypeControl">
@@ -176,7 +176,7 @@
             </mat-select>
             <mat-icon matPrefix>assignment_ind</mat-icon>
           </mat-form-field>
-
+ 
           <!-- Start Date -->
           <mat-form-field appearance="outline">
             <mat-label>Start Date</mat-label>
@@ -184,7 +184,7 @@
             <mat-datepicker-toggle matPrefix [for]="startPicker"></mat-datepicker-toggle>
             <mat-datepicker #startPicker></mat-datepicker>
           </mat-form-field>
-
+ 
           <!-- End Date -->
           <mat-form-field appearance="outline">
             <mat-label>End Date</mat-label>
@@ -192,10 +192,9 @@
             <mat-datepicker-toggle matPrefix [for]="endPicker"></mat-datepicker-toggle>
             <mat-datepicker #endPicker></mat-datepicker>
           </mat-form-field>
-
-          <!-- Disposal Specific Filters (Show only when disposal report is selected) -->
+ 
+          <!-- Disposal Specific Filters -->
           <ng-container *ngIf="reportType() === 'disposal'">
-            <!-- Disposal Method -->
             <mat-form-field appearance="outline">
               <mat-label>Disposal Method</mat-label>
               <mat-select [formControl]="disposalMethodControl">
@@ -206,16 +205,14 @@
               </mat-select>
               <mat-icon matPrefix>delete_forever</mat-icon>
             </mat-form-field>
-
-            <!-- Disposal Start Date -->
+ 
             <mat-form-field appearance="outline">
               <mat-label>Disposal Start Date</mat-label>
               <input matInput [matDatepicker]="disposalStartPicker" [formControl]="disposalStartDateControl">
               <mat-datepicker-toggle matPrefix [for]="disposalStartPicker"></mat-datepicker-toggle>
               <mat-datepicker #disposalStartPicker></mat-datepicker>
             </mat-form-field>
-
-            <!-- Disposal End Date -->
+ 
             <mat-form-field appearance="outline">
               <mat-label>Disposal End Date</mat-label>
               <input matInput [matDatepicker]="disposalEndPicker" [formControl]="disposalEndDateControl">
@@ -223,18 +220,18 @@
               <mat-datepicker #disposalEndPicker></mat-datepicker>
             </mat-form-field>
           </ng-container>
-
+ 
         </div>
-
-        <!-- Depreciation Checkbox (Hide for disposal report) -->
+ 
+        <!-- Depreciation Checkbox -->
         <div *ngIf="reportType() !== 'disposal'" style="padding: 16px; background: var(--mat-sys-primary-container); border-radius: 8px; margin: 0 24px 24px 24px;">
           <mat-checkbox [formControl]="depreciableOnlyControl">
             Show Depreciable Assets Only
           </mat-checkbox>
         </div>
-
+ 
       </mat-expansion-panel>
-
+ 
       <!-- Active Filters Chips -->
       <div *ngIf="activeFilters().length > 0" style="display: flex; align-items: center; gap: 12px; margin-top: 20px; padding: 16px; background: var(--mat-sys-surface-container-highest); border-radius: 12px; flex-wrap: wrap;">
         <span style="font-weight: 600;">Active Filters:</span>
@@ -247,164 +244,204 @@
           </mat-chip>
         </mat-chip-set>
       </div>
-
+ 
     </mat-card-content>
   </mat-card>
-
+ 
   <!-- STATISTICS CARDS -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 24px;">
-    
+ 
     <!-- Full Report Statistics -->
     <ng-container *ngIf="reportType() === 'full'">
+ 
       <mat-card class="stat-card primary-stat">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">inventory_2</mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ totalAssets() }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Total Assets</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>inventory_2</mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value stat-value--lg">{{ totalAssets() }}</div>
+              <div class="stat-label">Total Assets</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
       <mat-card class="stat-card success-stat">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">attach_money</mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ formatCurrency(totalValue()) }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Total Value</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>attach_money</mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(totalValue()))">
+                {{ formatCurrencyCompact(totalValue()) }}
+              </div>
+              <div class="stat-label">Total Value</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
       <mat-card class="stat-card warning-stat">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">trending_down</mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ depreciableAssets() }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Depreciable Assets</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>trending_down</mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value stat-value--lg">{{ depreciableAssets() }}</div>
+              <div class="stat-label">Depreciable Assets</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
       <mat-card class="stat-card info-stat">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">analytics</mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ formatCurrency(totalDepreciationValue()) }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Depreciation Value</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>analytics</mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(totalDepreciationValue()))">
+                {{ formatCurrencyCompact(totalDepreciationValue()) }}
+              </div>
+              <div class="stat-label">Depreciation Value</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
+ 
     </ng-container>
-
+ 
     <!-- Depreciation Report Statistics -->
     <ng-container *ngIf="reportType() === 'depreciation'">
+ 
       <mat-card class="stat-card depreciation-count-stat">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">trending_down</mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ totalDepreciableAssets() }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Depreciable Assets</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>trending_down</mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value stat-value--lg">{{ totalDepreciableAssets() }}</div>
+              <div class="stat-label">Depreciable Assets</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
       <mat-card class="stat-card depreciation-value-stat">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">analytics</mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ formatCurrency(totalDepreciationCost()) }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Total Depreciable Cost</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>analytics</mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(totalDepreciationCost()))">
+                {{ formatCurrencyCompact(totalDepreciationCost()) }}
+              </div>
+              <div class="stat-label">Total Depreciable Cost</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
       <mat-card class="stat-card salvage-value-stat">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">savings</mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ formatCurrency(totalSalvageValue()) }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Total Salvage Value</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>savings</mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(totalSalvageValue()))">
+                {{ formatCurrencyCompact(totalSalvageValue()) }}
+              </div>
+              <div class="stat-label">Total Salvage Value</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
       <mat-card class="stat-card net-depreciation-stat">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">calculate</mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ formatCurrency(netDepreciationValue()) }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Net Depreciation</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>calculate</mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(netDepreciationValue()))">
+                {{ formatCurrencyCompact(netDepreciationValue()) }}
+              </div>
+              <div class="stat-label">Net Depreciation</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
+ 
     </ng-container>
-
+ 
     <!-- Disposal Report Statistics -->
     <ng-container *ngIf="reportType() === 'disposal'">
+ 
       <mat-card class="stat-card disposal-stat">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">delete_forever</mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ totalDisposedAssets() }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Disposed Assets</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>delete_forever</mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value stat-value--lg">{{ totalDisposedAssets() }}</div>
+              <div class="stat-label">Disposed Assets</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
       <mat-card class="stat-card disposal-value-stat">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">monetization_on</mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ formatCurrency(totalDisposedValue()) }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Total Disposed Value</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>monetization_on</mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(totalDisposedValue()))">
+                {{ formatCurrencyCompact(totalDisposedValue()) }}
+              </div>
+              <div class="stat-label">Total Disposed Value</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
       <!-- Disposal Method Breakdown Cards -->
       <mat-card class="stat-card method-stat" *ngFor="let entry of disposalMethodCounts() | keyvalue | slice:0:2">
-        <mat-card-content style="padding: 24px; display: flex; align-items: center; gap: 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2);">
-            <mat-icon style="font-size: 32px; width: 32px; height: 32px;">
-              {{ entry.key === 'Sold' ? 'sell' : entry.key === 'Donated' ? 'volunteer_activism' : entry.key === 'Recycled' ? 'recycling' : 'dangerous' }}
-            </mat-icon>
-          </div>
-          <div style="flex: 1;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">{{ entry.value }}</div>
-            <div style="font-size: 0.875rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">{{ entry.key }}</div>
+        <mat-card-content>
+          <div class="stat-inner">
+            <div class="stat-icon-wrap">
+              <mat-icon>
+                {{ entry.key === 'Sold' ? 'sell' : entry.key === 'Donated' ? 'volunteer_activism' : entry.key === 'Recycled' ? 'recycling' : 'dangerous' }}
+              </mat-icon>
+            </div>
+            <div class="stat-details">
+              <div class="stat-value stat-value--lg">{{ entry.value }}</div>
+              <div class="stat-label">{{ entry.key }}</div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
+ 
     </ng-container>
-
+ 
   </div>
-
+ 
   <!-- REPORT TYPE & EXPORT -->
   <mat-card style="margin-bottom: 24px; display: block !important;">
     <mat-card-content style="display: block !important;">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-        
+ 
         <mat-radio-group [value]="reportType()" (change)="toggleReportType($event.value)" style="display: flex; gap: 24px;">
           <mat-radio-button value="full">
             <span style="display: flex; align-items: center; gap: 8px;">
@@ -422,9 +459,9 @@
             <span style="display: flex; align-items: center; gap: 8px;">
               <mat-icon>delete_forever</mat-icon>
               Disposal Report
-              <mat-icon 
-                [matBadge]="totalDisposedAssets().toString()" 
-                matBadgeColor="warn" 
+              <mat-icon
+                [matBadge]="totalDisposedAssets().toString()"
+                matBadgeColor="warn"
                 matBadgeSize="small"
                 *ngIf="totalDisposedAssets() > 0"
                 style="visibility: hidden; width: 0;">
@@ -432,7 +469,7 @@
             </span>
           </mat-radio-button>
         </mat-radio-group>
-
+ 
         <div style="display: flex; gap: 12px;">
           <button mat-raised-button color="primary" [matMenuTriggerFor]="exportMenu">
             <mat-icon>download</mat-icon>
@@ -452,49 +489,48 @@
               <span>Export as CSV</span>
             </button>
           </mat-menu>
-
+ 
           <button mat-raised-button color="accent" (click)="printReport()">
             <mat-icon>print</mat-icon>
             Print
           </button>
         </div>
-
+ 
       </div>
     </mat-card-content>
   </mat-card>
-
+ 
   <!-- DATA TABLE -->
   <mat-card class="table-card">
     <mat-card-content style="padding: 0 !important;">
-      
+ 
       <div *ngIf="loading()" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100px 20px; gap: 24px;">
         <mat-spinner diameter="60"></mat-spinner>
         <p style="margin: 0; font-size: 1.125rem; font-weight: 500;">Loading asset report data...</p>
       </div>
-
+ 
       <div *ngIf="!loading()" style="overflow: hidden; border-radius: 16px;">
-        
+ 
         <!-- FULL REPORT TABLE -->
         <div *ngIf="reportType() === 'full'" style="overflow-x: auto;">
           <table mat-table [dataSource]="dataSource" matSort class="asset-table" style="width: 100%;">
-            
+ 
             <ng-container matColumnDef="assetId">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset ID</th>
               <td mat-cell *matCellDef="let asset">
                 <span class="asset-id">{{ asset.assetId }}</span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
               <td mat-cell *matCellDef="let asset">
                 <div class="asset-name-cell">
                   <strong>{{ asset.name }}</strong>
-                  <small *ngIf="asset.description">{{ asset.description }}</small>
                 </div>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="category">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
               <td mat-cell *matCellDef="let asset">
@@ -504,7 +540,7 @@
                 </div>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="department">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Department</th>
               <td mat-cell *matCellDef="let asset">
@@ -514,42 +550,42 @@
                 </div>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="quantity">
               <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Quantity</th>
               <td mat-cell *matCellDef="let asset" class="text-right">
                 <span class="quantity-badge">{{ asset.quantity || 0 }}</span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="unitPrice">
               <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Unit Price</th>
               <td mat-cell *matCellDef="let asset" class="text-right">
                 <span class="price-text">{{ formatCurrency(asset.unitPrice) }}</span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="assetStatus">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
               <td mat-cell *matCellDef="let asset">
-                <span class="status-badge" 
+                <span class="status-badge"
                   [class.status-in-use]="asset.assetStatusDisplay === 'InUse'"
                   [class.status-available]="asset.assetStatusDisplay === 'Available'">
                   {{ asset.assetStatusDisplay || '-' }}
                 </span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="createdDate">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Created Date</th>
               <td mat-cell *matCellDef="let asset">
                 {{ formatDate(asset.createdDate) }}
               </td>
             </ng-container>
-
+ 
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
-
+ 
             <tr class="mat-row" *matNoDataRow>
               <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
                 <div class="no-data-message">
@@ -558,74 +594,74 @@
                 </div>
               </td>
             </tr>
-
+ 
           </table>
-
+ 
           <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons class="table-paginator"></mat-paginator>
         </div>
-
+ 
         <!-- DEPRECIATION TABLE -->
         <div *ngIf="reportType() === 'depreciation'" style="overflow-x: auto;">
           <table mat-table [dataSource]="depreciationDataSource" matSort class="asset-table" style="width: 100%;">
-            
+ 
             <ng-container matColumnDef="assetId">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset ID</th>
               <td mat-cell *matCellDef="let asset">
                 <span class="asset-id">{{ asset.assetId }}</span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
               <td mat-cell *matCellDef="let asset">
                 <strong>{{ asset.name }}</strong>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="depreciableCost">
               <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Depreciable Cost</th>
               <td mat-cell *matCellDef="let asset" class="text-right">
                 <span class="price-text">{{ formatCurrency(asset.depreciableCost) }}</span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="salvageValue">
               <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Salvage Value</th>
               <td mat-cell *matCellDef="let asset" class="text-right">
                 <span class="price-text">{{ formatCurrency(asset.salvageValue) }}</span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="depreciationMethod">
               <th mat-header-cell *matHeaderCellDef>Method</th>
               <td mat-cell *matCellDef="let asset">
                 {{ getDepreciationMethodName(asset.depreciationMethod) }}
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="dateAquired">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Date Acquired</th>
               <td mat-cell *matCellDef="let asset">
                 {{ formatDate(asset.dateAquired) }}
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Schedule</th>
               <td mat-cell *matCellDef="let asset">
-                <button 
-                  mat-icon-button 
+                <button
+                  mat-icon-button
                   color="primary"
-                  [matTooltip]="'View Depreciation Schedule'" 
+                  [matTooltip]="'View Depreciation Schedule'"
                   (click)="openDepreciationSchedule(asset)">
                   <mat-icon>analytics</mat-icon>
                 </button>
               </td>
             </ng-container>
-
+ 
             <tr mat-header-row *matHeaderRowDef="depreciationColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: depreciationColumns;" class="table-row"></tr>
-
+ 
             <tr class="mat-row" *matNoDataRow>
               <td class="mat-cell no-data-cell" [attr.colspan]="depreciationColumns.length">
                 <div class="no-data-message">
@@ -634,33 +670,32 @@
                 </div>
               </td>
             </tr>
-
+ 
           </table>
-
+ 
           <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons class="table-paginator"></mat-paginator>
         </div>
-
+ 
         <!-- DISPOSAL TABLE -->
         <div *ngIf="reportType() === 'disposal'" style="overflow-x: auto;">
           <table mat-table [dataSource]="disposalDataSource" matSort class="asset-table disposal-table" style="width: 100%;">
-            
+ 
             <ng-container matColumnDef="assetId">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset ID</th>
               <td mat-cell *matCellDef="let asset">
                 <span class="asset-id disposal-id">{{ asset.assetId }}</span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset Name</th>
               <td mat-cell *matCellDef="let asset">
                 <div class="asset-name-cell">
                   <strong>{{ asset.name }}</strong>
-                  <small *ngIf="asset.description">{{ asset.description }}</small>
                 </div>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="category">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
               <td mat-cell *matCellDef="let asset">
@@ -670,40 +705,40 @@
                 </div>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="quantity">
               <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Quantity</th>
               <td mat-cell *matCellDef="let asset" class="text-right">
                 <span class="quantity-badge disposal-quantity">{{ asset.quantity || 0 }}</span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="unitPrice">
               <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Unit Price</th>
               <td mat-cell *matCellDef="let asset" class="text-right">
                 <span class="price-text">{{ formatCurrency(asset.unitPrice) }}</span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="disposalMethod">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Disposal Method</th>
               <td mat-cell *matCellDef="let asset">
-                <span class="disposal-method-badge" 
+                <span class="disposal-method-badge"
                   [class.method-sold]="asset.disposalMethod === 1"
                   [class.method-donated]="asset.disposalMethod === 2"
                   [class.method-recycled]="asset.disposalMethod === 3"
                   [class.method-destroyed]="asset.disposalMethod === 4">
                   <mat-icon style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;">
-                    {{ asset.disposalMethod === 1 ? 'sell' : 
-                       asset.disposalMethod === 2 ? 'volunteer_activism' : 
-                       asset.disposalMethod === 3 ? 'recycling' : 
+                    {{ asset.disposalMethod === 1 ? 'sell' :
+                       asset.disposalMethod === 2 ? 'volunteer_activism' :
+                       asset.disposalMethod === 3 ? 'recycling' :
                        asset.disposalMethod === 4 ? 'dangerous' : 'help_outline' }}
                   </mat-icon>
                   {{ getDisposalMethodName(asset.disposalMethod) }}
                 </span>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="disposalDate">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Disposal Date</th>
               <td mat-cell *matCellDef="let asset">
@@ -713,27 +748,27 @@
                 </div>
               </td>
             </ng-container>
-
+ 
             <ng-container matColumnDef="disposalStatus">
               <th mat-header-cell *matHeaderCellDef>Approval Status</th>
               <td mat-cell *matCellDef="let asset">
-                <span class="disposal-status-badge" 
+                <span class="disposal-status-badge"
                   [class.status-pending]="asset.disposalAppStatus === 1"
                   [class.status-approved]="asset.disposalAppStatus === 2"
                   [class.status-rejected]="asset.disposalAppStatus === 3">
                   <mat-icon style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;">
-                    {{ asset.disposalAppStatus === 1 ? 'schedule' : 
-                       asset.disposalAppStatus === 2 ? 'check_circle' : 
+                    {{ asset.disposalAppStatus === 1 ? 'schedule' :
+                       asset.disposalAppStatus === 2 ? 'check_circle' :
                        'cancel' }}
                   </mat-icon>
                   {{ getDisposalStatusName(asset.disposalAppStatus) }}
                 </span>
               </td>
             </ng-container>
-
+ 
             <tr mat-header-row *matHeaderRowDef="disposalColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: disposalColumns;" class="table-row disposal-row"></tr>
-
+ 
             <tr class="mat-row" *matNoDataRow>
               <td class="mat-cell no-data-cell" [attr.colspan]="disposalColumns.length">
                 <div class="no-data-message">
@@ -743,15 +778,15 @@
                 </div>
               </td>
             </tr>
-
+ 
           </table>
-
+ 
           <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons class="table-paginator"></mat-paginator>
         </div>
-
+ 
       </div>
-
+ 
     </mat-card-content>
   </mat-card>
-
+ 
 </div>

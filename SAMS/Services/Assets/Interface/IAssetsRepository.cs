@@ -9,6 +9,7 @@ namespace SAMS.Services.Assets.Interface
         Task<Asset> UpdateAsync(Asset asset);
         Task<Asset> GetByIdAsync(long id, Guid organizationId);
         Task<AssetDetailDto> GetDetailsByIdAsync(long id, Guid organizationId);
+        Task<AssetDetailDto> GetDetailsByAssetIdAsync(string assetId, Guid organizationId);
         Task<IEnumerable<AssetDetailDto>> GetAssetDetailsByOrgIdWithAvailableAsync(Guid organizationId);
         Task<long> GetMaxIdAsync(Guid organizationId);
         Task<bool> ExistsAsync(string assetId, Guid organizationId);

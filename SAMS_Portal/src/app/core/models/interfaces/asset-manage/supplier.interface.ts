@@ -6,25 +6,25 @@ export interface Supplier extends EntityBase{
   contactPerson?: string;
   email?: string;
   phone?: string;
-  tradeLicense?: string | File | null;
+  tradeLicense?: string;
   address?: string;
 }
 
-export interface SupplierCreateRequest {
-  name: string;
-  contactPerson: string;
-  email: string;
-  phone: string;
-  address: string;
-  tradeLicense?: File | null;
-}
+// export interface SupplierCreateRequest {
+//   name: string;
+//   contactPerson: string;
+//   email: string;
+//   phone: string;
+//   address: string;
+//   tradeLicense?: File | null;
+// }
 
-export interface SupplierUpdateRequest {
-  id: number;
+export interface SupplierRequest {
+  id?: number;
   name: string;
   contactPerson: string;
   email: string;
   phone: string;
   address: string;
-  tradeLicense?: File | null; // optional file
+  tradeLicense?: File; // optional file
 }

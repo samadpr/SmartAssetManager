@@ -19,13 +19,15 @@ namespace SAMS.API.UserProfile
         private readonly IMapper Mapper;
         private readonly IWebHostEnvironment _env;
         private readonly FileUploadHelper _fileUploadHelper;
+        private readonly ICompanyContext _companyContext;
 
-        public UserProfileController(IUserProfileService userProfileService, IMapper mapper, IWebHostEnvironment env, FileUploadHelper fileUploadHelper)
+        public UserProfileController(IUserProfileService userProfileService, IMapper mapper, IWebHostEnvironment env, FileUploadHelper fileUploadHelper, ICompanyContext companyContext)
         {
             _userProfileService = userProfileService;
             Mapper = mapper;
             _env = env;
             _fileUploadHelper = fileUploadHelper;
+            _companyContext = companyContext;
         }
 
         [Authorize(Roles = RoleModels.UserProfile)]
@@ -79,11 +81,13 @@ namespace SAMS.API.UserProfile
             if (dto.File == null)
                 return BadRequest("No file uploaded.");
 
+            var orgId = _companyContext.OrganizationId;
+
             // Upload using helper
             var (success, path, message) =
                 await _fileUploadHelper.UploadFileAsync(
                     dto.File,
-                    "ProfilePictures", // Folder name inside uploads/Assets/
+                    $"{orgId}/ProfilePictures", // Folder name inside uploads/Assets/
                     FileUploadHelper.GetAllowedExtensions("image"),
                     5 * 1024 * 1024 // Optional: 5MB limit
                 );
@@ -182,6 +186,17 @@ namespace SAMS.API.UserProfile
                 return NotFound(new { success = false, message = "No users found." });
 
             return Ok(new { success = true, message = "Users fetched successfully", data = userProfile.UserList });
+        }
+
+        [Authorize(Roles = RoleModels.UserProfile)]
+        [HttpGet("user-profile/get-user-by-id")]
+        public async Task<IActionResult> GetOrganizationUserById([FromQuery] long userId)
+        {
+            var user = HttpContext.User.Identity?.Name ?? "System";
+            var result = await _userProfileService.GetOrganizationUserById(userId, user);
+            if (result.Success == false)
+                return NotFound(new { success = false, message = "No user found." });
+            return Ok(new { success = true, message = result.Message, data = result.User });
         }
 
         [Authorize(Roles = RoleModels.UserManagement)]

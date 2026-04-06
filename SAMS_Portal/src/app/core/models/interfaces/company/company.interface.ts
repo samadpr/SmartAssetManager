@@ -1,3 +1,4 @@
+import { Subscriptions } from "../../admin/subscriptions.interface";
 import { EntityBase } from "../EntityBase.interface";
 
 export interface Company extends EntityBase {
@@ -20,13 +21,14 @@ export interface Company extends EntityBase {
     isActive?: boolean | null;
 
     organizationId: string | null;
+    subscriptionPlan?: Subscriptions;
 }
 
 export interface CompanyRequest {
     id?: number;
     industriesId?: number | null;
     name?: string | null;
-    logo?: string | null;
+    logo?: File | null;
     currency?: string | null;
     address?: string | null;
     city?: string | null;

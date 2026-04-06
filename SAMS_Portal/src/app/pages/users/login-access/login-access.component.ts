@@ -20,6 +20,7 @@ import { PopupField } from '../../../core/models/interfaces/popup-widget.interfa
 import { Validators } from '@angular/forms';
 import { LoginAccessRequest } from '../../../core/models/interfaces/account/userProfile';
 import { FileUrlHelper } from '../../../core/helper/get-file-url';
+import { SubscriptionStorageService } from '../../../core/services/localStorage/company/company-storage.service';
 
 interface UserCard {
   userProfileId: number;
@@ -56,22 +57,25 @@ interface UserCard {
   styleUrl: './login-access.component.scss'
 })
 export class LoginAccessComponent implements OnInit {
-  private userService = inject(UserProfileService);
-  private globalService = inject(GlobalService);
-  private popupService = inject(PopupWidgetService);
-  private rolesService = inject(ManageRolesService);
-
-  // Signals
-  users = signal<UserCard[]>([]);
-  loading = signal(false);
-  searchTerm = signal('');
+  private userService    = inject(UserProfileService);
+  private globalService  = inject(GlobalService);
+  private popupService   = inject(PopupWidgetService);
+  private rolesService   = inject(ManageRolesService);
+  private subscriptionStorage = inject(SubscriptionStorageService);
+ 
+  // ── State ──────────────────────────────────────────────────────────────
+  users         = signal<UserCard[]>([]);
+  loading       = signal(false);
+  searchTerm    = signal('');
   availableRoles = signal<any[]>([]);
-
-  // Computed
+ 
+  // ── Subscription limit ─────────────────────────────────────────────────
+  systemUserLimit = signal<number>(0);
+ 
+  // ── Computed ───────────────────────────────────────────────────────────
   filteredUsers = computed(() => {
     const term = this.searchTerm().toLowerCase().trim();
     if (!term) return this.users();
-
     return this.users().filter(user =>
       user.fullName.toLowerCase().includes(term) ||
       user.email.toLowerCase().includes(term) ||
@@ -79,31 +83,49 @@ export class LoginAccessComponent implements OnInit {
       user.department?.toLowerCase().includes(term)
     );
   });
-
-  verifiedUsersCount = computed(() =>
-    this.users().filter(u => u.isEmailVerified).length
-  );
-
-  activeAccessCount = computed(() =>
-    this.users().filter(u => u.hasLoginAccess).length
-  );
-
+ 
+  verifiedUsersCount = computed(() => this.users().filter(u => u.isEmailVerified).length);
+ 
+  activeAccessCount = computed(() => this.users().filter(u => u.hasLoginAccess).length);
+ 
+  /** True when active-access seats are all used up */
+  isAccessLimitReached = computed(() => {
+    const limit = this.systemUserLimit();
+    if (!limit || limit <= 0) return false;
+    return this.activeAccessCount() >= limit;
+  });
+ 
+  accessLimitPercent = computed(() => {
+    const limit = this.systemUserLimit();
+    if (!limit || limit <= 0) return 0;
+    return Math.min(100, Math.round((this.activeAccessCount() / limit) * 100));
+  });
+ 
+  accessLimitStatusClass = computed(() => {
+    const pct = this.accessLimitPercent();
+    if (pct >= 100) return 'limit-critical';
+    if (pct >= 80)  return 'limit-warning';
+    return 'limit-ok';
+  });
+ 
   ngOnInit() {
+    this.loadSubscriptionInfo();
     this.loadRoles();
     this.loadUsers();
   }
-
+ 
+  private loadSubscriptionInfo(): void {
+    const limit = this.subscriptionStorage.getSystemUserLimit();
+    this.systemUserLimit.set(limit);
+  }
+ 
   private loadRoles() {
     this.rolesService.getUserRoles().subscribe({
-      next: (response) => {
-        if (response.success) {
-          this.availableRoles.set(response.data || []);
-        }
-      },
+      next: (response) => { if (response.success) this.availableRoles.set(response.data || []); },
       error: (err) => console.error('Error loading roles:', err)
     });
   }
-
+ 
   loadUsers() {
     this.loading.set(true);
     this.userService.getCreatedUsersProfilesDetails().subscribe({
@@ -124,7 +146,6 @@ export class LoginAccessComponent implements OnInit {
               roleId: u.roleId,
               roleName: u.roleIdDisplay
             }));
-
           this.users.set(verifiedUsers);
         }
         this.loading.set(false);
@@ -136,17 +157,24 @@ export class LoginAccessComponent implements OnInit {
       }
     });
   }
-
+ 
   onToggleAccess(user: UserCard, checked: boolean) {
     if (checked) {
-      // Grant access
+      // Guard: check limit before granting
+      if (this.isAccessLimitReached()) {
+        const limit = this.systemUserLimit();
+        this.globalService.showToastr(
+          `System user limit reached (${limit} active). Revoke access for another user first.`,
+          'error'
+        );
+        return;
+      }
       this.showPasswordDialog(user);
     } else {
-      // Revoke access
       this.revokeAccess(user);
     }
   }
-
+  
   private showPasswordDialog(user: UserCard) {
     const roles = this.availableRoles();
 

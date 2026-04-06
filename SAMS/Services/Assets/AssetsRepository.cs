@@ -139,6 +139,109 @@ namespace SAMS.Services.Assets
             return asset;
         }
 
+        public async Task<AssetDetailDto> GetDetailsByAssetIdAsync(string assetId, Guid organizationId)
+        {
+            var asset = await(from a in _context.Asset
+                              where a.AssetId == assetId && a.OrganizationId == organizationId && !a.Cancelled
+
+                              join cat in _context.AssetCategorie on a.Category equals cat.Id into catGroup
+                              from category in catGroup.DefaultIfEmpty()
+
+                              join subCat in _context.AssetSubCategories on a.SubCategory equals subCat.Id into subCatGroup
+                              from subCategory in subCatGroup.DefaultIfEmpty()
+
+                              join sup in _context.Suppliers on a.Supplier equals sup.Id into supGroup
+                              from supplier in supGroup.DefaultIfEmpty()
+
+                              join site in _context.AssetSite on a.SiteId equals site.Id into siteGroup
+                              from assetSite in siteGroup.DefaultIfEmpty()
+
+                              join area in _context.AssetArea on a.AreaId equals area.Id into areaGroup
+                              from assetArea in areaGroup.DefaultIfEmpty()
+
+                              join dept in _context.Department on a.Department equals dept.Id into deptGroup
+                              from department in deptGroup.DefaultIfEmpty()
+
+                              join subDept in _context.SubDepartment on a.SubDepartment equals subDept.Id into subDeptGroup
+                              from subDepartment in subDeptGroup.DefaultIfEmpty()
+
+                              join emp in _context.UserProfiles on a.AssignUserId equals emp.UserProfileId into empGroup
+                              from employee in empGroup.DefaultIfEmpty()
+
+                              select new AssetDetailDto
+                              {
+                                  Id = a.Id,
+                                  AssetId = a.AssetId,
+                                  AssetBrand = a.AssetBrand,
+                                  AssetModelNo = a.AssetModelNo,
+                                  AssetSerialNo = a.AssetSerialNo,
+                                  Name = a.Name,
+                                  Description = a.Description,
+                                  Category = a.Category,
+                                  CategoryDisplay = category.Name,
+                                  SubCategory = a.SubCategory,
+                                  SubCategoryDisplay = subCategory.Name,
+                                  Quantity = a.Quantity,
+                                  Supplier = a.Supplier,
+                                  SupplierDisplay = supplier.Name,
+                                  SiteId = a.SiteId,
+                                  SiteDisplay = assetSite.Name,
+                                  AreaId = a.AreaId,
+                                  AreaDisplay = assetArea.Name,
+                                  Department = a.Department,
+                                  DepartmentDisplay = department.Name,
+                                  SubDepartment = a.SubDepartment,
+                                  SubDepartmentDisplay = subDepartment.Name,
+                                  AssignUserId = a.AssignUserId,
+                                  AssignUserDisplay = employee != null ? $"{employee.FirstName} {employee.LastName}" : null,
+                                  UnitPrice = a.UnitPrice,
+                                  WarranetyInMonth = a.WarranetyInMonth,
+                                  IsDepreciable = a.IsDepreciable ?? false,
+                                  DepreciableCost = a.DepreciableCost,
+                                  SalvageValue = a.SalvageValue,
+                                  DepreciationInMonth = a.DepreciationInMonth,
+                                  DepreciationMethod = (DepreciationMethod?)a.DepreciationMethod,
+                                  DateAquired = a.DateAquired,
+                                  ImageUrl = a.ImageUrl,
+                                  DeliveryNote = a.DeliveryNote,
+                                  PurchaseReceipt = a.PurchaseReceipt,
+                                  Invoice = a.Invoice,
+                                  DateOfPurchase = a.DateOfPurchase,
+                                  DateOfManufacture = a.DateOfManufacture,
+                                  YearOfValuation = a.YearOfValuation,
+                                  AssetStatus = (AssetStatusEnum)a.AssetStatus!,
+                                  AssetStatusDisplay = ((AssetStatusEnum)a.AssetStatus!).ToString(),
+                                  AssignTo = (AssignToType)a.AssignTo!,
+                                  AssignToDisplay = ((AssignToType)a.AssignTo!).ToString(),
+                                  AssetType = (AssetType)a.AssetType!,
+                                  AssetTypeDisplay = ((AssetType)a.AssetType!).ToString(),
+                                  IsAvilable = a.IsAvilable ?? false,
+                                  Barcode = a.Barcode,
+                                  Qrcode = a.Qrcode,
+                                  QrcodeImage = a.QrcodeImage,
+                                  Note = a.Note,
+                                  CreatedDate = a.CreatedDate,
+                                  CreatedBy = a.CreatedBy,
+                                  OrganizationId = a.OrganizationId
+                              })
+                              .FirstOrDefaultAsync();
+
+            if (asset != null)
+            {
+                // Load history
+                //asset.AssetHistory = await GetAssetHistoryAsync(id);
+
+                //// Load depreciation schedule
+                //if (asset.IsDepreciable)
+                //    asset.DepreciationSchedule = await CalculateDepreciationScheduleAsync(asset);
+
+                //// Load comments
+                //asset.Comments = await GetAssetCommentsAsync(id);
+            }
+
+            return asset;
+        }
+
         public async Task<IEnumerable<AssetDetailDto>> GetAssetDetailsByOrgIdWithAvailableAsync(Guid organizationId)
         {
             try
@@ -404,8 +507,6 @@ namespace SAMS.Services.Assets
                 }
             ).ToListAsync();
         }
-
-
 
     }
 }

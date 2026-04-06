@@ -53,7 +53,7 @@ namespace SAMS.Services.AssetsIssue
                     var (success, path, message) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.InvoiceFile,
-                            "Assets/AssetIssue",
+                            $"{orgId}/AssetIssue",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (!success)
@@ -589,7 +589,7 @@ namespace SAMS.Services.AssetsIssue
                     var (success, path, message) =
                         await _fileUploadHelper.UploadFileAsync(
                             request.InvoiceFile,
-                            "Assets/AssetIssue",
+                            $"{orgId}/AssetIssue",
                             FileUploadHelper.GetAllowedExtensions("all"));
 
                     if (!success)

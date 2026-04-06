@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { PageHeaderComponent } from '../../../shared/widgets/page-header/page-header.component';
 import { ListConfig, ListWidgetComponent, SelectionActionEvent } from '../../../shared/widgets/common/list-widget/list-widget.component';
@@ -22,6 +22,11 @@ import { CitiesService } from '../../../core/services/sites-or-branchs/cities/ci
 import { SiteOrBranch } from '../../../core/models/interfaces/sites-or-branchs/asset-site.interface';
 import { FileUrlHelper } from '../../../core/helper/get-file-url';
 import { UserType } from '../../../core/enum/user.enums';
+import { SubscriptionStorageService } from '../../../core/services/localStorage/company/company-storage.service';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 export interface UserProfile {
   userProfileId: number;
@@ -78,17 +83,21 @@ interface DropdownData {
 @Component({
   selector: 'app-manage-user',
   imports: [
+    CommonModule,
     PageHeaderComponent,
-    ListWidgetComponent
+    ListWidgetComponent,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule
   ],
   templateUrl: './manage-user.component.html',
   styleUrl: './manage-user.component.scss'
 })
 export class ManageUserComponent implements OnInit {
 
-  private userService = inject(UserProfileService)
-  private globalService = inject(GlobalService)
-  private popupService = inject(PopupWidgetService)
+  private userService = inject(UserProfileService);
+  private globalService = inject(GlobalService);
+  private popupService = inject(PopupWidgetService);
   private designationService = inject(DesignationService);
   private departmentService = inject(DepartmentService);
   private subDepartmentService = inject(SubDepartmentService);
@@ -97,6 +106,7 @@ export class ManageUserComponent implements OnInit {
   private rolesService = inject(ManageRolesService);
   private countryService = inject(CountryService);
   private citiesService = inject(CitiesService);
+  private subscriptionStorage = inject(SubscriptionStorageService);
 
   userProfiles = signal<UserProfile[]>([])
   loading = signal(false);
@@ -110,6 +120,49 @@ export class ManageUserComponent implements OnInit {
     countries: [],
     cities: []
   });
+
+  // ── Subscription limit signals ──────────────────────────────────────────
+  totalUserLimit    = signal<number>(0);
+  bannerDismissed   = signal(false);           // user closed the warning banner
+ 
+  /** threshold: show warning when ≤ this many slots remain */
+  private readonly WARN_THRESHOLD = 5;
+ 
+  currentUserCount = computed(() => this.userProfiles().length);
+ 
+  remainingSlots = computed(() => {
+    const limit = this.totalUserLimit();
+    if (!limit || limit <= 0) return Infinity;
+    return Math.max(0, limit - this.currentUserCount());
+  });
+ 
+  isLimitReached = computed(() => {
+    const limit = this.totalUserLimit();
+    if (!limit || limit <= 0) return false;
+    return this.currentUserCount() >= limit;
+  });
+ 
+  /**
+   * Show the banner when:
+   *  - Limit is fully reached (always visible, cannot be dismissed), OR
+   *  - Within the last WARN_THRESHOLD slots and user hasn't dismissed yet
+   */
+  showLimitBanner = computed(() => {
+    const limit = this.totalUserLimit();
+    if (!limit || limit <= 0) return false;
+    if (this.isLimitReached()) return true;           // critical: always show
+    if (this.bannerDismissed()) return false;          // user dismissed warning
+    return this.remainingSlots() <= this.WARN_THRESHOLD;
+  });
+ 
+  limitStatusClass = computed(() =>
+    this.isLimitReached() ? 'limit-critical' : 'limit-warning'
+  );
+ 
+  dismissBanner(): void {
+    this.bannerDismissed.set(true);
+  }
+
 
   // Type options for radio buttons
   private readonly typeOptions = [
@@ -323,9 +376,16 @@ export class ManageUserComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.loadSubscriptionInfo();
     this.loadDropdownData();
     this.loadUsers();
   }
+  // ── Subscription ─────────────────────────────────────────────────────────
+  private loadSubscriptionInfo(): void {
+    const limit = this.subscriptionStorage.getTotalUserLimit();
+    this.totalUserLimit.set(limit);
+  }
+
   private loadDropdownData() {
     // Load countries from service
     const allCountries = this.countryService.getAllCountries();
@@ -716,6 +776,16 @@ export class ManageUserComponent implements OnInit {
   }
 
   onAddUser() {
+    // ── Limit guard ──────────────────────────────────────────────────────
+    if (this.isLimitReached()) {
+      const limit = this.totalUserLimit();
+      this.globalService.showSnackbar(
+        `User limit reached! Your plan allows a maximum of ${limit} user${limit !== 1 ? 's' : ''}. Please upgrade your subscription to add more users.`,
+        'error'
+      );
+      return;
+    }
+
     const fields = this.getUserFormFields();
 
     this.popupService.openAddPopup('Add New User', fields, {

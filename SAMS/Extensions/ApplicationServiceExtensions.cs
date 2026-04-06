@@ -51,6 +51,8 @@ using SAMS.Services.Profile;
 using SAMS.Services.Profile.Interface;
 using SAMS.Services.Reports.AssetReports;
 using SAMS.Services.Reports.AssetReports.Interface;
+using SAMS.Services.Reports.AssetTransferReport;
+using SAMS.Services.Reports.AssetTransferReport.Interface;
 using SAMS.Services.Roles;
 using SAMS.Services.Roles.Interface;
 using SAMS.Services.SubDepartments;
@@ -155,6 +157,9 @@ namespace SAMS.Extensions
 
             services.AddScoped<IAssetReportService, AssetReportService>();
             services.AddScoped<IAssetReportRepository, AssetReportRepository>();
+
+            services.AddScoped<IAssetTransferReportService, AssetTransferReportService>();
+            services.AddScoped<IAssetTransferReportRepository, AssetTransferReportRepository>();
 
             services.AddScoped<IAssetQrBarcodeManageService, AssetQrBarcodeManageService>();
             services.AddScoped<IAssetQrBarcodeManageRepository, AssetQrBarcodeManageRepository>();

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Company } from '../../../models/interfaces/company/company.interface';
+import { Subscriptions } from '../../../models/admin/subscriptions.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -36,5 +37,50 @@ export class CompanyStorageService {
 
   clear(): void {
     localStorage.removeItem(this.KEY);
+  }
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class SubscriptionStorageService {
+
+  constructor(private companyStorage: CompanyStorageService) { }
+
+  private getSubscription(): Subscriptions | null {
+    const company = this.companyStorage.get();
+    return company?.subscriptionPlan ?? null;
+  }
+
+  getPlanName(): string | null {
+    return this.getSubscription()?.name ?? null;
+  }
+
+  getAssetLimit(): number {
+    return this.getSubscription()?.assetLimit ?? 0;
+  }
+
+  getSystemUserLimit(): number {
+    return this.getSubscription()?.systemUserLimit ?? 0;
+  }
+
+  getTotalUserLimit(): number {
+    return this.getSubscription()?.totalUserLimit ?? 0;
+  }
+
+  getPlanAmount(): number {
+    return this.getSubscription()?.planAmount ?? 0;
+  }
+
+  getDurationDays(): number {
+    return this.getSubscription()?.durationDays ?? 0;
+  }
+
+  isPlanActive(): boolean {
+    return this.getSubscription()?.isPlanActive ?? false;
+  }
+
+  hasSubscription(): boolean {
+    return !!this.getSubscription();
   }
 }

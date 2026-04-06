@@ -948,11 +948,11 @@
 }
 
 .grid-card {
+  transition: border-color .15s, box-shadow .15s;
   border-radius: 14px !important;
   border: 1px solid var(--mat-sys-outline-variant) !important;
   animation: fadeUp 0.4s ease both;
   @include mat.card-overrides((elevated-container-color: var(--mat-sys-surface-container-low)));
-  transition: border-color .15s, box-shadow .15s;
 
   &:hover {
     border-color: var(--mat-sys-primary) !important;

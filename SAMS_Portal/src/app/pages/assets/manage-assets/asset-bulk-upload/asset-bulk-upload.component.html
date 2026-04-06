@@ -1,5 +1,3 @@
-<!-- src/app/pages/assets/asset-bulk-upload/asset-bulk-upload.component.html -->
-
 <app-page-header
   [title]="'Bulk Asset Upload'"
   [breadcrumbs]="[
@@ -7,6 +5,7 @@
     { label: 'Bulk Upload' }
   ]">
 </app-page-header>
+  
 <div class="bulk-upload-page">
  
   <!-- ═══ STEP INDICATOR ════════════════════════════════════════════════════ -->
@@ -143,12 +142,83 @@
       </div>
       <div class="review-stats">
         <span class="stat-chip valid">
-          <mat-icon>check_circle</mat-icon>
-          {{ validCount() }} Valid
+          <mat-icon>check_circle</mat-icon> {{ validCount() }} Valid
         </span>
         <span class="stat-chip invalid" *ngIf="invalidCount() > 0">
-          <mat-icon>error</mat-icon>
-          {{ invalidCount() }} Errors
+          <mat-icon>error</mat-icon> {{ invalidCount() }} Errors
+        </span>
+      </div>
+    </div>
+ 
+    <!-- ══ LIMIT EXCEEDED BANNER — shown when parsed count exceeds remaining quota ══ -->
+    <div class="bulk-limit-banner" *ngIf="showLimitExceededBanner()" [@bannerSlide]>
+ 
+      <!-- Left: icon + message -->
+      <div class="blb-left">
+        <div class="blb-icon-wrap">
+          <mat-icon>production_quantity_limits</mat-icon>
+        </div>
+        <div class="blb-text">
+          <span class="blb-title">Asset Limit Exceeded</span>
+          <span class="blb-desc">
+            Your plan allows
+            <strong>{{ remainingQuota() }}</strong> more asset{{ remainingQuota() === 1 ? '' : 's' }},
+            but you have
+            <strong>{{ validCount() }}</strong> valid asset{{ validCount() === 1 ? '' : 's' }} in this file.
+            <span *ngIf="excessCount() > 0">
+              Remove <strong>{{ excessCount() }}</strong> asset{{ excessCount() === 1 ? '' : 's' }}
+              or upgrade your plan to import all of them.
+            </span>
+            <span *ngIf="remainingQuota() <= 0">
+              You have reached your asset limit. Upgrade your plan to continue importing.
+            </span>
+          </span>
+        </div>
+      </div>
+ 
+      <!-- Right: quota pills + upgrade CTA -->
+      <div class="blb-right">
+        <!-- Quota summary pills -->
+        <div class="blb-quota-pills">
+          <div class="blb-pill blb-pill-total">
+            <span class="bqp-num">{{ assetLimit() }}</span>
+            <span class="bqp-lbl">Plan Limit</span>
+          </div>
+          <div class="blb-pill blb-pill-used">
+            <span class="bqp-num">{{ currentAssetCount() }}</span>
+            <span class="bqp-lbl">Current</span>
+          </div>
+          <div class="blb-pill blb-pill-remain" [class.zero]="remainingQuota() <= 0">
+            <span class="bqp-num">{{ remainingQuota() }}</span>
+            <span class="bqp-lbl">Remaining</span>
+          </div>
+          <div class="blb-pill blb-pill-excess">
+            <span class="bqp-num">{{ excessCount() }}</span>
+            <span class="bqp-lbl">Over Limit</span>
+          </div>
+        </div>
+ 
+        <!-- Upgrade CTA -->
+        <button mat-raised-button class="blb-upgrade-btn" (click)="goToUpgrade()">
+          <mat-icon>rocket_launch</mat-icon>
+          Upgrade Plan
+        </button>
+      </div>
+    </div>
+ 
+    <!-- ── Currency info banner ─────────────────────────────────────────── -->
+    <div class="currency-info-bar">
+      <div class="cib-left">
+        <mat-icon>payments</mat-icon>
+        <span class="cib-label">Active Currency:</span>
+        <span class="cib-code">{{ currencyCode() }}</span>
+        <span class="cib-symbol">({{ currencySymbol() }})</span>
+      </div>
+      <div class="cib-right" *ngIf="validCount() > 0 && totalImportValue() > 0">
+        <span class="cib-total-label">Total Portfolio Value:</span>
+        <span class="cib-total-value">{{ formatAmount(totalImportValue()) }}</span>
+        <span class="cib-dep-label" *ngIf="depreciableCount() > 0">
+          · {{ depreciableCount() }} depreciable
         </span>
       </div>
     </div>
@@ -165,7 +235,7 @@
             <th class="th-model">Model No <span class="req">*</span></th>
             <th class="th-serial">Serial No <span class="req">*</span></th>
             <th class="th-qty">Qty</th>
-            <th class="th-price">Unit Price</th>
+            <th class="th-price">Unit Price ({{ currencyCode() }})</th>
             <th class="th-category">Category</th>
             <th class="th-sub-category">Sub Category</th>
             <th class="th-supplier">Supplier</th>
@@ -202,18 +272,31 @@
               <td class="td-serial">
                 <span class="cell-val" [class.missing]="!asset.assetSerialNo">{{ asset.assetSerialNo || '— missing —' }}</span>
               </td>
+ 
               <td class="td-qty">{{ asset.quantity || 1 }}</td>
-              <td class="td-price">{{ asset.unitPrice | currency:'USD':'symbol':'1.2-2' }}</td>
+ 
+              <td class="td-price">
+                <span class="amount-cell" [class.amount-zero]="!asset.unitPrice"
+                      [matTooltip]="asset.unitPrice ? (asset.quantity || 1) + ' × ' + formatAmount(asset.unitPrice) + ' = ' + formatAmount((asset.unitPrice || 0) * (asset.quantity || 1)) : ''">
+                  {{ formatAmount(asset.unitPrice) }}
+                </span>
+              </td>
+ 
               <td class="td-category">{{ asset.categoryDisplay || '—' }}</td>
               <td class="td-sub-category">{{ asset.subCategoryDisplay || '—' }}</td>
               <td class="td-supplier">{{ asset.supplierDisplay || '—' }}</td>
               <td class="td-status-col">{{ asset.assetStatusDisplay || '—' }}</td>
               <td class="td-dept">{{ asset.departmentDisplay || '—' }}</td>
+ 
               <td class="td-depr">
-                <span class="depr-badge" [class.yes]="asset.isDepreciable">
+                <span class="depr-badge" [class.yes]="asset.isDepreciable"
+                      [matTooltip]="asset.isDepreciable && asset.depreciableCost
+                        ? 'Cost: ' + formatAmount(asset.depreciableCost) + ' · Salvage: ' + formatAmount(asset.salvageValue)
+                        : ''">
                   {{ asset.isDepreciable ? 'Yes' : 'No' }}
                 </span>
               </td>
+ 
               <td class="td-assign">
                 <span class="assign-badge"
                       [class.user]="asset.assignTo === AssignToType.User"
@@ -222,6 +305,7 @@
                      asset.assignTo === AssignToType.Site ? (asset.siteDisplay || 'Site') : 'Not Assigned' }}
                 </span>
               </td>
+ 
               <td class="td-files">
                 <div class="files-summary">
                   <span class="file-dot" [class.has-file]="asset._imageFile"    matTooltip="Image">IMG</span>
@@ -230,6 +314,7 @@
                   <span class="file-dot" [class.has-file]="asset._invoice"      matTooltip="Invoice">INV</span>
                 </div>
               </td>
+ 
               <td class="td-actions">
                 <button mat-icon-button color="primary" (click)="openEditDrawer(i)"
                         matTooltip="Edit asset" class="act-btn">
@@ -265,11 +350,28 @@
         <button mat-stroked-button color="warn" (click)="clearAll()">
           <mat-icon>clear_all</mat-icon> Clear All
         </button>
+ 
+        <!--
+          Import button — shows allowed count, disabled when:
+          • No valid assets exist, OR
+          • remainingQuota is 0 (fully at limit)
+        -->
         <button mat-raised-button color="primary"
-                [disabled]="validCount() === 0"
+                [disabled]="importButtonDisabled()"
+                [matTooltip]="importButtonTooltip()"
                 (click)="proceedToImport()">
           <mat-icon>cloud_upload</mat-icon>
-          Import {{ validCount() }} Assets
+          <ng-container *ngIf="!showLimitExceededBanner()">
+            Import {{ validCount() }} Asset{{ validCount() === 1 ? '' : 's' }}
+          </ng-container>
+          <ng-container *ngIf="showLimitExceededBanner()">
+            <ng-container *ngIf="remainingQuota() > 0">
+              Import {{ allowedImportCount() }} of {{ validCount() }} Assets
+            </ng-container>
+            <ng-container *ngIf="remainingQuota() <= 0">
+              Limit Reached — Upgrade Plan
+            </ng-container>
+          </ng-container>
         </button>
       </div>
     </div>
@@ -285,6 +387,12 @@
           <mat-icon>edit</mat-icon>
           <span>Edit Asset #{{ editingIndex()! + 1 }}</span>
         </div>
+        <div class="drawer-currency-badge"
+             [matTooltip]="'All monetary values are in ' + currencyCode()">
+          <mat-icon>payments</mat-icon>
+          <span class="dcb-sym">{{ currencySymbol() }}</span>
+          <span class="dcb-code">{{ currencyCode() }}</span>
+        </div>
         <button mat-icon-button (click)="closeEditDrawer()">
           <mat-icon>close</mat-icon>
         </button>
@@ -292,7 +400,6 @@
  
       <div class="drawer-body" [formGroup]="editForm">
  
-        <!-- ── Basic Info ─────────────────────────────────────────────── -->
         <div class="drawer-section-title">Basic Information</div>
  
         <mat-form-field appearance="outline" class="fw">
@@ -332,11 +439,13 @@
         </div>
  
         <div class="drawer-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Unit Price</mat-label>
-            <input matInput type="number" formControlName="unitPrice" min="0">
-            <mat-icon matPrefix>attach_money</mat-icon>
+          <mat-form-field appearance="outline" [matTooltip]="'Amount in ' + currencyCode()">
+            <mat-label>Unit Price ({{ currencyCode() }})</mat-label>
+            <span matTextPrefix class="currency-prefix">{{ currencySymbol() }}&nbsp;</span>
+            <input matInput type="number" formControlName="unitPrice" min="0" placeholder="0.00">
+            <mat-hint>{{ currencyCode() }}</mat-hint>
           </mat-form-field>
+ 
           <mat-form-field appearance="outline">
             <mat-label>Warranty (Months)</mat-label>
             <input matInput type="number" formControlName="warranetyInMonth" min="0">
@@ -350,11 +459,9 @@
           <mat-icon matPrefix>description</mat-icon>
         </mat-form-field>
  
-        <!-- ── Classification ─────────────────────────────────────────── -->
         <div class="drawer-section-title">Classification</div>
  
         <div class="drawer-row">
-          <!-- Category — changing this auto-clears Sub Category via valueChanges subscription -->
           <mat-form-field appearance="outline">
             <mat-label>Category</mat-label>
             <mat-select formControlName="category">
@@ -363,8 +470,6 @@
             </mat-select>
             <mat-icon matPrefix>category</mat-icon>
           </mat-form-field>
- 
-          <!-- Sub Category — filtered by drawerSelectedCategory signal (Bug #3 fix) -->
           <mat-form-field appearance="outline">
             <mat-label>Sub Category</mat-label>
             <mat-select formControlName="subCategory">
@@ -395,7 +500,6 @@
         </div>
  
         <div class="drawer-row">
-          <!-- Department — changing this auto-clears Sub Department (Bug #3 fix) -->
           <mat-form-field appearance="outline">
             <mat-label>Department</mat-label>
             <mat-select formControlName="department">
@@ -404,8 +508,6 @@
             </mat-select>
             <mat-icon matPrefix>business_center</mat-icon>
           </mat-form-field>
- 
-          <!-- Sub Department — filtered by drawerSelectedDepartment signal (Bug #3 fix) -->
           <mat-form-field appearance="outline">
             <mat-label>Sub Department</mat-label>
             <mat-select formControlName="subDepartment">
@@ -416,10 +518,8 @@
           </mat-form-field>
         </div>
  
-        <!-- ── Assignment Details (Bug #4 — NEW SECTION) ─────────────── -->
         <div class="drawer-section-title">Assignment Details</div>
  
-        <!-- Assign To selector -->
         <mat-form-field appearance="outline" class="fw">
           <mat-label>Assign To</mat-label>
           <mat-select formControlName="assignTo">
@@ -430,7 +530,6 @@
           <mat-icon matPrefix>assignment_ind</mat-icon>
         </mat-form-field>
  
-        <!-- Assign to USER: show user dropdown -->
         <ng-container *ngIf="drawerSelectedAssignTo() === AssignToType.User">
           <mat-form-field appearance="outline" class="fw">
             <mat-label>Employee / User</mat-label>
@@ -442,10 +541,8 @@
           </mat-form-field>
         </ng-container>
  
-        <!-- Assign to SITE: show site + area dropdowns -->
         <ng-container *ngIf="drawerSelectedAssignTo() === AssignToType.Site">
           <div class="drawer-row">
-            <!-- Site — changing this auto-clears Area (Bug #3 fix applied here too) -->
             <mat-form-field appearance="outline">
               <mat-label>Site / Branch</mat-label>
               <mat-select formControlName="siteId">
@@ -454,8 +551,6 @@
               </mat-select>
               <mat-icon matPrefix>location_city</mat-icon>
             </mat-form-field>
- 
-            <!-- Area — filtered by drawerSelectedSite signal -->
             <mat-form-field appearance="outline">
               <mat-label>Area</mat-label>
               <mat-select formControlName="areaId">
@@ -467,7 +562,6 @@
           </div>
         </ng-container>
  
-        <!-- Transfer Date & Due Date — shown for both User and Site assignments -->
         <ng-container *ngIf="drawerSelectedAssignTo() === AssignToType.User || drawerSelectedAssignTo() === AssignToType.Site">
           <div class="drawer-row">
             <mat-form-field appearance="outline">
@@ -485,7 +579,6 @@
           </div>
         </ng-container>
  
-        <!-- ── Depreciation ────────────────────────────────────────────── -->
         <div class="drawer-section-title">Depreciation</div>
  
         <mat-slide-toggle formControlName="isDepreciable" color="primary" class="depr-toggle">
@@ -494,17 +587,21 @@
  
         <ng-container *ngIf="editForm.get('isDepreciable')?.value">
           <div class="drawer-row mt-8">
-            <mat-form-field appearance="outline">
-              <mat-label>Depreciable Cost</mat-label>
-              <input matInput type="number" formControlName="depreciableCost">
-              <mat-icon matPrefix>payments</mat-icon>
+            <mat-form-field appearance="outline" [matTooltip]="'Amount in ' + currencyCode()">
+              <mat-label>Depreciable Cost ({{ currencyCode() }})</mat-label>
+              <span matTextPrefix class="currency-prefix">{{ currencySymbol() }}&nbsp;</span>
+              <input matInput type="number" formControlName="depreciableCost" placeholder="0.00">
+              <mat-hint>{{ currencyCode() }}</mat-hint>
             </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Salvage Value</mat-label>
-              <input matInput type="number" formControlName="salvageValue">
-              <mat-icon matPrefix>account_balance</mat-icon>
+ 
+            <mat-form-field appearance="outline" [matTooltip]="'Amount in ' + currencyCode()">
+              <mat-label>Salvage Value ({{ currencyCode() }})</mat-label>
+              <span matTextPrefix class="currency-prefix">{{ currencySymbol() }}&nbsp;</span>
+              <input matInput type="number" formControlName="salvageValue" placeholder="0.00">
+              <mat-hint>{{ currencyCode() }}</mat-hint>
             </mat-form-field>
           </div>
+ 
           <div class="drawer-row">
             <mat-form-field appearance="outline">
               <mat-label>Period (Months)</mat-label>
@@ -520,15 +617,35 @@
               <mat-icon matPrefix>calculate</mat-icon>
             </mat-form-field>
           </div>
+ 
           <mat-form-field appearance="outline" class="fw">
             <mat-label>Date Acquired</mat-label>
             <input matInput [matDatepicker]="dp1" formControlName="dateAquired">
             <mat-datepicker-toggle matPrefix [for]="dp1"></mat-datepicker-toggle>
             <mat-datepicker #dp1></mat-datepicker>
           </mat-form-field>
+ 
+          <div class="depr-summary-card"
+               *ngIf="editForm.get('depreciableCost')?.value && editForm.get('salvageValue')?.value != null">
+            <div class="depr-sum-row">
+              <span class="dsr-label">Net Depreciable Amount</span>
+              <span class="dsr-value">
+                {{ formatAmountOrZero((editForm.get('depreciableCost')?.value ?? 0) - (editForm.get('salvageValue')?.value ?? 0)) }}
+              </span>
+            </div>
+            <div class="depr-sum-row" *ngIf="editForm.get('depreciationInMonth')?.value">
+              <span class="dsr-label">Annual Depreciation</span>
+              <span class="dsr-value accent">
+                {{ formatAmountOrZero(
+                    ((editForm.get('depreciableCost')?.value ?? 0) - (editForm.get('salvageValue')?.value ?? 0))
+                    / ((editForm.get('depreciationInMonth')?.value ?? 12) / 12)
+                  ) }}
+                <span class="dsr-sub">/ year</span>
+              </span>
+            </div>
+          </div>
         </ng-container>
  
-        <!-- ── Important Dates ─────────────────────────────────────────── -->
         <div class="drawer-section-title">Important Dates</div>
         <div class="drawer-row">
           <mat-form-field appearance="outline">
@@ -551,14 +668,11 @@
           <mat-datepicker #dp4></mat-datepicker>
         </mat-form-field>
  
-        <!-- ── File Uploads ────────────────────────────────────────────── -->
         <div class="drawer-section-title">Documents & Image</div>
- 
         <div class="file-upload-grid">
           <div class="file-upload-slot" *ngFor="let slot of fileSlots">
             <div class="slot-label">
-              <mat-icon>{{ slot.icon }}</mat-icon>
-              {{ slot.label }}
+              <mat-icon>{{ slot.icon }}</mat-icon> {{ slot.label }}
             </div>
             <div class="slot-preview"
                  [class.has-file]="getCurrentEditAsset()?.[slot.key]"
@@ -581,7 +695,6 @@
           </div>
         </div>
  
-        <!-- ── Note ───────────────────────────────────────────────────── -->
         <div class="drawer-section-title">Note</div>
         <mat-form-field appearance="outline" class="fw">
           <mat-label>Note</mat-label>
@@ -646,7 +759,12 @@
  
         <div class="item-info">
           <span class="item-name">{{ item.asset.name }}</span>
-          <span class="item-sub">{{ item.asset.assetBrand }} · {{ item.asset.assetModelNo }}</span>
+          <span class="item-sub">
+            {{ item.asset.assetBrand }} · {{ item.asset.assetModelNo }}
+            <span class="item-price" *ngIf="item.asset.unitPrice">
+              · {{ formatAmount(item.asset.unitPrice) }}
+            </span>
+          </span>
           <span class="item-error" *ngIf="item.status === 'failed' && item.error">{{ item.error }}</span>
         </div>
  
@@ -699,6 +817,9 @@
           <div class="failed-item" *ngFor="let item of failedResults()">
             <div class="fi-info">
               <span class="fi-name">{{ item.asset.name }}</span>
+              <span class="fi-price" *ngIf="item.asset.unitPrice">
+                {{ formatAmount(item.asset.unitPrice) }}
+              </span>
               <span class="fi-error">{{ item.error }}</span>
             </div>
             <div class="fi-actions">

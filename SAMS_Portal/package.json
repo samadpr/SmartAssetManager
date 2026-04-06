@@ -8,6 +8,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "build-prod": "ng build --configuration=production --output-hashing=all",
     "serve:ssr:SAMS_Portal": "node dist/sams-portal/server/server.mjs"
   },
   "private": true,

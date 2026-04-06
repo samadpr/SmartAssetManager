@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SAMS.API.CompanyAPIs.RequestObject;
 using SAMS.Controllers;
+using SAMS.Helpers;
 using SAMS.Models;
 using SAMS.Services.Company.Interface;
 using SAMS.Services.Roles.PagesModel;
@@ -18,7 +19,7 @@ namespace SAMS.API.CompanyAPIs
         private readonly ICompanyService _companyService;
         private readonly IMapper _mapper;
 
-        public CompanyController(ICompanyService companyService, IMapper mapper)
+        public CompanyController(ICompanyService companyService, IMapper mapper, FileUploadHelper fileUploadHelper)
         {
             _companyService = companyService;
             _mapper = mapper;
@@ -26,21 +27,23 @@ namespace SAMS.API.CompanyAPIs
 
         [Authorize(Roles = RoleModels.Admin)]
         [HttpPost("company/add-company")]
-        public async Task<IActionResult> AddCompany([FromBody] CompanyRequestObject companyRequestObject)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> AddCompany([FromForm] CompanyRequestObject companyRequestObject)
         {
             var user = HttpContext.User.Identity?.Name ?? "System";
-            var mappedRequest = _mapper.Map<CompanyInfo>(companyRequestObject);
-            var response =  await _companyService.AddCompanyAsync(mappedRequest, user);
+            //var mappedRequest = _mapper.Map<CompanyInfo>(companyRequestObject);
+            var response =  await _companyService.AddCompanyAsync(companyRequestObject, user);
             return Ok(new { success = response.isSuccess, message = response.message });
         }
 
         [Authorize(Roles = RoleModels.Admin)]
         [HttpPut("company/update-company")]
-        public async Task<IActionResult> UpdateCompany([FromBody] CompanyRequestObject companyRequestObject)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateCompany([FromForm] CompanyRequestObject companyRequestObject)
         {
             var user = HttpContext.User.Identity?.Name ?? "System";
-            var mappedRequest = _mapper.Map<CompanyInfo>(companyRequestObject);
-            var response = await _companyService.UpdateCompanyAsync(mappedRequest, user);
+            //var mappedRequest = _mapper.Map<CompanyInfo>(companyRequestObject);
+            var response = await _companyService.UpdateCompanyAsync(companyRequestObject, user);
             return Ok(new { success = response.isSuccess, message = response.message });
         }
 

@@ -6,7 +6,7 @@
 
 :host { display: block; }
 
-.sp { flex: 1 1 auto; }   // header spacer
+.sp { flex: 1 1 auto; }
 
 // ── Animations ────────────────────────────────────────────────────────
 @keyframes fadeUp {
@@ -46,7 +46,7 @@
   &--spark  { height: 26px; width: 100%; border-radius: 4px; }
   &--chart  { height: 230px; border-radius: 8px; }
   &--donut  { height: 190px; width: 190px; border-radius: 50%; margin: 0 auto; }
-  &--site   { height: 250px; border-radius: 12px; }
+  &--site   { flex: 0 0 255px; height: 260px; border-radius: 12px; }
   &--row    { height: 46px; margin-bottom: 4px; }
   &--arow   { height: 56px; margin-bottom: 6px; border-radius: 8px; }
 }
@@ -136,24 +136,18 @@
   }
 
   // Color variants
-  @mixin kv($c) {
-    border-top: 3px solid #{$c} !important;
-    .kpi-icon { background: rgba($c, 0.12); mat-icon { color: $c; } }
-    .spark-b  { background: $c; }
-  }
-
   &--primary {
     border-top: 3px solid var(--mat-sys-primary) !important;
     .kpi-icon { background: rgba(103,58,183,.12); mat-icon { color: var(--mat-sys-primary); } }
     .spark-b  { background: var(--mat-sys-primary); }
   }
-  &--accent   { @include kv(#2196f3); }
-  &--warn     { @include kv(#f44336); }
-  &--tertiary { @include kv(#ff9800); }
-  &--success  { @include kv(#4caf50); }
-  &--info     { @include kv(#00bcd4); }
-  &--purple   { @include kv(#9c27b0); }
-  &--neutral  { @include kv(#607d8b); }
+  &--accent   { border-top: 3px solid #2196f3 !important; .kpi-icon { background: rgba(33,150,243,.12); mat-icon { color: #2196f3; } } .spark-b { background: #2196f3; } }
+  &--warn     { border-top: 3px solid #f44336 !important; .kpi-icon { background: rgba(244,67,54,.12);  mat-icon { color: #f44336; } } .spark-b { background: #f44336; } }
+  &--tertiary { border-top: 3px solid #ff9800 !important; .kpi-icon { background: rgba(255,152,0,.12);  mat-icon { color: #ff9800; } } .spark-b { background: #ff9800; } }
+  &--success  { border-top: 3px solid #4caf50 !important; .kpi-icon { background: rgba(76,175,80,.12);  mat-icon { color: #4caf50; } } .spark-b { background: #4caf50; } }
+  &--info     { border-top: 3px solid #00bcd4 !important; .kpi-icon { background: rgba(0,188,212,.12);  mat-icon { color: #00bcd4; } } .spark-b { background: #00bcd4; } }
+  &--purple   { border-top: 3px solid #9c27b0 !important; .kpi-icon { background: rgba(156,39,176,.12); mat-icon { color: #9c27b0; } } .spark-b { background: #9c27b0; } }
+  &--neutral  { border-top: 3px solid #607d8b !important; .kpi-icon { background: rgba(96,125,139,.12); mat-icon { color: #607d8b; } } .spark-b { background: #607d8b; } }
 
   @media (max-width: 900px) {
     .kpi-value { font-size: 20px; }
@@ -166,7 +160,7 @@
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  FLEX ROW SYSTEM  — explicit ratios, no span-grid orphans
+//  FLEX ROW SYSTEM
 // ════════════════════════════════════════════════════════════════════════
 .row {
   display: flex;
@@ -181,27 +175,18 @@
   }
 }
 
-// 35 / 65
 .row--3565 {
   > .dc:nth-child(1) { flex: 0 0 35%; }
   > .dc:nth-child(2) { flex: 1 1 0; }
-  @media (max-width: 1024px) {
-    flex-wrap: wrap;
-    > .dc { flex: 1 1 100% !important; }
-  }
+  @media (max-width: 1024px) { flex-wrap: wrap; > .dc { flex: 1 1 100% !important; } }
 }
 
-// 65 / 35
 .row--6535 {
   > .dc:nth-child(1) { flex: 1 1 0; }
   > .dc:nth-child(2) { flex: 0 0 35%; }
-  @media (max-width: 1024px) {
-    flex-wrap: wrap;
-    > .dc { flex: 1 1 100% !important; }
-  }
+  @media (max-width: 1024px) { flex-wrap: wrap; > .dc { flex: 1 1 100% !important; } }
 }
 
-// Three equal columns
 .row--333 {
   > .dc { flex: 1 1 0; }
   @media (max-width: 1024px) {
@@ -209,19 +194,13 @@
     > .dc          { flex: 1 1 calc(50% - 8px) !important; }
     > .dc:last-child { flex: 1 1 100% !important; }
   }
-  @media (max-width: 767px) {
-    > .dc { flex: 1 1 100% !important; }
-  }
+  @media (max-width: 767px) { > .dc { flex: 1 1 100% !important; } }
 }
 
-// 60 / 40
 .row--6040 {
   > .dc:nth-child(1) { flex: 0 0 60%; }
   > .dc:nth-child(2) { flex: 1 1 0; }
-  @media (max-width: 1100px) {
-    flex-wrap: wrap;
-    > .dc { flex: 1 1 100% !important; }
-  }
+  @media (max-width: 1100px) { flex-wrap: wrap; > .dc { flex: 1 1 100% !important; } }
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -244,7 +223,6 @@
   }
 }
 
-// Card header
 mat-card-header {
   display: flex !important;
   align-items: center !important;
@@ -277,25 +255,59 @@ mat-card-content { padding: 6px 16px 16px !important; }
 
 // Mini controls
 .mtg {
-  height: 30px !important; 
-  border-radius: 8px !important; 
+  height: 30px !important;
+  border-radius: 8px !important;
   flex-shrink: 0;
   .mat-button-toggle {
     font-size: 11px !important;
-    height: 30px !important; 
+    height: 30px !important;
     line-height: 30px !important;
     display: flex;
     align-items: center;
   }
 }
 
+// ── Form fields — NO outline / border ────────────────────────────────
 .mf {
   min-width: 118px; flex-shrink: 0;
+
+  // Hide subscript wrapper (error/hint area) to reduce height
   .mat-mdc-form-field-subscript-wrapper { display: none; }
+
+  // Compact height
   .mat-mdc-text-field-wrapper { height: 32px; }
-  .mat-mdc-form-field-infix { padding: 4px 0 !important; min-height: 32px; }
-  .mdc-floating-label { top: 16px !important; }
-  .mat-mdc-select-value { font-size: 12px; }
+  .mat-mdc-form-field-infix   { padding: 4px 0 !important; min-height: 32px; }
+  .mdc-floating-label          { top: 16px !important; }
+  .mat-mdc-select-value        { font-size: 12px; }
+
+  // ── Remove all outlines / borders ──────────────────────────────────
+  // MDC outlined field border lines
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: transparent !important;
+    border-width: 0 !important;
+  }
+
+  // Hover & focused state — keep transparent
+  &:hover,
+  &.mat-focused {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: transparent !important;
+      border-width: 0 !important;
+    }
+  }
+
+  // Give a subtle background instead of border
+  .mat-mdc-text-field-wrapper {
+    background: var(--mat-sys-surface-container-highest) !important;
+    border-radius: 8px !important;
+  }
+
+  // Remove bottom underline for filled variant
+  .mdc-line-ripple { display: none !important; }
 
   &--search {
     min-width: 148px;
@@ -369,22 +381,59 @@ mat-card-content { padding: 6px 16px 16px !important; }
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  SITES GRID
+//  SITES GRID  — horizontal scroll row (Fix #2)
 // ════════════════════════════════════════════════════════════════════════
+
+// Outer scroll container — horizontal
+.site-scroll-row {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  // Custom thin scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: var(--mat-sys-outline-variant) transparent;
+
+  &::-webkit-scrollbar { height: 5px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--mat-sys-outline-variant);
+    border-radius: 4px;
+    &:hover { background: var(--mat-sys-primary); }
+  }
+}
+
+// Inner flex row — cards sit side by side
 .site-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+  display: flex;
+  flex-direction: row;
   gap: 14px;
-  @media (max-width: 600px) { grid-template-columns: 1fr; }
+  align-items: flex-start;
+  // min-width forces row to overflow for horizontal scroll
+  min-width: max-content;
+  padding: 2px 2px 4px;
+}
+
+// Skeleton cards inside horizontal row
+.sk--site {
+  flex: 0 0 255px;
+  height: 260px;
+  border-radius: 12px;
 }
 
 .stile {
+  // Fixed width card — keeps consistent column width
+  flex: 0 0 270px;
+  width: 270px;
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: 12px;
   background: var(--mat-sys-surface-container);
   display: flex; flex-direction: column; overflow: hidden;
   transition: box-shadow 0.2s, border-color 0.2s;
-  &:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); border-color: var(--mat-sys-primary); }
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,.1);
+    border-color: var(--mat-sys-primary);
+  }
 
   &-head  { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
   &-ico   {
@@ -427,11 +476,22 @@ mat-card-content { padding: 6px 16px 16px !important; }
     &-sep  { width: 1px; height: 30px; background: var(--mat-sys-outline-variant); }
   }
 
+  // Asset list inside card — vertical scroll with fixed max height
   &-list {
-    flex: 1; max-height: 170px; overflow-y: auto;
-    scrollbar-width: thin; scrollbar-color: var(--mat-sys-outline-variant) transparent;
+    flex: 1;
+    max-height: 200px; // show ~5 assets, rest scroll
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--mat-sys-outline-variant) transparent;
+
     &::-webkit-scrollbar { width: 4px; }
-    &::-webkit-scrollbar-thumb { background: var(--mat-sys-outline-variant); border-radius: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb {
+      background: var(--mat-sys-outline-variant);
+      border-radius: 4px;
+      &:hover { background: var(--mat-sys-primary); }
+    }
   }
 
   &-empty { font-size: 11px; color: var(--mat-sys-on-surface-variant); padding: 10px 14px; opacity: .6; }
@@ -479,11 +539,16 @@ mat-card-content { padding: 6px 16px 16px !important; }
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  TABLE
+//  TABLE  (Fix #3 — sticky header with opaque background)
 // ════════════════════════════════════════════════════════════════════════
+
+// Scroll wrapper — contains the table
 .tscroll {
-  overflow: auto; max-height: 330px;
-  scrollbar-width: thin; scrollbar-color: var(--mat-sys-outline-variant) transparent;
+  overflow: auto;
+  max-height: 330px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mat-sys-outline-variant) transparent;
+
   &::-webkit-scrollbar { width: 4px; height: 4px; }
   &::-webkit-scrollbar-thumb { background: var(--mat-sys-outline-variant); border-radius: 4px; }
 }
@@ -492,23 +557,31 @@ mat-card-content { padding: 6px 16px 16px !important; }
   width: 100%; background: transparent !important;
 
   th.mat-header-cell {
-    background: var(--mat-sys-surface-container-highest);
+    // Opaque solid background so content doesn't show through on scroll
+    background: var(--mat-sys-surface-container-highest) !important;
+    // Ensure it stays on top of scrolling rows
+    position: sticky;
+    top: 0;
+    z-index: 2;
     color: var(--mat-sys-on-surface-variant) !important;
     font-size: 10px !important; font-weight: 800 !important;
     text-transform: uppercase; letter-spacing: 0.6px;
     border-bottom: 1px solid var(--mat-sys-outline-variant) !important;
     padding: 9px 12px !important; white-space: nowrap;
+    // Solid background + box-shadow to cover rows scrolling underneath
+    box-shadow: 0 1px 0 var(--mat-sys-outline-variant);
   }
 
   td.mat-cell {
     padding: 7px 12px !important;
     border-bottom: 1px solid var(--mat-sys-outline-variant) !important;
     vertical-align: middle;
+    background: var(--mat-sys-surface-container-low);
   }
 
   .dr {
     cursor: pointer; transition: background 0.15s;
-    &:hover td { background: var(--mat-sys-surface-container); }
+    &:hover td { background: var(--mat-sys-surface-container) !important; }
     &:last-child td { border-bottom: none !important; }
   }
 }
@@ -521,31 +594,27 @@ mat-card-content { padding: 6px 16px 16px !important; }
 .cell-text { min-width: 0; }
 
 // ════════════════════════════════════════════════════════════════════════
-//  THUMB  — unified image/icon wrapper for both assets and users
+//  THUMB
 // ════════════════════════════════════════════════════════════════════════
 .thumb {
   position: relative; flex-shrink: 0;
 
-  // Asset thumb: rounded square
   &--asset {
     width: 34px; height: 34px; border-radius: 8px; overflow: hidden;
     background: var(--mat-sys-surface-container-highest);
   }
 
-  // User thumb: circle
   &--user {
     width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
     background: var(--mat-sys-surface-container-highest);
   }
 
-  // Alert thumb: small square
   &--alert {
     width: 30px; height: 30px; border-radius: 7px; overflow: hidden;
     background: var(--mat-sys-surface-container-highest);
   }
 }
 
-// Real image loaded from API
 .thumb-img {
   width: 100%; height: 100%;
   object-fit: cover; display: block;
@@ -554,10 +623,8 @@ mat-card-content { padding: 6px 16px 16px !important; }
   &--round { border-radius: 50%; }
 }
 
-// Icon fallback — hidden initially; shown by onImgError() or when no URL
 .img-fb { display: none; }
 
-// Asset icon box (shown when no image)
 .at {
   width: 34px; height: 34px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
@@ -565,7 +632,6 @@ mat-card-content { padding: 6px 16px 16px !important; }
   mat-icon { font-size: 16px; width: 16px; height: 16px; color: #fff; }
 }
 
-// User initials avatar
 .ua {
   width: 32px; height: 32px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -573,7 +639,6 @@ mat-card-content { padding: 6px 16px 16px !important; }
   flex-shrink: 0; letter-spacing: 0.5px;
 }
 
-// Text helpers
 .tp { font-size: 13px; font-weight: 600; color: var(--mat-sys-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ts { font-size: 11px; color: var(--mat-sys-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tm { font-family: 'Roboto Mono', monospace; font-weight: 700; font-size: 13px; white-space: nowrap; }
@@ -592,7 +657,7 @@ mat-card-content { padding: 6px 16px 16px !important; }
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  ALERTS ROW  (3 equal → 2 → 1)
+//  ALERTS ROW
 // ════════════════════════════════════════════════════════════════════════
 .alerts-row {
   display: grid;
@@ -610,7 +675,6 @@ mat-card-content { padding: 6px 16px 16px !important; }
   &::-webkit-scrollbar-thumb { background: var(--mat-sys-outline-variant); border-radius: 4px; }
 }
 
-// Alert badge counter
 .abadge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 18px; height: 18px; border-radius: 9px;
@@ -620,7 +684,6 @@ mat-card-content { padding: 6px 16px 16px !important; }
   &--info  { background: #06b6d4; color: #fff; }
 }
 
-// Alert icon box (used when no asset image)
 .alert-ico {
   width: 30px; height: 30px; border-radius: 7px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -630,7 +693,6 @@ mat-card-content { padding: 6px 16px 16px !important; }
   &--info  { background: rgba(#06b6d4,.14); mat-icon { color: #06b6d4; } }
 }
 
-// Alert item row
 .aitem {
   display: flex; align-items: center; gap: 9px;
   padding: 8px 4px; border-radius: 8px; transition: background 0.15s;
@@ -638,7 +700,6 @@ mat-card-content { padding: 6px 16px 16px !important; }
   .ai-body { flex: 1; min-width: 0; }
 }
 
-// Requester micro-avatar in approval items
 .req-pic {
   width: 16px; height: 16px; border-radius: 50%;
   vertical-align: middle; margin-right: 3px;
@@ -651,12 +712,9 @@ mat-card-content { padding: 6px 16px 16px !important; }
   vertical-align: middle; margin-right: 3px;
 }
 
-.site-hint {
-  display: flex; align-items: center; gap: 2px; margin-top: 1px;
-}
+.site-hint { display: flex; align-items: center; gap: 2px; margin-top: 1px; }
 .pin-xs { font-size: 10px; width: 10px; height: 10px; }
 
-// Priority tags
 .pri-tag {
   display: inline-block; font-size: 9px; font-weight: 700;
   padding: 1px 6px; border-radius: 20px; margin-top: 2px;
@@ -667,14 +725,12 @@ mat-card-content { padding: 6px 16px 16px !important; }
   &.pri--low  { background: rgba(#10b981,.18); color: #10b981; }
 }
 
-// Warranty badge
 .wbadge {
   font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 20px;
   color: #10b981; background: rgba(#10b981,.13); flex-shrink: 0;
   &--urgent { color: #ef4444; background: rgba(#ef4444,.13); }
 }
 
-// Empty alert state
 .empty {
   display: flex; flex-direction: column; align-items: center;
   padding: 22px 12px; gap: 8px; color: var(--mat-sys-on-surface-variant); opacity: .55;

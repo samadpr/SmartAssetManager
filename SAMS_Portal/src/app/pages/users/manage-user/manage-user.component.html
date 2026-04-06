@@ -3,6 +3,54 @@
   ]">
 </app-page-header>
 
+<!-- ══ Limit Banner — only shown when ≤5 slots left OR limit reached ══════ -->
+<div
+  class="limit-banner"
+  *ngIf="showLimitBanner()"
+  [ngClass]="limitStatusClass()">
+ 
+  <div class="limit-banner-content">
+ 
+    <!-- Icon -->
+    <div class="limit-banner-icon">
+      <mat-icon>{{ isLimitReached() ? 'person_off' : 'warning' }}</mat-icon>
+    </div>
+ 
+    <!-- Message -->
+    <div class="limit-banner-text">
+      <span class="limit-banner-title">
+        {{ isLimitReached()
+            ? 'User limit reached'
+            : 'Almost at user limit' }}
+      </span>
+      <span class="limit-banner-desc">
+        <ng-container *ngIf="!isLimitReached()">
+          Only <strong>{{ remainingSlots() }}</strong>
+          slot{{ remainingSlots() !== 1 ? 's' : '' }} remaining out of
+          <strong>{{ totalUserLimit() }}</strong>.
+          Add users before your quota runs out.
+        </ng-container>
+        <ng-container *ngIf="isLimitReached()">
+          Your plan allows <strong>{{ totalUserLimit() }}</strong>
+          user{{ totalUserLimit() !== 1 ? 's' : '' }} and all seats are taken.
+          Upgrade your subscription to add more.
+        </ng-container>
+      </span>
+    </div>
+ 
+    <!-- Close button — only on warning (not on critical/limit-reached) -->
+    <button
+      *ngIf="!isLimitReached()"
+      class="limit-banner-close"
+      mat-icon-button
+      matTooltip="Dismiss"
+      (click)="dismissBanner()">
+      <mat-icon>close</mat-icon>
+    </button>
+ 
+  </div>
+</div>
+
 <div class="example-container">
       <app-list-widget
         [config]="listConfig"

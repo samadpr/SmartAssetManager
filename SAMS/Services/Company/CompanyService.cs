@@ -2,11 +2,13 @@
 using Microsoft.EntityFrameworkCore;
 using SAMS.API.CompanyAPIs.RequestObject;
 using SAMS.Data;
+using SAMS.Helpers;
 using SAMS.Models;
 using SAMS.Services.Company.DTOs;
 using SAMS.Services.Company.Interface;
 using SAMS.Services.Departments;
 using SAMS.Services.Profile.Interface;
+using System.Globalization;
 
 namespace SAMS.Services.Company
 {
@@ -17,25 +19,67 @@ namespace SAMS.Services.Company
         private readonly ICompanyRepository _companyRepository;
         private readonly IUserProfileService _userProfileService;
         private readonly ApplicationDbContext _context;
+        private readonly FileUploadHelper _fileUploadHelper;
 
-        public CompanyService(IMapper mapper, ILogger<CompanyService> logger, ICompanyRepository companyRepository, IUserProfileService userProfileService, ApplicationDbContext context)
+        public CompanyService(IMapper mapper, ILogger<CompanyService> logger, ICompanyRepository companyRepository, IUserProfileService userProfileService, ApplicationDbContext context, FileUploadHelper fileUploadHelper)
         {
             _mapper = mapper;
             _logger = logger;
             _companyRepository = companyRepository;
             _userProfileService = userProfileService;
             _context = context;
+            _fileUploadHelper = fileUploadHelper;
         }
-        public async Task<(bool isSuccess, string message)> AddCompanyAsync(CompanyInfo companyInfo, string user)
+        public async Task<(bool isSuccess, string message)> AddCompanyAsync(CompanyRequestObject companyRequestInfo, string user)
         {
             try
             {
-                companyInfo.CreatedBy = user;
-                companyInfo.ModifiedBy = user;
-                companyInfo.CreatedDate = DateTime.UtcNow;
-                companyInfo.ModifiedDate = DateTime.UtcNow;
 
-                return await _companyRepository.AddCompanyAsync(companyInfo);
+                var company = new CompanyInfo
+                {
+                    OrganizationId = companyRequestInfo.OrganizationId ?? Guid.NewGuid(),
+                    IndustriesId = companyRequestInfo.IndustriesId,
+                    Name = companyRequestInfo.Name,
+                    Currency = companyRequestInfo.Currency,
+                    Address = companyRequestInfo.Address,
+                    City = companyRequestInfo.City,
+                    Country = companyRequestInfo.Country,
+                    Phone = companyRequestInfo.Phone,
+                    Email = companyRequestInfo.Email,
+                    Fax = companyRequestInfo.Fax,
+                    Website = companyRequestInfo.Website,
+                    CreatedBy = user,
+                    CreatedDate = DateTime.UtcNow,
+                    ModifiedBy = user,
+                    ModifiedDate = DateTime.UtcNow,
+                };
+
+
+                string logoPath = null;
+
+                if (companyRequestInfo.Logo != null)
+                {
+                    var file = companyRequestInfo.Logo;
+
+                    var (success, path, message) =
+                        await _fileUploadHelper.UploadFileAsync(
+                            file,
+                            $"{company.OrganizationId}/TradeLicense",
+                            FileUploadHelper.GetAllowedExtensions("image"),
+                            5 * 1024 * 1024 // Optional: 5MB limit
+                        );
+
+                    logoPath = path;
+                }
+
+                company.Logo = logoPath;
+
+                //companyRequestInfo.CreatedBy = user;
+                //companyRequestInfo.ModifiedBy = user;
+                //companyRequestInfo.CreatedDate = DateTime.UtcNow;
+                //companyRequestInfo.ModifiedDate = DateTime.UtcNow;
+
+                return await _companyRepository.AddCompanyAsync(company);
 
             }
             catch(Exception ex)
@@ -109,28 +153,42 @@ namespace SAMS.Services.Company
             }
         }
 
-        public async Task<(bool isSuccess, string message)> UpdateCompanyAsync(CompanyInfo companyInfo, string user)
+        public async Task<(bool isSuccess, string message)> UpdateCompanyAsync(CompanyRequestObject companyRequestInfo, string user)
         {
             try
             {
-                var currentCompany = await _companyRepository.GetCompaniesByIdAsync(companyInfo.Id);
+                var currentCompany = await _companyRepository.GetCompaniesByIdAsync(companyRequestInfo.Id);
                 if (currentCompany.company == null)
                     return (false, "No companies found.");
 
                 // Update only the fields you want to allow changes for
                 var existingCompany = currentCompany.company;
 
-                existingCompany.IndustriesId = companyInfo.IndustriesId;
-                existingCompany.Name = companyInfo.Name;
-                existingCompany.Logo = companyInfo.Logo;
-                existingCompany.Currency = companyInfo.Currency;
-                existingCompany.Address = companyInfo.Address;
-                existingCompany.City = companyInfo.City;
-                existingCompany.Country = companyInfo.Country;
-                existingCompany.Phone = companyInfo.Phone;
-                existingCompany.Email = companyInfo.Email;
-                existingCompany.Fax = companyInfo.Fax;
-                existingCompany.Website = companyInfo.Website;
+                string? logoPath = existingCompany.Logo;
+                if (companyRequestInfo.Logo != null)
+                {
+                    var (success, path, _) =
+                        await _fileUploadHelper.UploadFileAsync(
+                            companyRequestInfo.Logo,
+                            $"{existingCompany.OrganizationId}/CompanyLogo",
+                            FileUploadHelper.GetAllowedExtensions("image"));
+
+                    if (success)
+                        logoPath = path;
+                }
+
+
+                existingCompany.IndustriesId = companyRequestInfo.IndustriesId;
+                existingCompany.Name = companyRequestInfo.Name;
+                existingCompany.Logo = logoPath;
+                existingCompany.Currency = companyRequestInfo.Currency;
+                existingCompany.Address = companyRequestInfo.Address;
+                existingCompany.City = companyRequestInfo.City;
+                existingCompany.Country = companyRequestInfo.Country;
+                existingCompany.Phone = companyRequestInfo.Phone;
+                existingCompany.Email = companyRequestInfo.Email;
+                existingCompany.Fax = companyRequestInfo.Fax;
+                existingCompany.Website = companyRequestInfo.Website;
                 existingCompany.CreatedBy = existingCompany.CreatedBy;
                 existingCompany.CreatedDate = existingCompany.CreatedDate;
                 existingCompany.ModifiedBy = user;
@@ -210,9 +268,22 @@ namespace SAMS.Services.Company
                 // Update only the fields you want to allow changes for
                 var existingCompany = currentCompany.company;
 
+                string? logoPath = existingCompany.Logo;
+                if (companyInfo.Logo != null)
+                {
+                    var (success, path, _) =
+                        await _fileUploadHelper.UploadFileAsync(
+                            companyInfo.Logo,
+                            $"{existingCompany.OrganizationId}/CompanyLogo",
+                            FileUploadHelper.GetAllowedExtensions("image"));
+
+                    if (success)
+                        logoPath = path;
+                }
+
                 existingCompany.IndustriesId = companyInfo.IndustriesId;
                 existingCompany.Name = companyInfo.Name;
-                existingCompany.Logo = companyInfo.Logo;
+                existingCompany.Logo = logoPath;
                 existingCompany.Currency = companyInfo.Currency;
                 existingCompany.Address = companyInfo.Address;
                 existingCompany.City = companyInfo.City;

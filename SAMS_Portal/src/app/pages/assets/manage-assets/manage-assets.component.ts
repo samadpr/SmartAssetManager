@@ -21,12 +21,12 @@ import { UserProfileService } from '../../../core/services/users/user-profile.se
 import { AssetStatusService } from '../../../core/services/asset/asset-status/asset-status.service';
 import { AssetIssue } from '../../../core/models/interfaces/asset-manage/asset-issue.interface';
 import { AssetIssueService } from '../../../core/services/asset/asset-issues/asset-issue.service';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 import { MatRippleModule } from '@angular/material/core';
-import { CompanyStorageService } from '../../../core/services/localStorage/company/company-storage.service';
+import { CompanyStorageService, SubscriptionStorageService } from '../../../core/services/localStorage/company/company-storage.service';
 import { Router } from '@angular/router';
 import { AssetBulkTemplateService } from '../../../core/services/asset/asset-bulk-template/asset-bulk-template.service';
 import { animate, style, transition, trigger } from '@angular/animations';
@@ -36,6 +36,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
   standalone: true,
   imports: [
     CommonModule,
+    DecimalPipe,
     PageHeaderComponent,
     ListWidgetComponent,
     MatIconModule,
@@ -45,7 +46,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
   ],
   templateUrl: './manage-assets.component.html',
   styleUrl: './manage-assets.component.scss',
-  animations: [
+    animations: [
     trigger('fadeInOut', [
       transition(':enter', [
         style({ opacity: 0, transform: 'scale(0.95)' }),
@@ -54,9 +55,21 @@ import { animate, style, transition, trigger } from '@angular/animations';
       transition(':leave', [
         animate('150ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' }))
       ])
+    ]),
+    trigger('bannerSlide', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(-12px)', maxHeight: '0px' }),
+        animate('300ms cubic-bezier(0.4, 0, 0.2, 1)',
+          style({ opacity: 1, transform: 'translateY(0)', maxHeight: '200px' }))
+      ]),
+      transition(':leave', [
+        animate('200ms ease-in',
+          style({ opacity: 0, transform: 'translateY(-8px)', maxHeight: '0px' }))
+      ])
     ])
   ]
 })
+
 export class ManageAssetsComponent implements OnInit {
 
   // ─── Services ─────────────────────────────────────────────────────────────
@@ -75,6 +88,7 @@ export class ManageAssetsComponent implements OnInit {
   private assetIssueService = inject(AssetIssueService);
   private router = inject(Router);
   private companyStorage = inject(CompanyStorageService);
+  private subscriptionStorage = inject(SubscriptionStorageService);
   private bulkTemplateService = inject(AssetBulkTemplateService);
 
   // ─── State signals ────────────────────────────────────────────────────────
@@ -82,8 +96,10 @@ export class ManageAssetsComponent implements OnInit {
   loading = signal(false);
   filePreviewMap = signal<Map<string, string>>(new Map());
   fileMap = signal<Map<string, File>>(new Map());
-  // Add this signal inside the class:
   downloadingTemplate = signal(false);
+
+  /** Controls whether the limit banner has been dismissed by the user this session */
+  private _bannerDismissed = signal(false);
 
   dropdownData = signal<AssetDropdownData>({
     categories: [], allSubCategories: [], suppliers: [], sites: [],
@@ -91,20 +107,55 @@ export class ManageAssetsComponent implements OnInit {
     depreciationMethods: [], assignToOptions: [], usersList: [], assetStatus: []
   });
 
+  // ─── Subscription limit signals ───────────────────────────────────────────
+
+  /** Maximum assets allowed by the current subscription plan */
+  assetLimit = computed<number>(() => this.subscriptionStorage.getAssetLimit());
+
+  /** Number of remaining asset slots */
+  remainingAssets = computed<number>(() => {
+    const limit = this.assetLimit();
+    if (!limit || limit <= 0) return Infinity; // No limit configured
+    return Math.max(0, limit - this.totalAssets());
+  });
+
+  /** True when the asset quota is fully consumed */
+  isLimitReached = computed<boolean>(() => {
+    const limit = this.assetLimit();
+    if (!limit || limit <= 0) return false;
+    return this.totalAssets() >= limit;
+  });
+
+  /** Percentage of quota used (0–100, capped) */
+  limitPercent = computed<number>(() => {
+    const limit = this.assetLimit();
+    if (!limit || limit <= 0) return 0;
+    return Math.min(100, (this.totalAssets() / limit) * 100);
+  });
+
+  /**
+   * Show the banner only when:
+   * - The user hasn't dismissed it this session, AND
+   * - Either the limit is reached OR ≤10 assets remain
+   */
+  showLimitBanner = computed<boolean>(() => {
+    if (this._bannerDismissed()) return false;
+    const limit = this.assetLimit();
+    if (!limit || limit <= 0) return false;
+    return this.isLimitReached() || this.remainingAssets() <= 10;
+  });
+
   // ─── Computed stats ───────────────────────────────────────────────────────
 
   totalAssets = computed(() => this.assets().length);
   availableAssets = computed(() => this.assets().filter(a => a.isAvilable).length);
 
-  /** Assets assigned to a Site / Branch  (AssignToType.Site = 2) */
   assignedToSiteCount = computed(() =>
     this.assets().filter(a => (a as any).assignTo === AssignToType.Site).length
   );
   assignedToUserCount = computed(() =>
     this.assets().filter(a => (a as any).assignTo === AssignToType.User).length
   );
-
-  /** Unassigned  (AssignToType.NotAssigned = 0) */
   unassignedCount = computed(() =>
     this.assets().filter(
       a => !(a as any).assignTo || (a as any).assignTo === AssignToType.NotAssigned
@@ -134,10 +185,6 @@ export class ManageAssetsComponent implements OnInit {
 
   // ─── Currency helpers ─────────────────────────────────────────────────────
 
-  /**
-   * Currency SYMBOL only (e.g. "₹", "$", "€").
-   * Reads from CompanyStorageService (localStorage). Falls back to "$".
-   */
   currencySymbolDisplay = computed<string>(() => {
     try {
       const code = this.companyStorage.getCurrency()?.trim() || 'USD';
@@ -151,16 +198,22 @@ export class ManageAssetsComponent implements OnInit {
     }
   });
 
-  /**
-   * Full number with thousand separators + 2 decimal places — NO symbol.
-   * e.g. 125000.5 → "125,000.50"
-   */
   formatAmount(value: number): string {
     if (value == null) return '0.00';
     return new Intl.NumberFormat('en', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(value);
+  }
+
+  // ─── Limit banner actions ─────────────────────────────────────────────────
+
+  dismissLimitBanner(): void {
+    this._bannerDismissed.set(true);
+  }
+
+  goToUpgrade(): void {
+    this.router.navigate(['/settings/subscription']);
   }
 
   // ─── Navigation ───────────────────────────────────────────────────────────
@@ -174,6 +227,18 @@ export class ManageAssetsComponent implements OnInit {
   ngOnInit(): void {
     this.loadDropdownData();
     this.loadAssets();
+    this._patchListConfigAddButton();
+  }
+
+  // ─── Patch Add button disabled state reactively ───────────────────────────
+
+  /**
+   * We can't bind computed() directly into a static listConfig,
+   * so we patch the addButtonLabel and use a wrapper in onAddAsset().
+   * The list-widget [showAdd] remains true; we gate the action here.
+   */
+  private _patchListConfigAddButton(): void {
+    // intentional — handled in onAddAsset() via isLimitReached check
   }
 
   // ─── List widget config ───────────────────────────────────────────────────
@@ -184,7 +249,6 @@ export class ManageAssetsComponent implements OnInit {
 
   downloadTemplate(): void {
     this.downloadingTemplate.set(true);
-    // Pass current dropdown data so template has real dropdown options
     const data = this.dropdownData();
     this.bulkTemplateService.generateAndDownload(data).then(() => {
       this.downloadingTemplate.set(false);
@@ -194,7 +258,6 @@ export class ManageAssetsComponent implements OnInit {
       this.globalService.showToastr('Failed to generate template', 'error');
     });
   }
-
 
   listConfig: ListConfig = {
     title: 'Asset Management',
@@ -1743,6 +1806,35 @@ export class ManageAssetsComponent implements OnInit {
   }
 
   onAddAsset() {
+
+    // ── GATE: block adding when quota is exhausted ────────────────────────
+    if (this.isLimitReached()) {
+      const limit = this.assetLimit();
+      this.popupService.openGenericConfirmation(
+        'Asset Limit Reached',
+        `You have reached your plan's maximum of ${limit} assets. Please upgrade your subscription plan to add more assets.`,
+        {
+          confirmButtonText: 'Upgrade Plan',
+          confirmButtonIcon: 'rocket_launch',
+          icon: 'lock',
+          iconColor: 'warn'
+        }
+      ).subscribe(result => {
+        if (result && result.action === 'confirm') {
+          this.goToUpgrade();
+        }
+      });
+      return;
+    }
+
+    // ── INFO: warn if approaching limit (≤5 remaining) ───────────────────
+    if (this.remainingAssets() <= 5 && this.remainingAssets() > 0) {
+      this.globalService.showSnackbar(
+        `Only ${this.remainingAssets()} asset slot${this.remainingAssets() === 1 ? '' : 's'} remaining on your plan.`,
+        'warning'
+      );
+    }
+
     const fields = this.getAssetFormFieldsForAdd();
 
     this.popupService.openAddPopup('Add New Asset', fields, {

@@ -72,6 +72,37 @@ namespace SAMS.Services.AssetSitesOrBranches
             return await query.ToListAsync();
         }
 
+        public async Task<AssetSiteDto> GetBySiteOrBranchIdAsync(long id, Guid orgId)
+        {
+            var query =
+                    from site in _context.AssetSite
+                    join city in _context.AssetCities
+                        on site.City equals city.Id into cityJoin
+                    from cityData in cityJoin.DefaultIfEmpty()
+
+                    where site.OrganizationId == orgId && !site.Cancelled && site.Id == id
+
+                    select new AssetSiteDto
+                    {
+                        Id = site.Id,
+                        Name = site.Name,
+                        Description = site.Description,
+                        City = site.City,
+                        CityDisplay = cityData != null ? cityData.Name : null,
+                        Address = site.Address,
+                        Type = site.Type,
+                        OrganizationId = site.OrganizationId,
+
+                        CreatedBy = site.CreatedBy,
+                        ModifiedBy = site.ModifiedBy,
+                        CreatedDate = site.CreatedDate,
+                        ModifiedDate = site.ModifiedDate,
+                        Cancelled = site.Cancelled
+                    };
+
+            return await query.FirstOrDefaultAsync();
+        }
+
         public async Task<AssetSite?> GetByIdAsync(long id, Guid orgId)
         {
             return await _context.AssetSite

@@ -14,6 +14,7 @@ namespace SAMS.Services.AssetSitesOrBranches.Interface
         Task<IEnumerable<AssetSite>> GetAllAsync();
 
         Task<IEnumerable<AssetSiteDto>> GetByOrganizationAsync(Guid orgId);
+        Task<AssetSiteDto> GetBySiteOrBranchIdAsync(long id, Guid orgId);
 
         Task<AssetSite?> GetByIdAsync(long id, Guid orgId);
 

@@ -10,9 +10,9 @@ export const MS_NAME_CLAIM = 'http://schemas.xmlsoap.org/ws/2005/05/identity/cla
 export interface JwtPayload {
   // Short-form keys (may or may not be present depending on backend config)
   email?: string;
-  role?:  string | string[];
-  name?:  string;
-  exp:    number;
+  role?: string | string[];
+  name?: string;
+  exp: number;
   // Microsoft .NET long-form claim keys
   [MS_ROLE_CLAIM]?: string | string[];
   [MS_NAME_CLAIM]?: string;
@@ -26,8 +26,11 @@ export interface JwtPayload {
 export class AuthService {
   private accountService = inject(AccountService);
   private tokenKey = 'auth_token';
+  private companyDataKey = 'company_info';
+  private userDataKey = 'user_profile';
 
-  constructor(private router: Router) {}
+
+  constructor(private router: Router) { }
 
   setToken(token: string): void {
     localStorage.setItem(this.tokenKey, token);
@@ -40,6 +43,11 @@ export class AuthService {
 
   clearToken(): void {
     localStorage.removeItem(this.tokenKey);
+  }
+
+  clearDatas(): void {
+    localStorage.removeItem(this.companyDataKey);
+    localStorage.removeItem(this.userDataKey);
   }
 
   isAuthenticated(): boolean {
@@ -94,16 +102,18 @@ export class AuthService {
       next: (res) => {
         console.log(res.message || 'Logout successful');
         this.clearToken();
+        this.clearDatas();
         this.router.navigate(['/login']);
       },
       error: (err) => {
         console.error('Logout API failed:', err);
         this.clearToken();
+        this.clearDatas();
         this.router.navigate(['/login']);
       }
     });
   }
-    adminLogout(): void {
+  adminLogout(): void {
     this.accountService.logout().subscribe({
       next: (res) => {
         console.log(res.message || 'Logout successful');

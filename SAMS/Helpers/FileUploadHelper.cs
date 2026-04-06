@@ -101,7 +101,7 @@
         {
             return fileType.ToLower() switch
             {
-                "image" => new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp" },
+                "image" => new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" },
                 "document" => new[] { ".pdf", ".doc", ".docx", ".xls", ".xlsx" },
                 "all" => new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx", ".xls", ".xlsx" },
                 _ => new[] { ".jpg", ".jpeg", ".png", ".pdf" }

@@ -1,0 +1,740 @@
+<app-page-header [title]="'Asset Transfer Reports'" [breadcrumbs]="[
+    { label: 'Reports', url: '/reports' },
+    { label: 'Asset Transfer Reports' }
+  ]">
+</app-page-header>
+ 
+<div class="transfer-report-container">
+ 
+  <!-- ═══════════════════════════ SUMMARY CARDS ═══════════════════════════ -->
+  <div class="summary-grid" *ngIf="summary()">
+    <!-- <mat-card class="stat-card stat-total">
+      <mat-card-content>
+        <div class="stat-inner">
+          <div class="stat-icon-wrap"><mat-icon>inventory_2</mat-icon></div>
+          <div class="stat-details">
+            <div class="stat-value">{{ summary()?.totalAssets ?? 0 }}</div>
+            <div class="stat-label">Total Assets</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card> -->
+    <mat-card class="stat-card stat-active">
+      <mat-card-content>
+        <div class="stat-inner">
+          <div class="stat-icon-wrap"><mat-icon>check_circle</mat-icon></div>
+          <div class="stat-details">
+            <div class="stat-value">{{ summary()?.totalActiveAssets ?? 0 }}</div>
+            <div class="stat-label">Active Assets</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card stat-transfers">
+      <mat-card-content>
+        <div class="stat-inner">
+          <div class="stat-icon-wrap"><mat-icon>swap_horiz</mat-icon></div>
+          <div class="stat-details">
+            <div class="stat-value">{{ summary()?.totalTransferLegs ?? 0 }}</div>
+            <div class="stat-label">Total Transfers</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card stat-disposed">
+      <mat-card-content>
+        <div class="stat-inner">
+          <div class="stat-icon-wrap"><mat-icon>delete_forever</mat-icon></div>
+          <div class="stat-details">
+            <div class="stat-value">{{ summary()?.totalDisposedAssets ?? 0 }}</div>
+            <div class="stat-label">Disposed</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card stat-pending">
+      <mat-card-content>
+        <div class="stat-inner">
+          <div class="stat-icon-wrap"><mat-icon>pending_actions</mat-icon></div>
+          <div class="stat-details">
+            <div class="stat-value">{{ summary()?.totalPendingApprovals ?? 0 }}</div>
+            <div class="stat-label">Pending Approvals</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+ 
+  <!-- ══════════════════════ SEARCH + TOOLBAR BAR ═════════════════════════ -->
+  <mat-card class="toolbar-card">
+    <mat-card-content>
+      <div class="toolbar-row">
+ 
+        <!-- Search -->
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search assets…</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput [formControl]="searchControl"
+            placeholder="Asset ID, Name, Brand, Serial No, Holder…" />
+          <button matSuffix mat-icon-button *ngIf="searchControl.value"
+            (click)="searchControl.setValue('')" matTooltip="Clear search">
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-form-field>
+ 
+        <!-- Sort -->
+        <mat-form-field appearance="outline" class="sort-field">
+          <mat-label>Sort By</mat-label>
+          <mat-icon matPrefix>sort</mat-icon>
+          <mat-select [formControl]="sortControl">
+            <mat-option value="assetId">Asset ID</mat-option>
+            <mat-option value="assetName">Name</mat-option>
+            <mat-option value="totalTransfers">Most Transfers</mat-option>
+            <mat-option value="lastTransferDate">Last Transfer</mat-option>
+            <mat-option value="firstAssignedDate">First Assigned</mat-option>
+          </mat-select>
+        </mat-form-field>
+ 
+        <!-- Filter toggle button (shows badge with active count) -->
+        <button mat-stroked-button class="filter-toggle-btn"
+          [class.filter-active]="hasActiveFilters()"
+          (click)="toggleFilterPanel()"
+          [matTooltip]="filterPanelOpen() ? 'Hide Filters' : 'Show Filters'">
+          <mat-icon>tune</mat-icon>
+          Filters
+          <span class="filter-badge" *ngIf="activeFilterCount() > 0">
+            {{ activeFilterCount() }}
+          </span>
+        </button>
+ 
+        <!-- View toggle -->
+        <mat-button-toggle-group [formControl]="viewMode" class="view-toggle">
+          <mat-button-toggle value="timeline" matTooltip="Timeline View">
+            <mat-icon>timeline</mat-icon>
+          </mat-button-toggle>
+          <mat-button-toggle value="table" matTooltip="Table View">
+            <mat-icon>table_rows</mat-icon>
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+ 
+        <!-- Export PDF -->
+        <button mat-raised-button color="primary" (click)="exportToPDF()"
+          [disabled]="loading()" matTooltip="Export all filtered assets as PDF">
+          <mat-icon>picture_as_pdf</mat-icon>
+          Export PDF
+        </button>
+ 
+      </div>
+ 
+      <!-- ═══════════ FILTER DROPDOWN PANEL ═══════════ -->
+      <div class="filter-panel" [class.filter-panel--open]="filterPanelOpen()">
+        <mat-divider style="margin-bottom: 16px;"></mat-divider>
+ 
+        <div class="filter-panel-grid">
+ 
+          <!-- Status -->
+          <mat-form-field appearance="outline">
+            <mat-label>Asset Status</mat-label>
+            <mat-icon matPrefix>flag</mat-icon>
+            <mat-select [formControl]="statusFilter">
+              <mat-option value="">All Statuses</mat-option>
+              <mat-option value="active">Active</mat-option>
+              <mat-option value="disposed">Disposed</mat-option>
+              <mat-option value="cancelled">Cancelled</mat-option>
+            </mat-select>
+          </mat-form-field>
+ 
+          <!-- Category -->
+          <mat-form-field appearance="outline">
+            <mat-label>Category</mat-label>
+            <mat-icon matPrefix>category</mat-icon>
+            <mat-select [formControl]="categoryFilter">
+              <mat-option value="">All Categories</mat-option>
+              <mat-option *ngFor="let cat of categories()" [value]="cat">{{ cat }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+ 
+          <!-- Department -->
+          <mat-form-field appearance="outline">
+            <mat-label>Department</mat-label>
+            <mat-icon matPrefix>account_tree</mat-icon>
+            <mat-select [formControl]="departmentFilter">
+              <mat-option value="">All Departments</mat-option>
+              <mat-option *ngFor="let dept of departments()" [value]="dept">{{ dept }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+ 
+          <!-- Current Holder Type -->
+          <mat-form-field appearance="outline">
+            <mat-label>Current Holder</mat-label>
+            <mat-icon matPrefix>person_pin</mat-icon>
+            <mat-select [formControl]="holderTypeFilter">
+              <mat-option value="">All Holders</mat-option>
+              <mat-option value="user">User</mat-option>
+              <mat-option value="site">Site / Branch</mat-option>
+              <mat-option value="none">Unassigned</mat-option>
+              <mat-option value="disposed">Disposed</mat-option>
+            </mat-select>
+          </mat-form-field>
+ 
+          <!-- Approval Status (any leg) -->
+          <mat-form-field appearance="outline">
+            <mat-label>Approval Status</mat-label>
+            <mat-icon matPrefix>verified</mat-icon>
+            <mat-select [formControl]="approvalStatusFilter">
+              <mat-option value="">Any Approval</mat-option>
+              <mat-option value="1">Has Pending</mat-option>
+              <mat-option value="2">Has Approved</mat-option>
+              <mat-option value="3">Has Rejected</mat-option>
+            </mat-select>
+          </mat-form-field>
+ 
+          <!-- Min Transfers -->
+          <mat-form-field appearance="outline">
+            <mat-label>Min Transfers</mat-label>
+            <mat-icon matPrefix>swap_horiz</mat-icon>
+            <input matInput type="number" min="0" [formControl]="minTransfersFilter"
+              placeholder="e.g. 3" />
+          </mat-form-field>
+ 
+          <!-- Date From -->
+          <mat-form-field appearance="outline">
+            <mat-label>Transfer From</mat-label>
+            <mat-icon matPrefix>event</mat-icon>
+            <input matInput [matDatepicker]="startPicker" [formControl]="startDateControl" />
+            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+ 
+          <!-- Date To -->
+          <mat-form-field appearance="outline">
+            <mat-label>Transfer To</mat-label>
+            <mat-icon matPrefix>event</mat-icon>
+            <input matInput [matDatepicker]="endPicker" [formControl]="endDateControl" />
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+          </mat-form-field>
+ 
+        </div>
+ 
+        <!-- Filter actions -->
+        <div class="filter-panel-actions">
+          <button mat-stroked-button color="warn" (click)="clearFilters()">
+            <mat-icon>clear_all</mat-icon> Clear All Filters
+          </button>
+        </div>
+      </div>
+ 
+      <!-- Active filter chips -->
+      <div class="active-chips" *ngIf="activeFilterChips().length > 0">
+        <mat-icon class="chips-icon">filter_list</mat-icon>
+        <span class="chips-label">Active:</span>
+        <mat-chip-set>
+          <mat-chip *ngFor="let chip of activeFilterChips()" (removed)="removeChip(chip.key)">
+            {{ chip.label }}
+            <button matChipRemove><mat-icon>cancel</mat-icon></button>
+          </mat-chip>
+        </mat-chip-set>
+      </div>
+ 
+      <!-- Results meta -->
+      <div class="results-meta">
+        <span class="result-count">
+          Showing <strong>{{ filteredAssets().length }}</strong> of
+          <strong>{{ allAssets().length }}</strong> assets
+        </span>
+      </div>
+ 
+    </mat-card-content>
+  </mat-card>
+ 
+  <!-- ══════════════════════════ LOADING ══════════════════════════════════ -->
+  <div class="loading-wrap" *ngIf="loading()">
+    <mat-spinner diameter="52"></mat-spinner>
+    <p>Loading transfer report…</p>
+  </div>
+ 
+  <!-- ══════════════════════════ EMPTY STATE ══════════════════════════════ -->
+  <div class="empty-state" *ngIf="!loading() && filteredAssets().length === 0">
+    <mat-icon>manage_search</mat-icon>
+    <h3>No assets found</h3>
+    <p>Try adjusting your search or filters.</p>
+    <button mat-raised-button color="primary" (click)="clearFilters()">Clear Filters</button>
+  </div>
+ 
+  <!-- ══════════════════ TIMELINE VIEW ════════════════════════════════════ -->
+  <ng-container *ngIf="!loading() && viewMode.value === 'timeline' && filteredAssets().length > 0">
+ 
+    <div *ngFor="let asset of paginatedAssets(); trackBy: trackByAsset"
+      class="asset-transfer-card"
+      [class.disposed]="asset.isDisposed"
+      [class.cancelled]="asset.isCancelled">
+ 
+      <!-- Asset Header -->
+      <div class="asset-card-header">
+        <div class="asset-thumb-wrap">
+          <img *ngIf="getImageUrl(asset.imageUrl)" [src]="getImageUrl(asset.imageUrl)"
+            [alt]="asset.assetName ?? ''" class="asset-thumb" (error)="onImageError($event)" />
+          <div *ngIf="!getImageUrl(asset.imageUrl)" class="asset-thumb-placeholder">
+            <mat-icon>devices</mat-icon>
+          </div>
+        </div>
+ 
+        <div class="asset-info">
+          <div class="asset-id-badge">{{ asset.assetId }}</div>
+          <h3 class="asset-name">{{ asset.assetName }}</h3>
+          <div class="asset-meta">
+            <span class="meta-chip" *ngIf="asset.assetBrand">
+              <mat-icon>label</mat-icon>{{ asset.assetBrand }}
+            </span>
+            <span class="meta-chip" *ngIf="asset.categoryDisplay">
+              <mat-icon>category</mat-icon>{{ asset.categoryDisplay }}
+            </span>
+            <span class="meta-chip" *ngIf="asset.subCategoryDisplay">
+              <mat-icon>subdirectory_arrow_right</mat-icon>{{ asset.subCategoryDisplay }}
+            </span>
+            <span class="meta-chip" *ngIf="asset.departmentDisplay">
+              <mat-icon>account_tree</mat-icon>{{ asset.departmentDisplay }}
+            </span>
+            <span class="meta-chip" *ngIf="asset.assetModelNo">
+              <mat-icon>tag</mat-icon>{{ asset.assetModelNo }}
+            </span>
+          </div>
+        </div>
+ 
+        <div class="asset-header-right">
+          <div class="asset-stats-row">
+            <div class="header-stat">
+              <span class="hs-val">{{ asset.totalTransfers }}</span>
+              <span class="hs-lbl">Transfers</span>
+            </div>
+            <div class="header-stat">
+              <span class="hs-val">{{ holdDaysTotal(asset) }}</span>
+              <span class="hs-lbl">Days</span>
+            </div>
+          </div>
+          <div class="header-actions-row">
+            <span class="asset-status-badge"
+              [class.badge-active]="!asset.isDisposed && !asset.isCancelled"
+              [class.badge-disposed]="asset.isDisposed"
+              [class.badge-cancelled]="asset.isCancelled">
+              <mat-icon>{{ asset.isDisposed ? 'delete_forever' : asset.isCancelled ? 'cancel' : 'check_circle' }}</mat-icon>
+              {{ asset.isDisposed ? 'Disposed' : asset.isCancelled ? 'Cancelled' : 'Active' }}
+            </span>
+            <button mat-icon-button color="primary" matTooltip="View Full Detail"
+              (click)="openAssetDetail(asset)">
+              <mat-icon>open_in_new</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- /Asset Header -->
+ 
+      <!-- Transfer Timeline -->
+      <div class="transfer-timeline-wrap">
+ 
+        <div class="timeline-header">
+          <mat-icon>timeline</mat-icon>
+          <span>Transfer Chain</span>
+          <span class="chain-count-pill">{{ asset.transferChain.length || 0 }} leg(s)</span>
+          <span class="timeline-dates" *ngIf="asset.firstAssignedDate">
+            {{ formatDate(asset.firstAssignedDate) }}
+            <mat-icon>arrow_forward</mat-icon>
+            {{ formatDate(asset.lastTransferDate) }}
+          </span>
+        </div>
+ 
+        <div class="transfer-chain">
+ 
+          <div *ngFor="let leg of getVisibleLegs(asset); let i = index; let last = last"
+            class="transfer-leg"
+            [class.leg-current]="leg.isCurrent"
+            [class.leg-disposed]="leg.isDisposalLeg"
+            [class.leg-rejected]="leg.approvalStatus === 3">
+ 
+            <!-- Step circle + connector -->
+            <div class="leg-step">
+              <div class="step-circle"
+                [class.step-current]="leg.isCurrent"
+                [class.step-disposed]="leg.isDisposalLeg"
+                [class.step-rejected]="leg.approvalStatus === 3 && !leg.isCurrent">
+                <mat-icon *ngIf="leg.isCurrent && !leg.isDisposalLeg">location_on</mat-icon>
+                <mat-icon *ngIf="leg.isDisposalLeg">delete_forever</mat-icon>
+                <mat-icon *ngIf="leg.approvalStatus === 3 && !leg.isCurrent && !leg.isDisposalLeg">cancel</mat-icon>
+                <span *ngIf="leg.approvalStatus !== 3 && !leg.isCurrent && !leg.isDisposalLeg">
+                  {{ i + 1 }}
+                </span>
+              </div>
+              <div class="step-connector"
+                *ngIf="!last || (hasMoreLegs(asset) && !isLegsExpanded(asset.assetRowId))">
+              </div>
+            </div>
+ 
+            <!-- Leg body -->
+            <div class="leg-body">
+              <div class="leg-top-row">
+ 
+                <!-- Holder card -->
+                <div class="holder-card"
+                  [class.holder-user]="leg.assignTo === 1"
+                  [class.holder-site]="leg.assignTo === 2"
+                  [class.holder-disposed]="leg.assignTo === 3">
+ 
+                  <!-- User holder -->
+                  <ng-container *ngIf="leg.assignTo === 1 && leg.holderUser">
+                    <div class="holder-avatar">
+                      <img *ngIf="getImageUrl(leg.holderUser.profilePicture)"
+                        [src]="getImageUrl(leg.holderUser.profilePicture)"
+                        (error)="onImageError($event)" />
+                      <mat-icon *ngIf="!getImageUrl(leg.holderUser.profilePicture)">person</mat-icon>
+                    </div>
+                    <div class="holder-details">
+                      <span class="holder-type-badge user-badge"><mat-icon>person</mat-icon>User</span>
+                      <div class="holder-name">{{ leg.holderUser.fullName }}</div>
+                      <div class="holder-sub">{{ leg.holderUser.designationDisplay }}</div>
+                      <div class="holder-sub">{{ leg.holderUser.email }}</div>
+                    </div>
+                    <button mat-icon-button color="accent" class="holder-view-btn"
+                      matTooltip="View User" (click)="openUserDetail($event, leg.holderUser)">
+                      <mat-icon>person_search</mat-icon>
+                    </button>
+                  </ng-container>
+ 
+                  <!-- Site holder -->
+                  <ng-container *ngIf="leg.assignTo === 2 && leg.holderSite">
+                    <div class="holder-avatar site-avatar"><mat-icon>location_city</mat-icon></div>
+                    <div class="holder-details">
+                      <span class="holder-type-badge site-badge">
+                        <mat-icon>business</mat-icon>{{ leg.holderSite.siteType }}
+                      </span>
+                      <div class="holder-name">{{ leg.holderSite.siteName }}</div>
+                      <div class="holder-sub" *ngIf="leg.holderSite.area">
+                        <mat-icon style="font-size:13px;width:13px;height:13px">place</mat-icon>
+                        {{ leg.holderSite.area.areaName }}
+                      </div>
+                      <div class="holder-sub" *ngIf="leg.holderSite.cityName">
+                        <mat-icon style="font-size:13px;width:13px;height:13px">location_on</mat-icon>
+                        {{ leg.holderSite.cityName }}
+                      </div>
+                    </div>
+                    <button mat-icon-button color="accent" class="holder-view-btn"
+                      matTooltip="View Site" (click)="openSiteDetail($event, leg.holderSite)">
+                      <mat-icon>store_mall_directory</mat-icon>
+                    </button>
+                  </ng-container>
+ 
+                  <!-- Disposed -->
+                  <ng-container *ngIf="leg.assignTo === 3">
+                    <div class="holder-avatar disposed-avatar"><mat-icon>delete_forever</mat-icon></div>
+                    <div class="holder-details">
+                      <span class="holder-type-badge disposed-badge"><mat-icon>delete_forever</mat-icon>Disposed</span>
+                      <div class="holder-name">Asset Disposed</div>
+                      <div class="holder-sub" *ngIf="leg.disposalMethod">Method: {{ leg.disposalMethod }}</div>
+                    </div>
+                  </ng-container>
+ 
+                  <!-- Unassigned -->
+                  <ng-container *ngIf="!leg.holderUser && !leg.holderSite && leg.assignTo !== 3">
+                    <div class="holder-avatar unassigned-avatar"><mat-icon>person_off</mat-icon></div>
+                    <div class="holder-details">
+                      <span class="holder-type-badge unassigned-badge">Unassigned</span>
+                    </div>
+                  </ng-container>
+ 
+                </div>
+ 
+                <!-- Leg meta grid -->
+                <div class="leg-meta-grid">
+                  <div class="leg-meta-item">
+                    <span class="lm-label">Type</span>
+                    <span class="type-chip"
+                      [class.chip-created]="leg.assetType === 1"
+                      [class.chip-transferred]="leg.assetType === 2"
+                      [class.chip-disposed]="leg.assetType === 3">
+                      {{ leg.assetTypeDisplay }}
+                    </span>
+                  </div>
+                  <div class="leg-meta-item">
+                    <span class="lm-label">Approval</span>
+                    <span class="approval-badge"
+                      [class.app-approved]="leg.approvalStatus === 2"
+                      [class.app-pending]="leg.approvalStatus === 1"
+                      [class.app-rejected]="leg.approvalStatus === 3">
+                      <mat-icon>{{ leg.approvalStatus === 2 ? 'check_circle' : leg.approvalStatus === 1 ? 'schedule' : 'cancel' }}</mat-icon>
+                      {{ leg.approvalStatusDisplay }}
+                    </span>
+                  </div>
+                  <div class="leg-meta-item" *ngIf="leg.holdDays !== null && leg.holdDays !== undefined">
+                    <span class="lm-label">Hold Duration</span>
+                    <span class="hold-days-badge">
+                      <mat-icon>hourglass_empty</mat-icon>
+                      {{ leg.holdDays }} day{{ leg.holdDays !== 1 ? 's' : '' }}
+                    </span>
+                  </div>
+                  <div class="leg-meta-item" *ngIf="leg.transferDate">
+                    <span class="lm-label">Transfer Date</span>
+                    <span class="lm-val-date">{{ formatDate(leg.transferDate) }}</span>
+                  </div>
+                  <div class="leg-meta-item" *ngIf="leg.holdStart">
+                    <span class="lm-label">From</span>
+                    <span class="lm-val-date">{{ formatDate(leg.holdStart) }}</span>
+                  </div>
+                  <div class="leg-meta-item" *ngIf="leg.holdEnd">
+                    <span class="lm-label">To</span>
+                    <span class="lm-val-date">{{ formatDate(leg.holdEnd) }}</span>
+                  </div>
+                  <div class="leg-meta-item" *ngIf="leg.status">
+                    <span class="lm-label">Status</span>
+                    <span class="status-text"
+                      [class.s-assigned]="leg.status === 'Assigned'"
+                      [class.s-unassigned]="leg.status === 'UnAssigned'"
+                      [class.s-disposed]="leg.status === 'Disposed'">
+                      {{ leg.status }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+ 
+              <!-- Transferred By -->
+              <div class="transferred-by-row" *ngIf="leg.transferredByUser">
+                <span class="by-label">Transferred by</span>
+                <img *ngIf="getImageUrl(leg.transferredByUser.profilePicture)"
+                  [src]="getImageUrl(leg.transferredByUser.profilePicture)"
+                  class="by-avatar" (error)="onImageError($event)" />
+                <mat-icon *ngIf="!getImageUrl(leg.transferredByUser.profilePicture)" class="by-icon">
+                  account_circle
+                </mat-icon>
+                <span class="by-name">{{ leg.transferredByUser.fullName }}</span>
+                <span class="by-role" *ngIf="leg.transferredByUser.designationDisplay">
+                  · {{ leg.transferredByUser.designationDisplay }}
+                </span>
+              </div>
+ 
+              <!-- Current / Disposed banners -->
+              <div class="current-banner" *ngIf="leg.isCurrent && !leg.isDisposalLeg">
+                <mat-icon>location_on</mat-icon> Currently held here
+              </div>
+              <div class="disposed-banner-inline" *ngIf="leg.isDisposalLeg">
+                <mat-icon>delete_forever</mat-icon> Asset disposed at this point
+              </div>
+            </div>
+          </div>
+          <!-- /transfer leg loop -->
+ 
+          <!-- ── Show more / less button ── -->
+          <div class="show-more-row" *ngIf="hasMoreLegs(asset)">
+            <button mat-stroked-button class="show-more-btn" (click)="toggleLegs(asset.assetRowId)">
+              <ng-container *ngIf="!isLegsExpanded(asset.assetRowId)">
+                <mat-icon>expand_more</mat-icon>
+                Show {{ hiddenLegsCount(asset) }} more transfer(s)
+              </ng-container>
+              <ng-container *ngIf="isLegsExpanded(asset.assetRowId)">
+                <mat-icon>expand_less</mat-icon>
+                Show less
+              </ng-container>
+            </button>
+          </div>
+ 
+        </div>
+        <!-- /transfer chain -->
+ 
+        <!-- Current holder footer -->
+        <div class="current-holder-footer"
+          *ngIf="asset.currentHolder && !asset.isDisposed && (asset.currentHolder.holderUser || asset.currentHolder.holderSite)">
+          <div class="chf-label"><mat-icon>pin_drop</mat-icon>Currently With:</div>
+          <div class="chf-content">
+            <ng-container *ngIf="asset.currentHolder.holderUser">
+              <mat-icon class="chf-icon user-icon">person</mat-icon>
+              <strong>{{ asset.currentHolder.holderUser.fullName }}</strong>
+              <span class="chf-sub">{{ asset.currentHolder.holderUser.designationDisplay }}</span>
+            </ng-container>
+            <ng-container *ngIf="asset.currentHolder.holderSite">
+              <mat-icon class="chf-icon site-icon">location_city</mat-icon>
+              <strong>{{ asset.currentHolder.holderSite.siteName }}</strong>
+              <span class="chf-sub" *ngIf="asset.currentHolder.holderSite.area">
+                · {{ asset.currentHolder.holderSite.area.areaName }}
+              </span>
+            </ng-container>
+            <span class="chf-since" *ngIf="asset.currentHolder.holdStart">
+              since {{ formatDate(asset.currentHolder.holdStart) }}
+              ({{ asset.currentHolder.holdDays }} days)
+            </span>
+          </div>
+        </div>
+ 
+        <div class="disposed-footer" *ngIf="asset.isDisposed">
+          <mat-icon>delete_forever</mat-icon> This asset has been disposed
+        </div>
+ 
+      </div>
+      <!-- /transfer-timeline-wrap -->
+ 
+    </div>
+    <!-- /asset card loop -->
+ 
+    <!-- TIMELINE PAGINATOR — named #timelinePaginator -->
+    <mat-paginator
+      #timelinePaginator
+      [length]="filteredAssets().length"
+      [pageSize]="timelinePageSize()"
+      [pageIndex]="timelinePageIndex()"
+      [pageSizeOptions]="[5, 10, 20, 50]"
+      (page)="onTimelinePage($event)"
+      showFirstLastButtons
+      class="report-paginator">
+    </mat-paginator>
+ 
+  </ng-container>
+  <!-- /timeline view -->
+ 
+  <!-- ══════════════════════ TABLE VIEW ════════════════════════════════════ -->
+  <mat-card class="table-card"
+    *ngIf="!loading() && viewMode.value === 'table' && filteredAssets().length > 0">
+    <mat-card-content style="padding: 0 !important;">
+ 
+      <div style="overflow-x: auto;">
+        <table mat-table [dataSource]="tableDataSource" matSort class="transfer-table">
+ 
+          <!-- Select -->
+          <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef>
+              <mat-checkbox (change)="toggleSelectAll($event)"
+                [checked]="allSelected()" [indeterminate]="someSelected()">
+              </mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
+              <mat-checkbox (change)="toggleSelect(row)" [checked]="isSelected(row)">
+              </mat-checkbox>
+            </td>
+          </ng-container>
+ 
+          <!-- Asset ID -->
+          <ng-container matColumnDef="assetId">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset ID</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="table-asset-id">{{ row.assetId }}</span>
+            </td>
+          </ng-container>
+ 
+          <!-- Asset Name -->
+          <ng-container matColumnDef="assetName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="table-asset-cell">
+                <img *ngIf="getImageUrl(row.imageUrl)" [src]="getImageUrl(row.imageUrl)"
+                  class="table-asset-img" (error)="onImageError($event)" />
+                <mat-icon *ngIf="!getImageUrl(row.imageUrl)" class="table-asset-icon">devices</mat-icon>
+                <div>
+                  <div class="table-asset-name">{{ row.assetName }}</div>
+                  <div class="table-asset-brand">{{ row.assetBrand }}</div>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+ 
+          <!-- Category -->
+          <ng-container matColumnDef="category">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
+            <td mat-cell *matCellDef="let row">
+              <div>{{ row.categoryDisplay || '—' }}</div>
+              <small *ngIf="row.subCategoryDisplay" class="table-sub">{{ row.subCategoryDisplay }}</small>
+            </td>
+          </ng-container>
+ 
+          <!-- Total Transfers -->
+          <ng-container matColumnDef="totalTransfers">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center">Transfers</th>
+            <td mat-cell *matCellDef="let row" class="text-center">
+              <span class="transfer-count-badge">{{ row.totalTransfers }}</span>
+            </td>
+          </ng-container>
+ 
+          <!-- Current Holder -->
+          <ng-container matColumnDef="currentHolder">
+            <th mat-header-cell *matHeaderCellDef>Current Holder</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="table-holder" *ngIf="row.currentHolder?.holderUser">
+                <mat-icon class="h-icon user-col">person</mat-icon>
+                {{ row.currentHolder.holderUser.fullName }}
+              </div>
+              <div class="table-holder" *ngIf="row.currentHolder?.holderSite">
+                <mat-icon class="h-icon site-col">location_city</mat-icon>
+                {{ row.currentHolder.holderSite.siteName }}
+              </div>
+              <span class="no-holder" *ngIf="!row.currentHolder">—</span>
+            </td>
+          </ng-container>
+ 
+          <!-- Status -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="table-status-badge"
+                [class.badge-active]="!row.isDisposed && !row.isCancelled"
+                [class.badge-disposed]="row.isDisposed"
+                [class.badge-cancelled]="row.isCancelled">
+                {{ row.isDisposed ? 'Disposed' : row.isCancelled ? 'Cancelled' : 'Active' }}
+              </span>
+            </td>
+          </ng-container>
+ 
+          <!-- Last Transfer -->
+          <ng-container matColumnDef="lastTransferDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Last Transfer</th>
+            <td mat-cell *matCellDef="let row">{{ formatDate(row.lastTransferDate) }}</td>
+          </ng-container>
+ 
+          <!-- Actions -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="text-center">Detail</th>
+            <td mat-cell *matCellDef="let row" class="text-center">
+              <button mat-icon-button color="primary"
+                matTooltip="View Transfer Timeline"
+                (click)="$event.stopPropagation(); openAssetDetail(row)">
+                <mat-icon>timeline</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+ 
+          <tr mat-header-row *matHeaderRowDef="tableColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: tableColumns;"
+            class="table-data-row"
+            (click)="openAssetDetail(row)">
+          </tr>
+ 
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell no-data-cell" [attr.colspan]="tableColumns.length">
+              <div class="no-data-message">
+                <mat-icon>inbox</mat-icon>
+                <p>No records found</p>
+              </div>
+            </td>
+          </tr>
+ 
+        </table>
+ 
+        <!-- TABLE PAGINATOR — named #tablePaginator -->
+        <mat-paginator
+          #tablePaginator
+          [pageSizeOptions]="[10, 25, 50, 100]"
+          showFirstLastButtons
+          class="report-paginator">
+        </mat-paginator>
+ 
+      </div>
+ 
+      <!-- Selection action bar -->
+      <div class="table-selection-bar" *ngIf="selectedAssets().length > 0">
+        <mat-icon>check_box</mat-icon>
+        <span>{{ selectedAssets().length }} selected</span>
+        <button mat-raised-button color="primary" (click)="exportSelectedToPDF()">
+          <mat-icon>picture_as_pdf</mat-icon> Export Selected
+        </button>
+        <button mat-button (click)="clearSelection()">Clear</button>
+      </div>
+ 
+    </mat-card-content>
+  </mat-card>
+  <!-- /table view -->
+ 
+</div>

@@ -2,333 +2,644 @@
     { label: 'Company' }
   ]">
 </app-page-header>
-
-<div class="company-container" [@fadeIn]>
-  <!-- Loading State -->
+ 
+<div class="cp-wrapper" [@pageEnter]>
+ 
+  <!-- ══════════════════════════ LOADING STATE ══════════════════════════ -->
   @if (isLoading()) {
-  <div class="loading-container">
-    <mat-progress-spinner [diameter]="60" mode="indeterminate" color="primary"></mat-progress-spinner>
-    <p class="loading-text">Loading company information...</p>
-  </div>
+    <div class="cp-loading">
+      <div class="loading-orb"></div>
+      <mat-progress-spinner [diameter]="52" mode="indeterminate" color="primary"></mat-progress-spinner>
+      <p>Loading company profile…</p>
+    </div>
   }
-
-  <!-- Company Profile -->
+ 
+  <!-- ══════════════════════════ MAIN CONTENT ══════════════════════════ -->
   @if (!isLoading() && companyData()) {
-  <div class="company-profile">
-    <!-- Hero Section -->
-    <mat-card class="hero-card" [@slideIn]>
-      <div class="hero-content">
-        <div class="company-logo-section">
-          <div class="logo-container">
-            <img [src]="companyLogo()" alt="Company Logo" (error)="onLogoError($event)" class="company-logo" />
-          </div>
-        </div>
-
-        <div class="company-header-info">
-          <h1 class="company-name">{{ companyData()?.name || 'Company Name' }}</h1>
-          <p class="company-industry">
-            <mat-icon>business_center</mat-icon>
-            <span>{{ industryName() }}</span>
-          </p>
-
-          <div class="company-meta">
-            @if (companyData()?.city || companyData()?.country) {
-            <div class="meta-item">
-              <mat-icon>location_on</mat-icon>
-              <span>{{ companyData()?.city }}{{ companyData()?.city && companyData()?.country ? ', ' : '' }}{{
-                companyData()?.country }}</span>
+    <div class="cp-layout">
+ 
+      <!-- ══════════ LEFT COLUMN ══════════ -->
+      <div class="cp-left">
+ 
+        <!-- ── Identity Card ──────────────────────────────────────────── -->
+        <div class="identity-card" [@slideUp]>
+          <div class="identity-banner">
+            <div class="banner-pattern"></div>
+            <div class="banner-shapes">
+              <div class="bs bs-1"></div>
+              <div class="bs bs-2"></div>
+              <div class="bs bs-3"></div>
             </div>
-            }
-            @if (companyData()?.website) {
-            <div class="meta-item">
-              <mat-icon>language</mat-icon>
-              <a [href]="companyData()?.website" target="_blank" rel="noopener">{{ companyData()?.website }}</a>
-            </div>
-            }
           </div>
-        </div>
-
-        <div class="hero-actions">
-          @if (!isEditMode()) {
-          <button mat-raised-button color="primary" (click)="toggleEditMode()" class="edit-button">
-            <mat-icon>edit</mat-icon>
-            Edit Profile
-          </button>
-          } @else {
-          <button mat-button (click)="toggleEditMode()" class="cancel-button">
-            <mat-icon>close</mat-icon>
-            Cancel
-          </button>
-          <button mat-raised-button color="primary" (click)="saveCompany()" [disabled]="isSaving()"
-            class="save-button">
-            @if (isSaving()) {
-            <mat-progress-spinner [diameter]="20" mode="indeterminate"></mat-progress-spinner>
+ 
+          <!-- Logo -->
+          <div class="logo-avatar-wrap">
+            @if (isEditMode()) {
+              <div class="logo-upload-zone"
+                [class.drag-over]="isDragOver"
+                (click)="logoInput.click()"
+                (dragover)="onDragOver($event)"
+                (dragleave)="isDragOver = false"
+                (drop)="onDrop($event)">
+                <img [src]="logoPreview() || companyLogoUrl()" alt="Logo" class="logo-img" />
+                <div class="logo-overlay">
+                  <mat-icon>photo_camera</mat-icon>
+                  <span>Change Logo</span>
+                </div>
+              </div>
+              <input #logoInput type="file" accept="image/*" hidden (change)="onLogoFileChange($event)" />
             } @else {
-            <mat-icon>save</mat-icon>
+              <div class="logo-avatar">
+                <img [src]="companyLogoUrl()" alt="Company Logo" class="logo-img"
+                  (error)="onLogoError($event)" />
+              </div>
             }
-            <span>{{ isSaving() ? 'Saving...' : 'Save Changes' }}</span>
-          </button>
-          }
-        </div>
-      </div>
-    </mat-card>
-
-    <!-- Main Content -->
-    <div class="content-grid">
-      <!-- Left Column: Details -->
-      <div class="left-column">
-        <!-- About Section -->
-        <mat-card class="info-card" [@slideIn]>
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>info</mat-icon>
-              About
-            </mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            @if (!isEditMode()) {
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Company Name</span>
-                <span class="info-value">{{ companyData()?.name || 'Not specified' }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Industry</span>
-                <span class="info-value">{{ industryName() }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Email</span>
-                <span class="info-value">
-                  <a [href]="'mailto:' + companyData()?.email">{{ companyData()?.email || 'Not specified' }}</a>
-                </span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Phone</span>
-                <span class="info-value">{{ companyData()?.phone || 'Not specified' }}</span>
-              </div>
-              @if (companyData()?.fax) {
-              <div class="info-item">
-                <span class="info-label">Fax</span>
-                <span class="info-value">{{ companyData()?.fax }}</span>
-              </div>
+            <div class="active-badge">
+              <span class="ab-dot"></span>
+              <span>Active</span>
+            </div>
+          </div>
+ 
+          <!-- Identity Info -->
+          <div class="identity-info">
+            <h2 class="company-title">{{ companyData()?.name || 'Company Name' }}</h2>
+            <p class="company-industry-tag">
+              <mat-icon>business_center</mat-icon>
+              {{ industryName() }}
+            </p>
+ 
+            <div class="identity-chips">
+              @if (companyData()?.city || companyData()?.country) {
+                <div class="id-chip">
+                  <mat-icon>place</mat-icon>
+                  <span>{{ companyData()?.city }}{{ companyData()?.city && companyData()?.country ? ', ' : '' }}{{ companyData()?.country }}</span>
+                </div>
               }
               @if (companyData()?.currency) {
-              <div class="info-item">
-                <span class="info-label">Currency</span>
-                <span class="info-value">{{ companyData()?.currency }}</span>
-              </div>
+                <div class="id-chip">
+                  <mat-icon>payments</mat-icon>
+                  <span>{{ companyData()?.currency }}</span>
+                </div>
               }
             </div>
+ 
+            <!-- Org ID Row -->
+            <div class="org-id-row">
+              <div class="org-id-label">
+                <mat-icon>fingerprint</mat-icon>
+                <span>Organization ID</span>
+              </div>
+              <div class="org-id-value">
+                <span class="org-id-code">{{ shortOrgId() }}</span>
+                <button mat-icon-button class="copy-btn"
+                  [matTooltip]="orgIdCopied() ? 'Copied!' : 'Copy full ID'"
+                  (click)="copyOrgId()">
+                  <mat-icon>{{ orgIdCopied() ? 'check_circle' : 'content_copy' }}</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+ 
+          <!-- Actions -->
+          <div class="identity-actions">
+            @if (!isEditMode()) {
+              <button mat-flat-button class="btn-edit" (click)="toggleEditMode()">
+                <mat-icon>edit</mat-icon>
+                Edit Profile
+              </button>
             } @else {
-            <form [formGroup]="companyForm" class="edit-form">
-              <mat-form-field appearance="outline" class="full-width">
+              <button mat-stroked-button class="btn-cancel" (click)="toggleEditMode()">
+                <mat-icon>close</mat-icon>
+                Cancel
+              </button>
+              <button mat-flat-button class="btn-save" (click)="saveCompany()" [disabled]="isSaving()">
+                @if (isSaving()) {
+                  <mat-progress-spinner [diameter]="16" mode="indeterminate"></mat-progress-spinner>
+                } @else {
+                  <mat-icon>save</mat-icon>
+                }
+                {{ isSaving() ? 'Saving…' : 'Save Changes' }}
+              </button>
+            }
+          </div>
+ 
+          <!-- Quick Stats -->
+          <div class="quick-stats-strip">
+            <div class="qs-item">
+              <span class="qs-val">{{ companyData()?.createdDate | date:'yyyy' }}</span>
+              <span class="qs-lbl">Founded</span>
+            </div>
+            <div class="qs-sep"></div>
+            <div class="qs-item">
+              <span class="qs-val">{{ subscriptionData()?.durationDays || '—' }}</span>
+              <span class="qs-lbl">Plan Days</span>
+            </div>
+            <div class="qs-sep"></div>
+            <div class="qs-item">
+              <span class="qs-val">{{ subscriptionData()?.planAmount ? (subscriptionData()!.planAmount | number) : '—' }}</span>
+              <span class="qs-lbl">Plan Value</span>
+            </div>
+          </div>
+        </div>
+ 
+        <!-- ── Subscription Card ──────────────────────────────────────── -->
+        <div class="subscription-card" [@slideUp]>
+          <div class="sc-header">
+            <div class="sc-title-row">
+              <div class="sc-icon-wrap">
+                <mat-icon>workspace_premium</mat-icon>
+              </div>
+              <div>
+                <h3 class="sc-title">Subscription Plan</h3>
+                <span class="sc-plan-name">{{ subscriptionData()?.name || 'Standard Plan' }}</span>
+              </div>
+            </div>
+            <div class="sc-status-badge" [class.active]="companyData()?.isActive">
+              <span class="sc-dot"></span>
+              {{ companyData()?.isActive ? 'Active' : 'Inactive' }}
+            </div>
+          </div>
+ 
+          <!-- Plan Dates -->
+          <div class="sc-dates">
+            <div class="sc-date-item">
+              <mat-icon>calendar_today</mat-icon>
+              <div>
+                <span class="sc-date-lbl">Start Date</span>
+                <span class="sc-date-val">{{ companyData()?.subscriptionDate | date:'dd MMM yyyy' }}</span>
+              </div>
+            </div>
+            <div class="sc-date-divider"></div>
+            <div class="sc-date-item">
+              <mat-icon class="expiry-icon" [class.expiring]="isExpiringSoon()">event_busy</mat-icon>
+              <div>
+                <span class="sc-date-lbl">Expiry Date</span>
+                <span class="sc-date-val" [class.expiring-text]="isExpiringSoon()">
+                  {{ companyData()?.subscriptionExpiryDate | date:'dd MMM yyyy' }}
+                  @if (isExpiringSoon()) {
+                    <span class="expiry-warn">· {{ daysLeft() }}d left</span>
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+ 
+          <!-- ── Capacity Usage Gauges ──────────────────────────────── -->
+          <div class="usage-gauges">
+            <div class="ug-title">
+              <mat-icon>donut_large</mat-icon>
+              <span>Capacity Usage</span>
+              @if (isStatsLoading()) {
+                <mat-progress-spinner [diameter]="12" mode="indeterminate" class="stats-spinner"></mat-progress-spinner>
+              }
+            </div>
+ 
+            <!-- ─ Assets gauge ─ -->
+            <div class="gauge-item">
+              @if (isStatsLoading()) {
+                <!-- Skeleton -->
+                <div class="gauge-skeleton">
+                  <div class="gsk-line gsk-meta"></div>
+                  <div class="gsk-line gsk-track"></div>
+                  <div class="gsk-line gsk-foot"></div>
+                </div>
+              } @else {
+                <div class="gauge-meta">
+                  <div class="gauge-label-row">
+                    <mat-icon class="gi-icon" style="color:var(--mat-sys-primary)">inventory_2</mat-icon>
+                    <span class="gauge-name">Assets</span>
+                  </div>
+                  <span class="gauge-nums">
+                    <strong>{{ usageStats().assetsUsed }}</strong>
+                    <span>/ {{ subscriptionData()?.assetLimit ?? '—' }}</span>
+                  </span>
+                </div>
+                <div class="gauge-track">
+                  <div class="gauge-fill"
+                    [class]="gaugeFillClass(assetUsagePct(), 'gf-primary')"
+                    [style.width.%]="assetUsagePct()">
+                  </div>
+                </div>
+                <div class="gauge-footer">
+                  <span class="gauge-pct" [class.warning]="assetUsagePct() > 80">
+                    {{ assetUsagePct() }}% used
+                  </span>
+                  <span class="gauge-remaining">{{ assetRemaining() }} remaining</span>
+                </div>
+              }
+            </div>
+ 
+            <!-- ─ System Users gauge ─ -->
+            <div class="gauge-item">
+              @if (isStatsLoading()) {
+                <div class="gauge-skeleton">
+                  <div class="gsk-line gsk-meta"></div>
+                  <div class="gsk-line gsk-track"></div>
+                  <div class="gsk-line gsk-foot"></div>
+                </div>
+              } @else {
+                <div class="gauge-meta">
+                  <div class="gauge-label-row">
+                    <mat-icon class="gi-icon" style="color:var(--mat-sys-secondary)">manage_accounts</mat-icon>
+                    <span class="gauge-name">System Users</span>
+                  </div>
+                  <span class="gauge-nums">
+                    <strong>{{ usageStats().systemUsersUsed }}</strong>
+                    <span>/ {{ subscriptionData()?.systemUserLimit ?? '—' }}</span>
+                  </span>
+                </div>
+                <div class="gauge-track">
+                  <div class="gauge-fill"
+                    [class]="gaugeFillClass(systemUserUsagePct(), 'gf-secondary')"
+                    [style.width.%]="systemUserUsagePct()">
+                  </div>
+                </div>
+                <div class="gauge-footer">
+                  <span class="gauge-pct" [class.warning]="systemUserUsagePct() > 80">
+                    {{ systemUserUsagePct() }}% used
+                  </span>
+                  <span class="gauge-remaining">{{ systemUserRemaining() }} remaining</span>
+                </div>
+              }
+            </div>
+ 
+            <!-- ─ Total Users gauge ─ -->
+            <div class="gauge-item">
+              @if (isStatsLoading()) {
+                <div class="gauge-skeleton">
+                  <div class="gsk-line gsk-meta"></div>
+                  <div class="gsk-line gsk-track"></div>
+                  <div class="gsk-line gsk-foot"></div>
+                </div>
+              } @else {
+                <div class="gauge-meta">
+                  <div class="gauge-label-row">
+                    <mat-icon class="gi-icon" style="color:var(--mat-sys-tertiary)">groups</mat-icon>
+                    <span class="gauge-name">Total Users</span>
+                  </div>
+                  <span class="gauge-nums">
+                    <strong>{{ usageStats().totalUsersUsed }}</strong>
+                    <span>/ {{ subscriptionData()?.totalUserLimit ?? '—' }}</span>
+                  </span>
+                </div>
+                <div class="gauge-track">
+                  <div class="gauge-fill"
+                    [class]="gaugeFillClass(totalUserUsagePct(), 'gf-tertiary')"
+                    [style.width.%]="totalUserUsagePct()">
+                  </div>
+                </div>
+                <div class="gauge-footer">
+                  <span class="gauge-pct" [class.warning]="totalUserUsagePct() > 80">
+                    {{ totalUserUsagePct() }}% used
+                  </span>
+                  <span class="gauge-remaining">{{ totalUserRemaining() }} remaining</span>
+                </div>
+              }
+            </div>
+          </div>
+ 
+          <!-- ── Mini Donut Charts ───────────────────────────────────── -->
+          <div class="mini-donut-section">
+            <div class="md-title">Capacity Overview</div>
+ 
+            @if (isStatsLoading()) {
+              <!-- Donut skeletons -->
+              <div class="mini-donuts-row">
+                @for (i of [1, 2, 3]; track i) {
+                  <div class="mini-donut-wrap">
+                    <div class="donut-skeleton"></div>
+                    <div class="gsk-line" style="width:55px;height:9px;margin:0 auto;border-radius:4px;"></div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="mini-donuts-row">
+ 
+                <!-- Assets donut -->
+                <div class="mini-donut-wrap">
+                  <svg viewBox="0 0 80 80" class="md-svg">
+                    <circle cx="40" cy="40" r="30" fill="none"
+                      stroke="var(--mat-sys-surface-container-highest)" stroke-width="10"/>
+                    <circle cx="40" cy="40" r="30" fill="none"
+                      stroke="var(--mat-sys-primary)" stroke-width="10"
+                      stroke-linecap="round"
+                      [attr.stroke-dasharray]="donutDash(assetUsagePct())"
+                      stroke-dashoffset="-47"
+                      transform="rotate(-90 40 40)"
+                      class="md-circle"/>
+                    <text x="40" y="36" text-anchor="middle" class="md-pct-val">{{ assetUsagePct() }}</text>
+                    <text x="40" y="50" text-anchor="middle" class="md-pct-sym">%</text>
+                  </svg>
+                  <div class="md-label">Assets</div>
+                  <div class="md-sublabel">{{ usageStats().assetsUsed }}/{{ subscriptionData()?.assetLimit }}</div>
+                </div>
+ 
+                <!-- System Users donut -->
+                <div class="mini-donut-wrap">
+                  <svg viewBox="0 0 80 80" class="md-svg">
+                    <circle cx="40" cy="40" r="30" fill="none"
+                      stroke="var(--mat-sys-surface-container-highest)" stroke-width="10"/>
+                    <circle cx="40" cy="40" r="30" fill="none"
+                      stroke="var(--mat-sys-secondary)" stroke-width="10"
+                      stroke-linecap="round"
+                      [attr.stroke-dasharray]="donutDash(systemUserUsagePct())"
+                      stroke-dashoffset="-47"
+                      transform="rotate(-90 40 40)"
+                      class="md-circle"/>
+                    <text x="40" y="36" text-anchor="middle" class="md-pct-val">{{ systemUserUsagePct() }}</text>
+                    <text x="40" y="50" text-anchor="middle" class="md-pct-sym">%</text>
+                  </svg>
+                  <div class="md-label">Sys. Users</div>
+                  <div class="md-sublabel">{{ usageStats().systemUsersUsed }}/{{ subscriptionData()?.systemUserLimit }}</div>
+                </div>
+ 
+                <!-- Total Users donut -->
+                <div class="mini-donut-wrap">
+                  <svg viewBox="0 0 80 80" class="md-svg">
+                    <circle cx="40" cy="40" r="30" fill="none"
+                      stroke="var(--mat-sys-surface-container-highest)" stroke-width="10"/>
+                    <circle cx="40" cy="40" r="30" fill="none"
+                      stroke="var(--mat-sys-tertiary)" stroke-width="10"
+                      stroke-linecap="round"
+                      [attr.stroke-dasharray]="donutDash(totalUserUsagePct())"
+                      stroke-dashoffset="-47"
+                      transform="rotate(-90 40 40)"
+                      class="md-circle"/>
+                    <text x="40" y="36" text-anchor="middle" class="md-pct-val">{{ totalUserUsagePct() }}</text>
+                    <text x="40" y="50" text-anchor="middle" class="md-pct-sym">%</text>
+                  </svg>
+                  <div class="md-label">All Users</div>
+                  <div class="md-sublabel">{{ usageStats().totalUsersUsed }}/{{ subscriptionData()?.totalUserLimit }}</div>
+                </div>
+ 
+              </div>
+            }
+          </div>
+ 
+          <!-- ── Stats note when all zeros ──────────────────────────── -->
+          @if (!isStatsLoading() && usageStats().assetsUsed === 0 && usageStats().systemUsersUsed === 0) {
+            <div class="stats-note">
+              <mat-icon>info_outline</mat-icon>
+              <span>Usage data reflects assets and active users in your organisation.</span>
+            </div>
+          }
+ 
+        </div><!-- /subscription-card -->
+ 
+      </div><!-- /cp-left -->
+ 
+      <!-- ══════════ RIGHT COLUMN ══════════ -->
+      <div class="cp-right">
+ 
+        <!-- ── Company Information ──────────────────────────────────── -->
+        <div class="detail-card" [@slideUp]>
+          <div class="dc-header">
+            <div class="dc-title-row">
+              <div class="dc-icon-wrap"
+                style="background:linear-gradient(135deg,var(--mat-sys-primary) 0%,color-mix(in srgb,var(--mat-sys-primary) 70%,#000) 100%)">
+                <mat-icon>info</mat-icon>
+              </div>
+              <div>
+                <h3 class="dc-title">Company Information</h3>
+                <span class="dc-subtitle">Basic contact and business details</span>
+              </div>
+            </div>
+          </div>
+ 
+          @if (!isEditMode()) {
+            <div class="info-grid-view">
+              <div class="igv-item">
+                <span class="igv-label">Company Name</span>
+                <span class="igv-value">{{ companyData()?.name || '—' }}</span>
+              </div>
+              <div class="igv-item">
+                <span class="igv-label">Industry</span>
+                <span class="igv-value">{{ industryName() }}</span>
+              </div>
+              <div class="igv-item">
+                <span class="igv-label">Email</span>
+                <span class="igv-value">
+                  <a [href]="'mailto:' + companyData()?.email" class="igv-link">
+                    <mat-icon>mail_outline</mat-icon>
+                    {{ companyData()?.email || '—' }}
+                  </a>
+                </span>
+              </div>
+              <div class="igv-item">
+                <span class="igv-label">Phone</span>
+                <span class="igv-value">
+                  @if (companyData()?.phone) {
+                    <a [href]="'tel:' + companyData()?.phone" class="igv-link">
+                      <mat-icon>phone</mat-icon>
+                      {{ companyData()?.phone }}
+                    </a>
+                  } @else { — }
+                </span>
+              </div>
+              @if (companyData()?.fax) {
+                <div class="igv-item">
+                  <span class="igv-label">Fax</span>
+                  <span class="igv-value">{{ companyData()?.fax }}</span>
+                </div>
+              }
+              @if (companyData()?.currency) {
+                <div class="igv-item">
+                  <span class="igv-label">Currency</span>
+                  <span class="igv-value currency-badge">{{ companyData()?.currency }}</span>
+                </div>
+              }
+            </div>
+          } @else {
+            <form [formGroup]="companyForm" class="edit-form-grid">
+              <mat-form-field appearance="outline" class="efg-full">
                 <mat-label>Company Name</mat-label>
-                <input matInput formControlName="name" placeholder="Enter company name">
+                <input matInput formControlName="name" placeholder="Acme Corporation">
                 <mat-icon matSuffix>business</mat-icon>
-                <mat-error *ngIf="companyForm.get('name')?.hasError('required')">
-                  Name is required
-                </mat-error>
+                <mat-error *ngIf="companyForm.get('name')?.hasError('required')">Required</mat-error>
               </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="efg-half">
                 <mat-label>Industry</mat-label>
                 <mat-select formControlName="industriesId">
-                  @for (industry of industries(); track industry.id) {
-                  <mat-option [value]="industry.id">{{ industry.name }}</mat-option>
+                  @for (ind of industries(); track ind.id) {
+                    <mat-option [value]="ind.id">{{ ind.name }}</mat-option>
                   }
                 </mat-select>
                 <mat-icon matSuffix>business_center</mat-icon>
-                <mat-error *ngIf="companyForm.get('industriesId')?.hasError('required')">
-                  Industry is required
-                </mat-error>
               </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="efg-half">
+                <mat-label>Currency</mat-label>
+                <input matInput formControlName="currency" placeholder="USD, EUR…">
+                <mat-icon matSuffix>payments</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="efg-half">
                 <mat-label>Email</mat-label>
-                <input matInput type="email" formControlName="email" placeholder="company@example.com">
+                <input matInput type="email" formControlName="email" placeholder="contact@company.com">
                 <mat-icon matSuffix>email</mat-icon>
-                <mat-error *ngIf="companyForm.get('email')?.hasError('required')">
-                  Email is required
-                </mat-error>
-                <mat-error *ngIf="companyForm.get('email')?.hasError('email')">
-                  Invalid email format
-                </mat-error>
+                <mat-error *ngIf="companyForm.get('email')?.hasError('email')">Invalid email</mat-error>
               </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="efg-half">
                 <mat-label>Phone</mat-label>
-                <input matInput type="tel" formControlName="phone" placeholder="+1234567890">
+                <input matInput type="tel" formControlName="phone" placeholder="+1 234 567 8900">
                 <mat-icon matSuffix>phone</mat-icon>
-                <mat-error *ngIf="companyForm.get('phone')?.hasError('pattern')">
-                  Invalid phone format
-                </mat-error>
               </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="efg-half">
                 <mat-label>Fax</mat-label>
                 <input matInput formControlName="fax" placeholder="Fax number">
                 <mat-icon matSuffix>print</mat-icon>
               </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Currency</mat-label>
-                <input matInput formControlName="currency" placeholder="USD, EUR, etc.">
-                <mat-icon matSuffix>attach_money</mat-icon>
-              </mat-form-field>
             </form>
-            }
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Location Section -->
-        <mat-card class="info-card" [@slideIn]>
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>location_on</mat-icon>
-              Location
-            </mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            @if (!isEditMode()) {
-            <div class="info-grid">
-              <div class="info-item full-width">
-                <span class="info-label">Address</span>
-                <span class="info-value">{{ companyData()?.address || 'Not specified' }}</span>
+          }
+        </div>
+ 
+        <!-- ── Location ─────────────────────────────────────────────── -->
+        <div class="detail-card" [@slideUp]>
+          <div class="dc-header">
+            <div class="dc-title-row">
+              <div class="dc-icon-wrap" style="background:linear-gradient(135deg,#10b981 0%,#047857 100%)">
+                <mat-icon>location_on</mat-icon>
               </div>
-              <div class="info-item">
-                <span class="info-label">City</span>
-                <span class="info-value">{{ companyData()?.city || 'Not specified' }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Country</span>
-                <span class="info-value">{{ companyData()?.country || 'Not specified' }}</span>
+              <div>
+                <h3 class="dc-title">Location</h3>
+                <span class="dc-subtitle">Office address and geographic details</span>
               </div>
             </div>
-            } @else {
-            <form [formGroup]="companyForm" class="edit-form">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Address</mat-label>
-                <textarea matInput formControlName="address" placeholder="Street address" rows="2"></textarea>
-                <mat-icon matSuffix>home</mat-icon>
+          </div>
+ 
+          @if (!isEditMode()) {
+            <div class="info-grid-view">
+              <div class="igv-item igv-full">
+                <span class="igv-label">Street Address</span>
+                <span class="igv-value">{{ companyData()?.address || '—' }}</span>
+              </div>
+              <div class="igv-item">
+                <span class="igv-label">City</span>
+                <span class="igv-value">{{ companyData()?.city || '—' }}</span>
+              </div>
+              <div class="igv-item">
+                <span class="igv-label">Country</span>
+                <span class="igv-value">
+                  @if (companyData()?.country) {
+                    <span class="country-display">
+                      <img [src]="getFlagUrl(companyData()?.country!)" width="20" height="14"
+                        style="border-radius:2px;margin-right:6px;" />
+                      {{ companyData()?.country }}
+                    </span>
+                  } @else { — }
+                </span>
+              </div>
+            </div>
+          } @else {
+            <form [formGroup]="companyForm" class="edit-form-grid">
+              <mat-form-field appearance="outline" class="efg-full">
+                <mat-label>Street Address</mat-label>
+                <textarea matInput formControlName="address" rows="2" placeholder="123 Business Ave"></textarea>
+                <mat-icon matSuffix>home_work</mat-icon>
               </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="efg-half">
                 <mat-label>City</mat-label>
-                <input matInput formControlName="city" placeholder="City">
+                <input matInput formControlName="city" placeholder="New York">
                 <mat-icon matSuffix>location_city</mat-icon>
               </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="efg-half">
                 <mat-label>Country</mat-label>
                 <mat-select formControlName="country">
-                  @for (country of countries(); track country.code) {
-                  <mat-option [value]="country.name">
-                    <img [src]="getFlagUrl(country.code)" width="24" height="16"
-                      style="margin-right: 8px; vertical-align: middle;" />
-                    {{ country.name }}
-                  </mat-option>
+                  @for (c of countries(); track c.code) {
+                    <mat-option [value]="c.name">
+                      <img [src]="getFlagUrl(c.code)" width="18" height="12"
+                        style="margin-right:8px;vertical-align:middle;" />
+                      {{ c.name }}
+                    </mat-option>
                   }
                 </mat-select>
                 <mat-icon matSuffix>public</mat-icon>
               </mat-form-field>
             </form>
-            }
-          </mat-card-content>
-        </mat-card>
-      </div>
-
-      <!-- Right Column: Additional Info -->
-      <div class="right-column">
-        <!-- Online Presence -->
-        <mat-card class="info-card" [@slideIn]>
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>language</mat-icon>
-              Online Presence
-            </mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            @if (!isEditMode()) {
-            <div class="info-grid">
-              <div class="info-item full-width">
-                <span class="info-label">Website</span>
+          }
+        </div>
+ 
+        <!-- ── Online Presence ──────────────────────────────────────── -->
+        <div class="detail-card" [@slideUp]>
+          <div class="dc-header">
+            <div class="dc-title-row">
+              <div class="dc-icon-wrap" style="background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%)">
+                <mat-icon>language</mat-icon>
+              </div>
+              <div>
+                <h3 class="dc-title">Online Presence</h3>
+                <span class="dc-subtitle">Web and digital identity</span>
+              </div>
+            </div>
+          </div>
+ 
+          @if (!isEditMode()) {
+            <div class="info-grid-view">
+              <div class="igv-item igv-full">
+                <span class="igv-label">Website</span>
                 @if (companyData()?.website) {
-                <a [href]="companyData()?.website" target="_blank" rel="noopener" class="info-value link">
-                  {{ companyData()?.website }}
-                  <mat-icon>open_in_new</mat-icon>
-                </a>
+                  <a [href]="companyData()?.website" target="_blank" rel="noopener"
+                    class="igv-link website-link">
+                    <mat-icon>open_in_new</mat-icon>
+                    {{ companyData()?.website }}
+                  </a>
                 } @else {
-                <span class="info-value">Not specified</span>
+                  <span class="igv-value">—</span>
                 }
               </div>
             </div>
-            } @else {
-            <form [formGroup]="companyForm" class="edit-form">
-              <mat-form-field appearance="outline" class="full-width">
+          } @else {
+            <form [formGroup]="companyForm" class="edit-form-grid">
+              <mat-form-field appearance="outline" class="efg-full">
                 <mat-label>Website URL</mat-label>
-                <input matInput formControlName="website" placeholder="https://www.example.com">
+                <input matInput formControlName="website" placeholder="https://www.company.com">
                 <mat-icon matSuffix>link</mat-icon>
-                <mat-error *ngIf="companyForm.get('website')?.hasError('pattern')">
-                  Invalid URL format
-                </mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Logo URL</mat-label>
-                <input matInput formControlName="logo" placeholder="https://example.com/logo.png">
-                <mat-icon matSuffix>image</mat-icon>
+                <mat-error *ngIf="companyForm.get('website')?.hasError('pattern')">Invalid URL</mat-error>
               </mat-form-field>
             </form>
-            }
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Quick Stats -->
-        <mat-card class="stats-card" [@slideIn]>
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>insights</mat-icon>
-              Quick Stats
-            </mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <div class="stat-icon">
-                  <mat-icon>calendar_today</mat-icon>
-                </div>
-                <div class="stat-info">
-                  <span class="stat-label">Created</span>
-                  <span class="stat-value">{{ companyData()?.createdDate | date:'mediumDate' }}</span>
-                </div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-icon">
-                  <mat-icon>update</mat-icon>
-                </div>
-                <div class="stat-info">
-                  <span class="stat-label">Last Updated</span>
-                  <span class="stat-value">{{ companyData()?.modifiedDate | date:'mediumDate' }}</span>
-                </div>
-              </div>
+          }
+        </div>
+ 
+        <!-- ── Meta Strip ───────────────────────────────────────────── -->
+        <div class="meta-strip" [@slideUp]>
+          <div class="ms-item">
+            <mat-icon>event</mat-icon>
+            <div>
+              <span class="ms-lbl">Profile Created</span>
+              <span class="ms-val">{{ companyData()?.createdDate | date:'dd MMM yyyy' }}</span>
             </div>
-          </mat-card-content>
-        </mat-card>
-      </div>
+          </div>
+          <div class="ms-sep"></div>
+          <div class="ms-item">
+            <mat-icon>update</mat-icon>
+            <div>
+              <span class="ms-lbl">Last Updated</span>
+              <span class="ms-val">{{ companyData()?.modifiedDate | date:'dd MMM yyyy, HH:mm' }}</span>
+            </div>
+          </div>
+          <div class="ms-sep"></div>
+          <div class="ms-item">
+            <mat-icon>person_outline</mat-icon>
+            <div>
+              <span class="ms-lbl">Modified By</span>
+              <span class="ms-val">{{ companyData()?.modifiedBy || '—' }}</span>
+            </div>
+          </div>
+        </div>
+ 
+      </div><!-- /cp-right -->
     </div>
-  </div>
   }
-
-  <!-- Empty State -->
+ 
+  <!-- ══════════════════════════ EMPTY STATE ══════════════════════════ -->
   @if (!isLoading() && !companyData()) {
-  <mat-card class="empty-state" [@fadeIn]>
-    <mat-icon class="empty-icon">domain</mat-icon>
-    <h2>No Company Information</h2>
-    <p>Complete the company onboarding to set up your company profile.</p>
-    <button mat-raised-button color="primary" routerLink="/company-onboarding">
-      <mat-icon>add</mat-icon>
-      Setup Company
-    </button>
-  </mat-card>
+    <div class="empty-state">
+      <div class="es-icon-wrap"><mat-icon>domain</mat-icon></div>
+      <h2>No Company Profile Found</h2>
+      <p>Set up your company profile to get started with INFOASSET.</p>
+      <button mat-flat-button color="primary" routerLink="/company-onboarding">
+        <mat-icon>rocket_launch</mat-icon>
+        Start Onboarding
+      </button>
+    </div>
   }
+ 
 </div>

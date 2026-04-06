@@ -1,0 +1,53 @@
+<div class="under-dev-wrapper">
+
+  <!-- Animated background blobs -->
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <!-- Main card -->
+  <div class="under-dev-card">
+
+    <!-- Icon badge -->
+    <div class="icon-badge">
+      <span class="mat-icon-wrapper">
+        <mat-icon>construction</mat-icon>
+      </span>
+      <div class="icon-ring ring-1"></div>
+      <div class="icon-ring ring-2"></div>
+    </div>
+
+    <!-- Text content -->
+    <h1 class="headline">Under Development</h1>
+    <p class="subline">
+      We're crafting something great here.<br>
+      This page will be available soon.
+    </p>
+
+    <!-- Progress pipeline -->
+    <div class="pipeline">
+      <div class="pipeline-track">
+        <div class="pipeline-fill"></div>
+      </div>
+      <div class="pipeline-steps">
+        @for (step of steps; track step.label; let i = $index) {
+          <div class="step" [class.active]="i === 1" [class.done]="i === 0">
+            <div class="step-dot">
+              <mat-icon>{{ step.icon }}</mat-icon>
+            </div>
+            <span class="step-label">{{ step.label }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button mat-flat-button routerLink="/dashboard" class="back-btn">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Dashboard
+      </button>
+    </div>
+
+  </div>
+</div>

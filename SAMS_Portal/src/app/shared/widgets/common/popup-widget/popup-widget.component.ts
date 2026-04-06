@@ -2060,7 +2060,8 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       'purchaseReceipt': 'PurchaseReceiptFile',
       'purchaseReceiptFile': 'PurchaseReceiptFile',
       'invoice': 'InvoiceFile',
-      'invoiceFile': 'InvoiceFile'
+      'invoiceFile': 'InvoiceFile',
+       'tradeLicense':       'TradeLicense'
     };
 
     return mapping[fieldKey] || fieldKey;
@@ -2076,7 +2077,8 @@ export class PopupWidgetComponent implements OnInit, OnDestroy {
       'purchaseReceipt': 'PurchaseReceiptPath',
       'purchaseReceiptFile': 'PurchaseReceiptPath',
       'invoice': 'InvoicePath',
-      'invoiceFile': 'InvoicePath'
+      'invoiceFile': 'InvoicePath',
+      'tradeLicense':       'TradeLicensePath'
     };
 
     return mapping[fieldKey] || fieldKey;

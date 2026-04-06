@@ -34,6 +34,16 @@ export class UserProfileService {
     );
   }
 
+  // ✅ Get User By ID
+  getUserById(userId: number): Observable<ApiResponse<UsersList>> {
+    const params = new HttpParams().set('userId', userId);
+
+    return this.http.get<ApiResponse<UsersList>>(
+      `${this.baseUrl}/get-user-by-id`,
+      { params }
+    );
+  }
+
   // ✅ Update User Profile
   updateCreatedUserProfile(payload: UserProfileRequest): Observable<ApiResponse> {
     return this.http.put<ApiResponse>(`${this.baseUrl}/update-created-user-profile`, payload);

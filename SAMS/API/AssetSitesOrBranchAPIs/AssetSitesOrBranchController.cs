@@ -64,6 +64,15 @@ namespace SAMS.API.AssetSitesOrBranchAPIs
         }
 
         [Authorize(Roles = RoleModels.Asset)]
+        [HttpGet("asset-sites-or-branch/get-by-site-or-branch-id")]
+        public async Task<IActionResult> GetBySiteOrBranchId(long id)
+        {
+            if (id <= 0) return BadRequest(new { success = false, message = "Invalid Id" });
+            var result = await _service.GetBySiteOrBranchIdAsync(id);
+            return Ok(new { success = result.success, message = result.message, data = result.data });
+        }
+
+        [Authorize(Roles = RoleModels.Asset)]
         [HttpGet("asset-sites-or-branch/get-by-city-id")]
         public async Task<IActionResult> GetByCityId(long id)
         {
