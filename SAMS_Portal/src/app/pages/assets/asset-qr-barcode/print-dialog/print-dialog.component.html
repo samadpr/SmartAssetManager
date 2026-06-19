@@ -1,5 +1,6 @@
 <div class="print-dialog">
-  <!-- Header -->
+
+  <!-- ── Header ──────────────────────────────────────────────────────── -->
   <div class="dialog-header">
     <div class="header-left">
       <div class="header-icon">
@@ -18,198 +19,455 @@
   <mat-divider></mat-divider>
 
   <div class="dialog-body">
-    <!-- Left: Settings -->
-    <div class="settings-panel">
-      <h3 class="settings-title">Print Options</h3>
 
-      <!-- Print Type -->
+    <!-- ════════════════════════════════════════════════════════════════
+         LEFT PANEL
+    ═══════════════════════════════════════════════════════════════════ -->
+    <div class="settings-panel">
+
+      <!-- ── Code Type ──────────────────────────────────────────────── -->
       <div class="setting-group">
         <label class="setting-label">
-          <mat-icon>receipt_long</mat-icon>
-          Code Type
+          <mat-icon>receipt_long</mat-icon> Code Type
         </label>
         <div class="type-options">
           <button class="type-btn" [class.active]="printType() === 'qr'" (click)="printType.set('qr')">
-            <mat-icon>qr_code_2</mat-icon>
-            <span>QR Code</span>
+            <mat-icon>qr_code_2</mat-icon><span>QR Only</span>
           </button>
           <button class="type-btn" [class.active]="printType() === 'barcode'" (click)="printType.set('barcode')">
-            <mat-icon fontSet="material-symbols-outlined">barcode_scanner</mat-icon>
-            <span>Barcode</span>
+            <mat-icon fontSet="material-symbols-outlined">barcode_scanner</mat-icon><span>BC Only</span>
           </button>
           <button class="type-btn type-btn--both" [class.active]="printType() === 'both'" (click)="printType.set('both')">
-            <mat-icon>receipt_long</mat-icon>
-            <span>Both</span>
+            <mat-icon>receipt_long</mat-icon><span>Both</span>
           </button>
         </div>
+
+        @if (printType() === 'both') {
+          <div class="info-banner info-banner--green">
+            <mat-icon>view_column</mat-icon>
+            <span><strong>Side-by-side:</strong> QR left · Barcode + labels right. Sticker auto-widens to fit.</span>
+          </div>
+        }
       </div>
 
-      <!-- Sticker Size -->
+      <!-- ── Sticker Size ───────────────────────────────────────────── -->
       <div class="setting-group">
         <label class="setting-label">
-          <mat-icon>straighten</mat-icon>
-          Sticker Size
+          <mat-icon>straighten</mat-icon> Label Size
         </label>
+
         <div class="size-options">
-          <button class="size-btn" [class.active]="stickerSize() === 'small'" (click)="stickerSize.set('small')">
-            <div class="size-preview size-preview--sm"></div>
-            <span>Small</span>
-          </button>
-          <button class="size-btn" [class.active]="stickerSize() === 'medium'" (click)="stickerSize.set('medium')">
-            <div class="size-preview size-preview--md"></div>
-            <span>Medium</span>
-          </button>
-          <button class="size-btn" [class.active]="stickerSize() === 'large'" (click)="stickerSize.set('large')">
-            <div class="size-preview size-preview--lg"></div>
-            <span>Large</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Columns per row -->
-      <div class="setting-group">
-        <label class="setting-label">
-          <mat-icon>grid_view</mat-icon>
-          Stickers per Row
-        </label>
-        <div class="col-options">
-          @for (col of [2, 3, 4]; track col) {
-            <button class="col-btn" [class.active]="columns() === col" (click)="columns.set($any(col))">
-              {{ col }}
+          @for (key of sizeKeys; track key) {
+            <button class="size-btn" [class.active]="stickerSize() === key"
+                    [class.size-btn--featured]="key === 'medium'"
+                    (click)="stickerSize.set(key)">
+              <div class="size-vis" [ngClass]="'size-vis--' + key"></div>
+              <span class="sz-name">{{ key | titlecase }}</span>
+              <span class="sz-mm">{{ getSizeLabel(key) }}</span>
             </button>
           }
+          <button class="size-btn size-btn--custom" [class.active]="stickerSize() === 'custom'"
+                  (click)="stickerSize.set('custom')">
+            <mat-icon class="cust-icon">edit</mat-icon>
+            <span class="sz-name">Custom</span>
+            <span class="sz-mm">manual</span>
+          </button>
         </div>
+
+        <!-- Custom size inputs -->
+        @if (stickerSize() === 'custom') {
+          <div class="custom-inputs">
+            <div class="custom-inputs__title">
+              <mat-icon>edit_note</mat-icon>
+              Enter label dimensions in mm
+            </div>
+            <div class="custom-inputs__row">
+              <mat-form-field appearance="outline" class="dim-field">
+                <mat-label>Width</mat-label>
+                <input matInput type="number" min="20" max="300"
+                       [value]="customWidthMm()" (change)="onCustomWidth($event)" />
+                <span matSuffix class="mm-sfx">mm</span>
+              </mat-form-field>
+              <span class="dim-sep">×</span>
+              <mat-form-field appearance="outline" class="dim-field">
+                <mat-label>Height</mat-label>
+                <input matInput type="number" min="10" max="200"
+                       [value]="customHeightMm()" (change)="onCustomHeight($event)" />
+                <span matSuffix class="mm-sfx">mm</span>
+              </mat-form-field>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- ── Paper / Print Format ───────────────────────────────────── -->
+      <div class="setting-group">
+        <label class="setting-label">
+          <mat-icon>description</mat-icon> Paper / Printer Type
+        </label>
+
+        <div class="paper-options">
+          <!-- Label Roll -->
+          <button class="paper-btn" [class.active]="paperFormat() === 'label-roll'"
+                  (click)="paperFormat.set('label-roll')">
+            <div class="paper-icon">
+              <mat-icon>receipt</mat-icon>
+            </div>
+            <div class="paper-text">
+              <span class="paper-name">Label Roll</span>
+              <span class="paper-desc">1 sticker per page<br>Page = sticker size</span>
+            </div>
+            <div class="paper-check" *ngIf="paperFormat() === 'label-roll'">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+          </button>
+
+          <!-- A4 Sheet -->
+          <button class="paper-btn" [class.active]="paperFormat() === 'a4'"
+                  (click)="paperFormat.set('a4')">
+            <div class="paper-icon">
+              <mat-icon>article</mat-icon>
+            </div>
+            <div class="paper-text">
+              <span class="paper-name">A4 Sheet</span>
+              <span class="paper-desc">Multiple per page<br>Select columns below</span>
+            </div>
+            <div class="paper-check" *ngIf="paperFormat() === 'a4'">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+          </button>
+        </div>
+
+        <!-- A4 columns per row — visual layout picker -->
+        @if (paperFormat() === 'a4') {
+          <div class="cols-picker">
+            <div class="cols-picker__label">
+              <mat-icon>grid_view</mat-icon> Stickers per row
+            </div>
+            <div class="cols-options">
+              @for (n of [2, 3, 4]; track n) {
+                <button class="cols-btn" [class.active]="columnsA4() === n"
+                        (click)="columnsA4.set($any(n))">
+                  <!-- Mini A4 diagram -->
+                  <div class="a4-diagram">
+                    <div class="a4-page">
+                      @for (row of [1, 2]; track row) {
+                        <div class="a4-row">
+                          @for (col of getRange(n); track col) {
+                            <div class="a4-sticker"></div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                  <span class="cols-num">{{ n }} per row</span>
+                </button>
+              }
+            </div>
+            @if (printType() === 'both' && columnsA4() > 2) {
+              <div class="info-banner info-banner--amber">
+                <mat-icon>warning_amber</mat-icon>
+                <span>Side-by-side stickers are wider. 2 per row recommended for A4.</span>
+              </div>
+            }
+          </div>
+        }
       </div>
 
       <mat-divider class="section-divider"></mat-divider>
 
-      <!-- Customization Section -->
-      <h3 class="settings-title customization-title">
-        <mat-icon>tune</mat-icon>
-        <span>Customize Labels</span>
-      </h3>
-
-      <!-- Custom Heading -->
+      <!-- ── Custom Heading ─────────────────────────────────────────── -->
       <div class="setting-group">
         <label class="setting-label">
-          <mat-icon>title</mat-icon>
-          Custom Heading
+          <mat-icon>title</mat-icon> Custom Heading
+          @if (customHeading()) {
+            <span class="auto-expand-tag">
+              <mat-icon>expand</mat-icon>+{{ getHeadingExpandMm() }}mm
+            </span>
+          }
         </label>
-        <mat-form-field appearance="outline" class="custom-heading-field">
-          <mat-label>Optional heading (e.g., "Property of XYZ Corp")</mat-label>
+        <mat-form-field appearance="outline" class="heading-field">
+          <mat-label>Optional (e.g. "Property of XYZ Corp")</mat-label>
           <input matInput [formControl]="customHeadingControl" maxlength="50" />
           <mat-hint align="end">{{ customHeadingControl.value?.length || 0 }}/50</mat-hint>
         </mat-form-field>
       </div>
 
-      <!-- Additional Labels -->
+      <!-- ── Extra Labels ───────────────────────────────────────────── -->
       <div class="setting-group">
         <label class="setting-label">
-          <mat-icon>label</mat-icon>
-          Additional Information
+          <mat-icon>label</mat-icon> Extra Information
+          @if (enabledLabelsCount() > 0) {
+            <span class="auto-expand-tag">
+              <mat-icon>expand</mat-icon>+{{ getLabelExpandMm() }}mm
+            </span>
+          }
         </label>
-        <div class="labels-toggle-list">
+
+        @if (printType() === 'both') {
+          <div class="info-banner info-banner--blue">
+            <mat-icon>info</mat-icon>
+            <span>Labels appear in the <strong>right column</strong> (beside barcode).</span>
+          </div>
+        }
+
+        <div class="labels-list">
           @for (label of availableLabels(); track label.id) {
-            <div class="label-toggle-item" [class.enabled]="label.enabled" (click)="toggleLabel(label)">
-              <mat-icon class="toggle-icon">{{ label.enabled ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
-              <span class="label-name">{{ label.label }}</span>
+            <div class="label-item" [class.on]="label.enabled" (click)="toggleLabel(label)">
+              <mat-icon class="lbl-chk">{{ label.enabled ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+              <span>{{ label.label }}</span>
             </div>
           }
         </div>
-        <small class="labels-hint">
-          <mat-icon>info</mat-icon>
-          Click to add/remove information on stickers
-        </small>
       </div>
 
-      <!-- Summary -->
-      <div class="print-summary">
-        <div class="summary-title">
-          <mat-icon>summarize</mat-icon>
-          <span>Print Summary</span>
+      <!-- ── Print Summary ──────────────────────────────────────────── -->
+      <div class="summary-card">
+        <div class="summary-card__title">
+          <mat-icon>summarize</mat-icon> Summary
         </div>
         <div class="summary-row">
           <mat-icon>print</mat-icon>
-          <span>{{ selectedCount() }} sticker(s) will print</span>
+          <span>{{ selectedCount() }} sticker{{ selectedCount() !== 1 ? 's' : '' }}</span>
         </div>
         <div class="summary-row">
           <mat-icon>receipt_long</mat-icon>
-          <span>{{ printType() === 'both' ? 'QR Code + Barcode' : printType() === 'qr' ? 'QR Code only' : 'Barcode only' }}</span>
+          <span>{{ printType() === 'both' ? 'QR + Barcode (side-by-side)' : printType() === 'qr' ? 'QR Code only' : 'Barcode only' }}</span>
+        </div>
+        <div class="summary-row summary-row--highlight">
+          <mat-icon>crop_free</mat-icon>
+          <span>
+            Sticker: <strong>{{ effectiveStickerWidthMm() }}mm × {{ currentLayout().stickerHeightMm }}mm</strong>
+            @if (currentLayout().stickerHeightMm !== currentLayout().baseHeightMm) {
+              <span class="expand-note">(+{{ (currentLayout().stickerHeightMm - currentLayout().baseHeightMm).toFixed(1) }}mm auto)</span>
+            }
+          </span>
         </div>
         <div class="summary-row">
-          <mat-icon>straighten</mat-icon>
-          <span>{{ stickerSize() | titlecase }} size · {{ columns() }} per row</span>
+          <mat-icon>description</mat-icon>
+          <span>{{ pageSizeDescription() }}</span>
         </div>
-        @if (customHeadingControl.value) {
-          <div class="summary-row">
-            <mat-icon>title</mat-icon>
-            <span>With heading: "{{ customHeadingControl.value }}"</span>
-          </div>
-        }
-        @if (enabledLabelsCount() > 0) {
-          <div class="summary-row">
-            <mat-icon>label</mat-icon>
-            <span>{{ enabledLabelsCount() }} extra label(s)</span>
-          </div>
-        }
-      </div>
-    </div>
-
-    <mat-divider vertical class="vertical-divider"></mat-divider>
-
-    <!-- Right: Asset List -->
-    <div class="assets-panel">
-      <div class="assets-panel-header">
-        <h3 class="settings-title">
-          Assets to Print
-          <span class="count-badge">{{ selectedCount() }}</span>
-        </h3>
-        <mat-checkbox
-          [checked]="isAllSelected()"
-          [indeterminate]="isIndeterminate()"
-          (change)="toggleAll()"
-          class="select-all-cb">
-          Select All
-        </mat-checkbox>
       </div>
 
-      <div class="asset-list">
-        @for (asset of data.assets; track asset.id) {
-          <div class="asset-item" [class.selected]="selection.isSelected(asset)" (click)="selection.toggle(asset)">
-            <mat-checkbox
-              [checked]="selection.isSelected(asset)"
-              (click)="$event.stopPropagation();"
-              (change)="selection.toggle(asset)">
-            </mat-checkbox>
-            <div class="asset-item-codes">
-              @if (asset.qrcodeImage) {
-                <img [src]="asset.qrcodeImage" alt="QR" class="mini-qr" />
-              }
-              @if (asset.barcode) {
-                <img [src]="asset.barcode" alt="BC" class="mini-bc" />
-              }
+    </div><!-- /settings-panel -->
+
+    <mat-divider vertical class="vert-div"></mat-divider>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         RIGHT PANEL — Preview + Asset List
+    ═══════════════════════════════════════════════════════════════════ -->
+    <div class="right-panel">
+
+      <!-- ── Live Sticker Preview ───────────────────────────────────── -->
+      <div class="preview-section">
+        <div class="preview-section__header">
+          <mat-icon>visibility</mat-icon>
+          <span>Live Preview</span>
+          <span class="preview-dim-badge">
+            {{ effectiveStickerWidthMm() }}mm × {{ currentLayout().stickerHeightMm }}mm
+            @if (currentLayout().stickerHeightMm !== currentLayout().baseHeightMm) {
+              <span class="auto-note">(auto-expanded)</span>
+            }
+          </span>
+        </div>
+
+        <div class="preview-canvas">
+          @if (previewAsset) {
+            <!-- Both mode preview -->
+            @if (printType() === 'both') {
+              <div class="prev-sticker prev-sticker--both"
+                   [style.width.px]="getPreviewWidthPx()"
+                   [style.minHeight.px]="getPreviewHeightPx()">
+
+                @if (customHeading()) {
+                  <div class="prev-heading" [style.fontSize.px]="getPreviewFontSize('heading')">
+                    {{ customHeading() }}
+                  </div>
+                }
+                <div class="prev-both-layout">
+                  <div class="prev-col prev-col-l">
+                    @if (previewAsset.qrcodeImage) {
+                      <img [src]="previewAsset.qrcodeImage" class="prev-qr"
+                           [style.width.px]="getPreviewQrSize()"
+                           [style.height.px]="getPreviewQrSize()" />
+                    } @else {
+                      <div class="prev-nocode" [style.width.px]="getPreviewQrSize()" [style.height.px]="getPreviewQrSize()">QR</div>
+                    }
+                    <div class="prev-name" [style.fontSize.px]="getPreviewFontSize('name')">{{ previewAsset.name }}</div>
+                    <div class="prev-id"   [style.fontSize.px]="getPreviewFontSize('id')">{{ previewAsset.assetId }}</div>
+                  </div>
+                  <div class="prev-divider"></div>
+                  <div class="prev-col prev-col-r">
+                    @if (previewAsset.barcode) {
+                      <img [src]="previewAsset.barcode" class="prev-bc"
+                           [style.width.px]="getPreviewBcWidth()"
+                           [style.height.px]="getPreviewBcHeight()" />
+                    } @else {
+                      <div class="prev-nocode" [style.width.px]="getPreviewBcWidth()" [style.height.px]="getPreviewBcHeight()">BC</div>
+                    }
+                    <div class="prev-id" [style.fontSize.px]="getPreviewFontSize('id')">{{ previewAsset.assetId }}</div>
+                    @if (enabledLabelsCount() > 0) {
+                      <div class="prev-labels">
+                        @for (lbl of getEnabledLabels(); track lbl.id) {
+                          @if (lbl.getValue(previewAsset)) {
+                            <div class="prev-lrow" [style.fontSize.px]="getPreviewFontSize('label')">
+                              <span class="prev-lk">{{ lbl.label }}:</span>
+                              <span class="prev-lv">{{ lbl.getValue(previewAsset) }}</span>
+                            </div>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Single code preview -->
+            @if (printType() !== 'both') {
+              <div class="prev-sticker prev-sticker--single"
+                   [style.width.px]="getPreviewWidthPx()"
+                   [style.minHeight.px]="getPreviewHeightPx()">
+
+                @if (customHeading()) {
+                  <div class="prev-heading" [style.fontSize.px]="getPreviewFontSize('heading')">
+                    {{ customHeading() }}
+                  </div>
+                }
+
+                @if (printType() === 'qr' && previewAsset.qrcodeImage) {
+                  <img [src]="previewAsset.qrcodeImage" class="prev-qr"
+                       [style.width.px]="getPreviewQrSize()" [style.height.px]="getPreviewQrSize()" />
+                }
+                @if (printType() === 'barcode' && previewAsset.barcode) {
+                  <img [src]="previewAsset.barcode" class="prev-bc"
+                       [style.width.px]="getPreviewBcWidth()" [style.height.px]="getPreviewBcHeight()" />
+                }
+
+                <div class="prev-name" [style.fontSize.px]="getPreviewFontSize('name')">{{ previewAsset.name }}</div>
+                <div class="prev-id"   [style.fontSize.px]="getPreviewFontSize('id')">{{ previewAsset.assetId }}</div>
+
+                @if (enabledLabelsCount() > 0) {
+                  <div class="prev-labels">
+                    @for (lbl of getEnabledLabels(); track lbl.id) {
+                      @if (lbl.getValue(previewAsset)) {
+                        <div class="prev-lrow" [style.fontSize.px]="getPreviewFontSize('label')">
+                          <span class="prev-lk">{{ lbl.label }}:</span>
+                          <span class="prev-lv">{{ lbl.getValue(previewAsset) }}</span>
+                        </div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            }
+          } @else {
+            <div class="preview-empty">
+              <mat-icon>qr_code_scanner</mat-icon>
+              <span>No asset to preview</span>
             </div>
-            <div class="asset-item-info">
-              <span class="asset-item-name">{{ asset.name }}</span>
-              <span class="asset-item-id">{{ asset.assetId }}</span>
-              <span class="asset-item-brand">{{ asset.assetBrand }} · {{ asset.categoryDisplay }}</span>
+          }
+
+          <!-- Dimension ruler labels -->
+          <div class="ruler-w">⟷ {{ effectiveStickerWidthMm() }}mm</div>
+          <div class="ruler-h">↕ {{ currentLayout().stickerHeightMm }}mm</div>
+        </div>
+
+        <!-- Paper layout diagram -->
+        @if (paperFormat() === 'a4') {
+          <div class="page-diagram">
+            <div class="page-diagram__label">A4 page layout ({{ columnsA4() }} per row)</div>
+            <div class="page-diagram__page">
+              @for (row of [1, 2, 3]; track row) {
+                <div class="pd-row">
+                  @for (col of getRange(columnsA4()); track col) {
+                    <div class="pd-sticker"
+                         [class.pd-sticker--both]="printType() === 'both'">
+                      <div class="pd-inner"></div>
+                    </div>
+                  }
+                </div>
+              }
+              <div class="pd-dots">· · ·</div>
+            </div>
+          </div>
+        } @else {
+          <div class="page-diagram">
+            <div class="page-diagram__label">Label roll (1 sticker = 1 page)</div>
+            <div class="page-diagram__roll">
+              @for (i of [1, 2, 3]; track i) {
+                <div class="roll-sticker" [class.roll-sticker--both]="printType() === 'both'">
+                  <div class="roll-inner"></div>
+                </div>
+              }
+              <div class="roll-dots">↓ ↓ ↓</div>
             </div>
           </div>
         }
       </div>
-    </div>
-  </div>
 
-  <!-- Footer Actions -->
+      <mat-divider></mat-divider>
+
+      <!-- ── Asset list ──────────────────────────────────────────────── -->
+      <div class="assets-section">
+        <div class="assets-header">
+          <span class="assets-title">
+            Assets to Print
+            <span class="count-badge">{{ selectedCount() }}</span>
+          </span>
+          <mat-checkbox [checked]="isAllSelected()" [indeterminate]="isIndeterminate()"
+                        (change)="toggleAll()">All</mat-checkbox>
+        </div>
+        <div class="asset-list">
+          @for (asset of data.assets; track asset.id) {
+            <div class="asset-item" [class.selected]="selection.isSelected(asset)"
+                 (click)="selection.toggle(asset)">
+              <mat-checkbox [checked]="selection.isSelected(asset)"
+                            (click)="$event.stopPropagation()"
+                            (change)="selection.toggle(asset)"></mat-checkbox>
+              <div class="asset-codes">
+                @if (asset.qrcodeImage) {
+                  <img [src]="asset.qrcodeImage" class="mini-qr" />
+                }
+                @if (asset.barcode) {
+                  <img [src]="asset.barcode" class="mini-bc" />
+                }
+              </div>
+              <div class="asset-info">
+                <span class="ai-name">{{ asset.name }}</span>
+                <span class="ai-id">{{ asset.assetId }}</span>
+                <span class="ai-meta">{{ asset.assetBrand }} · {{ asset.categoryDisplay }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+    </div><!-- /right-panel -->
+
+  </div><!-- /dialog-body -->
+
+  <!-- ── Footer ───────────────────────────────────────────────────────── -->
   <mat-divider></mat-divider>
-  <div class="dialog-actions">
-    <button mat-stroked-button (click)="close()">
-      <mat-icon>close</mat-icon>
-      Cancel
-    </button>
-    <button mat-flat-button color="primary" (click)="executePrint()" [disabled]="selectedCount() === 0">
-      <mat-icon>print</mat-icon>
-      Print {{ selectedCount() }} Sticker{{ selectedCount() !== 1 ? 's' : '' }}
-    </button>
+  <div class="dialog-footer">
+    <div class="footer-size-info">
+      <mat-icon>crop_free</mat-icon>
+      <span>
+        Print size: <strong>{{ effectiveStickerWidthMm() }}×{{ currentLayout().stickerHeightMm }}mm</strong>
+        @if (currentLayout().stickerHeightMm !== currentLayout().baseHeightMm) {
+          <span class="footer-expand">(auto +{{ (currentLayout().stickerHeightMm - currentLayout().baseHeightMm).toFixed(1) }}mm)</span>
+        }
+      </span>
+    </div>
+    <div class="footer-actions">
+      <button mat-stroked-button (click)="close()">
+        <mat-icon>close</mat-icon> Cancel
+      </button>
+      <button mat-flat-button color="primary" (click)="executePrint()" [disabled]="selectedCount() === 0">
+        <mat-icon>print</mat-icon>
+        Print {{ selectedCount() }} Sticker{{ selectedCount() !== 1 ? 's' : '' }}
+      </button>
+    </div>
   </div>
+
 </div>

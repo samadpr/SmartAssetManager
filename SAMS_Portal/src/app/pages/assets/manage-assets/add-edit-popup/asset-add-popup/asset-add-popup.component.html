@@ -1,0 +1,832 @@
+<div class="asset-add-container">
+
+  <!-- ══════════════════════ STEPPER HEADER ══════════════════════ -->
+  <div class="popup-header">
+    <div class="header-top">
+      <div class="header-left">
+        <div class="header-icon-wrap">
+          <mat-icon>add_box</mat-icon>
+        </div>
+        <div>
+          <h2 class="header-title">Add New Asset</h2>
+          <p class="header-subtitle">Fill in the details — navigate between tabs to complete</p>
+        </div>
+      </div>
+      <button mat-icon-button class="close-btn" (click)="onCancel()" matTooltip="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Step indicators -->
+    <div class="step-indicators">
+      <ng-container *ngFor="let step of steps; let i = index">
+        <div class="step-item"
+             [class.active]="currentStep === i"
+             [class.completed]="completedSteps.has(i)"
+             [class.has-error]="stepHasError(i)"
+             (click)="goToStep(i)">
+          <div class="step-circle">
+            <mat-icon *ngIf="completedSteps.has(i) && !stepHasError(i)" class="step-done-icon">check</mat-icon>
+            <mat-icon *ngIf="stepHasError(i)" class="step-error-icon">error</mat-icon>
+            <span *ngIf="!completedSteps.has(i) && !stepHasError(i)">{{ i + 1 }}</span>
+          </div>
+          <span class="step-label">{{ step.label }}</span>
+        </div>
+        <div class="step-connector" *ngIf="i < steps.length - 1"></div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ SCROLLABLE BODY ══════════════════════ -->
+  <div class="popup-body">
+
+    <!-- ─── STEP 0: Basic Info ─── -->
+    <div class="step-panel" *ngIf="currentStep === 0" @stepAnim>
+      <div class="step-content">
+
+        <!-- Basic Information -->
+        <div class="section-title">
+          <mat-icon>inventory_2</mat-icon>
+          <span>Basic Information</span>
+        </div>
+
+        <form [formGroup]="basicForm" class="form-grid">
+          <mat-form-field appearance="outline" class="col-span-2">
+            <mat-label>Asset Name *</mat-label>
+            <mat-icon matPrefix>inventory</mat-icon>
+            <input matInput formControlName="name" placeholder="e.g. Dell Laptop XPS 15">
+            <mat-error *ngIf="basicForm.get('name')?.hasError('required')">Asset name is required</mat-error>
+            <mat-error *ngIf="basicForm.get('name')?.hasError('minlength')">Minimum 2 characters</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Brand *</mat-label>
+            <mat-icon matPrefix>branding_watermark</mat-icon>
+            <input matInput formControlName="assetBrand" placeholder="e.g. Dell">
+            <mat-error>Brand is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Model Number *</mat-label>
+            <mat-icon matPrefix>tag</mat-icon>
+            <input matInput formControlName="assetModelNo" placeholder="e.g. XPS-9500">
+            <mat-error>Model number is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Quantity *</mat-label>
+            <mat-icon matPrefix>numbers</mat-icon>
+            <input matInput type="number" formControlName="quantity" placeholder="1" min="1" max="500">
+            <mat-hint>Number of physical units (max 500)</mat-hint>
+            <mat-error>Min 1, Max 500</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Unit Price</mat-label>
+            <mat-icon matPrefix>payments</mat-icon>
+            <input matInput type="number" formControlName="unitPrice" placeholder="0.00" min="0">
+            <span matTextPrefix class="currency-prefix">{{ currencySymbol }}</span>
+            <mat-hint>Price per unit</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Asset Status *</mat-label>
+            <mat-icon matPrefix>fact_check</mat-icon>
+            <mat-select formControlName="assetStatus">
+              <mat-option *ngFor="let s of dropdownData().assetStatus" [value]="s.value">{{ s.label }}</mat-option>
+            </mat-select>
+            <mat-error>Status is required</mat-error>
+          </mat-form-field>
+
+          <!-- Total value preview when qty > 1 -->
+          <div class="total-value-chip col-span-2" *ngIf="basicForm.get('quantity')?.value > 1 && basicForm.get('unitPrice')?.value > 0">
+            <mat-icon>calculate</mat-icon>
+            <span>Total Batch Value: <strong>{{ currencySymbol }}{{ formatNum((basicForm.get('unitPrice')?.value ?? 0) * (basicForm.get('quantity')?.value ?? 1)) }}</strong>
+              ({{ basicForm.get('quantity')?.value }} units × {{ currencySymbol }}{{ formatNum(basicForm.get('unitPrice')?.value) }})</span>
+          </div>
+
+          <mat-form-field appearance="outline" class="col-span-2">
+            <mat-label>Description</mat-label>
+            <mat-icon matPrefix>description</mat-icon>
+            <textarea matInput formControlName="description" rows="2" placeholder="Brief description (optional)"></textarea>
+            <mat-hint align="end">{{ basicForm.get('description')?.value?.length || 0 }}/500</mat-hint>
+          </mat-form-field>
+        </form>
+
+        <!-- Classification -->
+        <div class="section-title" style="margin-top:24px">
+          <mat-icon>category</mat-icon>
+          <span>Classification</span>
+        </div>
+
+        <form [formGroup]="classForm" class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Category</mat-label>
+            <mat-icon matPrefix>category</mat-icon>
+            <mat-select formControlName="category" (selectionChange)="onCategoryChange($event.value)">
+              <mat-option *ngFor="let c of dropdownData().categories" [value]="c.value">{{ c.label }}</mat-option>
+            </mat-select>
+            <button matSuffix mat-icon-button type="button" (click)="quickAddCategory($event)" matTooltip="Add category" class="quick-add-btn">
+              <mat-icon>add_circle_outline</mat-icon>
+            </button>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Sub Category</mat-label>
+            <mat-icon matPrefix>label</mat-icon>
+            <mat-select formControlName="subCategory">
+              <mat-option *ngFor="let sc of filteredSubCategories" [value]="sc.value">{{ sc.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Supplier</mat-label>
+            <mat-icon matPrefix>business</mat-icon>
+            <mat-select formControlName="supplier">
+              <mat-option *ngFor="let s of dropdownData().suppliers" [value]="s.value">{{ s.label }}</mat-option>
+            </mat-select>
+            <button matSuffix mat-icon-button type="button" (click)="quickAddSupplier($event)" matTooltip="Add supplier" class="quick-add-btn">
+              <mat-icon>add_circle_outline</mat-icon>
+            </button>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Warranty (Months)</mat-label>
+            <mat-icon matPrefix>verified_user</mat-icon>
+            <input matInput type="number" formControlName="warranetyInMonth" placeholder="0" min="0">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Department</mat-label>
+            <mat-icon matPrefix>business_center</mat-icon>
+            <mat-select formControlName="department" (selectionChange)="onDepartmentChange($event.value)">
+              <mat-option *ngFor="let d of dropdownData().departments" [value]="d.value">{{ d.label }}</mat-option>
+            </mat-select>
+            <button matSuffix mat-icon-button type="button" (click)="quickAddDepartment($event)" matTooltip="Add department" class="quick-add-btn">
+              <mat-icon>add_circle_outline</mat-icon>
+            </button>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Sub Department</mat-label>
+            <mat-icon matPrefix>account_tree</mat-icon>
+            <mat-select formControlName="subDepartment">
+              <mat-option *ngFor="let sd of filteredSubDepartments" [value]="sd.value">{{ sd.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </form>
+
+        <!-- Dates -->
+        <div class="section-title" style="margin-top:24px">
+          <mat-icon>event</mat-icon>
+          <span>Important Dates</span>
+          <span class="dep-dates-hint" *ngIf="depForm.get('isDepreciable')?.value">
+            <mat-icon>info_outline</mat-icon> Purchase Date required for depreciation
+          </span>
+        </div>
+
+        <form [formGroup]="datesForm" class="form-grid">
+          <mat-form-field appearance="outline" [class.dep-required-field]="depForm.get('isDepreciable')?.value">
+            <mat-label>Purchase Date <span class="req-star" *ngIf="depForm.get('isDepreciable')?.value">*</span></mat-label>
+            <mat-icon matPrefix>shopping_cart</mat-icon>
+            <input matInput [matDatepicker]="purchasePicker" formControlName="dateOfPurchase">
+            <mat-datepicker-toggle matIconSuffix [for]="purchasePicker"></mat-datepicker-toggle>
+            <mat-datepicker #purchasePicker></mat-datepicker>
+            <mat-error>Purchase Date is required when depreciation is enabled</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Manufacturing Date</mat-label>
+            <mat-icon matPrefix>factory</mat-icon>
+            <input matInput [matDatepicker]="mfgPicker" formControlName="dateOfManufacture">
+            <mat-datepicker-toggle matIconSuffix [for]="mfgPicker"></mat-datepicker-toggle>
+            <mat-datepicker #mfgPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Year of Valuation</mat-label>
+            <mat-icon matPrefix>assessment</mat-icon>
+            <input matInput [matDatepicker]="valPicker" formControlName="yearOfValuation">
+            <mat-datepicker-toggle matIconSuffix [for]="valPicker"></mat-datepicker-toggle>
+            <mat-datepicker #valPicker></mat-datepicker>
+          </mat-form-field>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- ─── STEP 1: Units & Serial Numbers ─── -->
+    <div class="step-panel" *ngIf="currentStep === 1" @stepAnim>
+      <div class="step-content">
+
+        <!-- Batch summary banner -->
+        <div class="batch-info-banner">
+          <div class="bib-icon"><mat-icon>widgets</mat-icon></div>
+          <div class="bib-body">
+            <div class="bib-title">Batch of <strong>{{ quantity }}</strong> unit{{ quantity > 1 ? 's' : '' }}</div>
+            <div class="bib-desc" *ngIf="quantity === 1">Single unit — one serial number required</div>
+            <div class="bib-desc" *ngIf="quantity > 1">
+              Enter a unique serial number for each of the {{ quantity }} units.
+              Each unit gets its own Asset ID, QR code and barcode automatically.
+            </div>
+          </div>
+          <div class="bib-progress" *ngIf="quantity > 1">
+            <div class="bib-pct">{{ serialsEntered }}/{{ quantity }}</div>
+            <div class="bib-track">
+              <div class="bib-fill" [style.width.%]="(serialsEntered / quantity) * 100"></div>
+            </div>
+            <div class="bib-label">serials filled</div>
+          </div>
+        </div>
+
+        <!-- Quick fill actions for multi-unit -->
+        <div class="serial-actions" *ngIf="quantity > 1">
+          <button mat-stroked-button type="button" (click)="fillSerialsSequentially()" class="serial-action-btn">
+            <mat-icon>auto_fix_high</mat-icon> Auto-fill Serials
+          </button>
+          <button mat-stroked-button type="button" (click)="clearAllSerials()" class="serial-action-btn serial-clear-btn">
+            <mat-icon>clear_all</mat-icon> Clear All
+          </button>
+          <span class="serial-hint">Auto-fill uses Model No. as prefix (e.g. XPS-9500-001)</span>
+        </div>
+
+        <!-- Serial number grid -->
+        <div class="serials-grid" [class.single-unit]="quantity === 1">
+          <div class="serial-row" *ngFor="let i of getUnitRange(); trackBy: trackByIndex">
+            <div class="serial-unit-badge">
+              <mat-icon>widgets</mat-icon>
+              Unit {{ i + 1 }}
+            </div>
+            <mat-form-field appearance="outline" class="serial-field">
+              <mat-label>Serial Number {{ quantity > 1 ? '(Unit ' + (i+1) + ')' : '' }} *</mat-label>
+              <mat-icon matPrefix>qr_code_2</mat-icon>
+              <input matInput
+                     [placeholder]="quantity > 1 ? 'SN-' + (i+1) : 'e.g. SN-ABC12345'"
+                     [value]="unitSerials[i]"
+                     (input)="updateSerial(i, $any($event.target).value)">
+              <mat-hint *ngIf="unitSerials[i]?.trim()">
+                <mat-icon style="font-size:11px;width:11px;height:11px">check_circle</mat-icon> Entered
+              </mat-hint>
+            </mat-form-field>
+            <div class="serial-status">
+              <mat-icon class="s-ok" *ngIf="unitSerials[i]?.trim()">check_circle</mat-icon>
+              <mat-icon class="s-empty" *ngIf="!unitSerials[i]?.trim()">radio_button_unchecked</mat-icon>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shared info reminder -->
+        <div class="shared-info-note">
+          <mat-icon>info</mat-icon>
+          <span>All other asset details (brand, model, price, documents, etc.) are shared across all units in this batch.</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── STEP 2: Depreciation ─── -->
+    <div class="step-panel" *ngIf="currentStep === 2" @stepAnim>
+      <div class="step-content">
+
+        <div class="section-title">
+          <mat-icon>trending_down</mat-icon>
+          <span>Depreciation Details</span>
+        </div>
+
+        <form [formGroup]="depForm">
+          <div class="toggle-card" [class.toggle-card--active]="depForm.get('isDepreciable')?.value">
+            <div class="toggle-card-left">
+              <div class="toggle-icon-wrap"><mat-icon>trending_down</mat-icon></div>
+              <div>
+                <div class="toggle-card-title">Enable Depreciation</div>
+                <div class="toggle-card-desc">Track value reduction over the asset's useful life</div>
+              </div>
+            </div>
+            <mat-slide-toggle formControlName="isDepreciable" color="primary"
+                              (change)="onDepreciableToggle($event.checked)">
+            </mat-slide-toggle>
+          </div>
+
+          <div class="dep-fields-panel" *ngIf="depForm.get('isDepreciable')?.value" @slideDown>
+            <div class="calc-info-banner">
+              <mat-icon>auto_fix_high</mat-icon>
+              <span>Total Cost is auto-calculated from <strong>Unit Price × Quantity</strong> from Basic Info</span>
+            </div>
+
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Total Cost *</mat-label>
+                <mat-icon matPrefix>payments</mat-icon>
+                <input matInput type="number" formControlName="depreciableCost" placeholder="0.00" min="0">
+                <span matTextPrefix class="currency-prefix">{{ currencySymbol }}</span>
+                <mat-hint>Auto from Unit Price × Qty</mat-hint>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Salvage Value *</mat-label>
+                <mat-icon matPrefix>account_balance</mat-icon>
+                <input matInput type="number" formControlName="salvageValue" placeholder="0.00" min="0">
+                <span matTextPrefix class="currency-prefix">{{ currencySymbol }}</span>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Useful Life (Months) *</mat-label>
+                <mat-icon matPrefix>schedule</mat-icon>
+                <input matInput type="number" formControlName="depreciationInMonth" placeholder="0" min="1">
+                <mat-hint>{{ depreciationYears }} year{{ depreciationYears !== 1 ? 's' : '' }}</mat-hint>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Depreciation Method *</mat-label>
+                <mat-icon matPrefix>calculate</mat-icon>
+                <mat-select formControlName="depreciationMethod" (selectionChange)="recalcDepreciation()">
+                  <mat-option *ngFor="let m of dropdownData().depreciationMethods" [value]="m.value">{{ m.label }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Date Acquired *</mat-label>
+                <input matInput [matDatepicker]="acquiredPicker" formControlName="dateAquired">
+                <mat-datepicker-toggle matIconSuffix [for]="acquiredPicker"></mat-datepicker-toggle>
+                <mat-datepicker #acquiredPicker></mat-datepicker>
+              </mat-form-field>
+            </div>
+
+            <!-- Live Summary -->
+            <div class="dep-summary" *ngIf="depSummary">
+              <div class="dep-summary-title"><mat-icon>auto_graph</mat-icon> Live Calculation Preview</div>
+              <div class="dep-summary-grid">
+                <div class="dep-summary-item">
+                  <span class="dep-s-label">Total Cost</span>
+                  <span class="dep-s-val">{{ currencySymbol }}{{ formatNum(depSummary.depreciableCost) }}</span>
+                </div>
+                <div class="dep-summary-item">
+                  <span class="dep-s-label">Salvage Value</span>
+                  <span class="dep-s-val">{{ currencySymbol }}{{ formatNum(depSummary.salvageValue) }}</span>
+                </div>
+                <div class="dep-summary-item dep-summary-item--highlight">
+                  <span class="dep-s-label">Net Depreciable</span>
+                  <span class="dep-s-val">{{ currencySymbol }}{{ formatNum(depSummary.netAmount) }}</span>
+                </div>
+                <div class="dep-summary-item">
+                  <span class="dep-s-label">Annual Depreciation</span>
+                  <span class="dep-s-val dep-s-val--down">{{ currencySymbol }}{{ formatNum(depSummary.annualDep) }}</span>
+                </div>
+                <div class="dep-summary-item">
+                  <span class="dep-s-label">Monthly Depreciation</span>
+                  <span class="dep-s-val dep-s-val--down">{{ currencySymbol }}{{ formatNum(depSummary.monthlyDep) }}</span>
+                </div>
+                <div class="dep-summary-item">
+                  <span class="dep-s-label">Method</span>
+                  <span class="dep-s-val dep-s-val--badge">{{ depSummary.methodLabel }}</span>
+                </div>
+              </div>
+
+              <div class="dep-mini-schedule" *ngIf="depPreviewRows.length">
+                <div class="dep-mini-title">First 3 Years Preview</div>
+                <table class="dep-preview-table">
+                  <thead>
+                    <tr><th>Year</th><th>Beginning Value</th><th>Depreciation</th><th>Ending Value</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of depPreviewRows">
+                      <td><span class="year-chip">Yr {{ row.year }}</span></td>
+                      <td class="num-cell">{{ currencySymbol }}{{ formatNum(row.begin) }}</td>
+                      <td class="num-cell dep-cell">▼ {{ currencySymbol }}{{ formatNum(row.dep) }}</td>
+                      <td class="num-cell end-cell">{{ currencySymbol }}{{ formatNum(row.end) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="no-dep-state" *ngIf="!depForm.get('isDepreciable')?.value">
+            <mat-icon>trending_flat</mat-icon>
+            <p>Depreciation is disabled.<br>Enable the toggle above to configure depreciation tracking.</p>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ─── STEP 3: Assignment ─── -->
+    <div class="step-panel" *ngIf="currentStep === 3" @stepAnim>
+      <div class="step-content">
+
+        <div class="section-title">
+          <mat-icon>assignment_ind</mat-icon>
+          <span>Assignment</span>
+        </div>
+
+        <!-- Single unit: simple assign form -->
+        <ng-container *ngIf="quantity === 1">
+          <ng-container *ngTemplateOutlet="globalAssignTpl; context: { $implicit: globalAssignForm, forUnit: -1 }"></ng-container>
+        </ng-container>
+
+        <!-- Multi-unit: mode toggle + per-unit or global assign -->
+        <ng-container *ngIf="quantity > 1">
+
+          <!-- Mode selector -->
+          <div class="assign-mode-row">
+            <div class="assign-mode-card" [class.mode-selected]="assignmentMode === 'global'" (click)="assignmentMode = 'global'">
+              <div class="amc-icon"><mat-icon>group</mat-icon></div>
+              <div class="amc-body">
+                <div class="amc-title">Same Assignment for All</div>
+                <div class="amc-desc">All {{ quantity }} units get the same assignment</div>
+              </div>
+              <mat-icon class="amc-check" *ngIf="assignmentMode === 'global'">check_circle</mat-icon>
+            </div>
+            <div class="assign-mode-card" [class.mode-selected]="assignmentMode === 'per-unit'" (click)="assignmentMode = 'per-unit'">
+              <div class="amc-icon"><mat-icon>tune</mat-icon></div>
+              <div class="amc-body">
+                <div class="amc-title">Individual Assignment</div>
+                <div class="amc-desc">Assign each unit to a different user or site</div>
+              </div>
+              <mat-icon class="amc-check" *ngIf="assignmentMode === 'per-unit'">check_circle</mat-icon>
+            </div>
+          </div>
+
+          <!-- GLOBAL MODE -->
+          <div *ngIf="assignmentMode === 'global'" @slideDown>
+            <div class="global-assign-info">
+              <mat-icon>info_outline</mat-icon>
+              <span>This assignment will apply to all <strong>{{ quantity }}</strong> units.</span>
+            </div>
+            <ng-container *ngTemplateOutlet="globalAssignTpl; context: { $implicit: globalAssignForm, forUnit: -1 }"></ng-container>
+          </div>
+
+          <!-- PER-UNIT MODE -->
+          <div *ngIf="assignmentMode === 'per-unit'" @slideDown>
+ 
+            <!-- ── Assignment progress summary ── -->
+            <div class="pua-progress-bar">
+              <div class="pua-prog-info">
+                <mat-icon>assignment_turned_in</mat-icon>
+                <span>
+                  <strong>{{ assignedUnitCount }}</strong> of
+                  <strong>{{ quantity }}</strong> units assigned
+                </span>
+              </div>
+              <div class="pua-prog-track">
+                <div class="pua-prog-fill"
+                     [style.width.%]="(assignedUnitCount / quantity) * 100"
+                     [class.prog-complete]="assignedUnitCount === quantity">
+                </div>
+              </div>
+              <!-- Quick-fill action: copy Unit 1 to everyone else -->
+              <button mat-stroked-button type="button"
+                      class="pua-copy-btn"
+                      (click)="applyFirstUnitToAll()"
+                      [disabled]="unitAssignments[0].assignTo === AssignToType.NotAssigned"
+                      matTooltip="Copy Unit 1's assignment to all other units">
+                <mat-icon>content_copy</mat-icon>
+                Apply Unit 1 to all
+              </button>
+            </div>
+ 
+            <div class="per-unit-assign-grid">
+ 
+              <div class="pua-card"
+                   *ngFor="let ua of unitAssignments; trackBy: trackByIndex"
+                   [class.pua-expanded]="expandedUnitIndex === ua.unitIndex"
+                   [class.pua-is-assigned]="ua.assignTo !== AssignToType.NotAssigned">
+ 
+                <!-- Unit header -->
+                <div class="pua-header" (click)="expandedUnitIndex = expandedUnitIndex === ua.unitIndex ? -1 : ua.unitIndex">
+                  <div class="pua-unit-badge">
+                    <mat-icon>widgets</mat-icon>
+                    Unit {{ ua.unitIndex + 1 }}
+                    <span class="pua-serial" *ngIf="unitSerials[ua.unitIndex]">· {{ unitSerials[ua.unitIndex] }}</span>
+                  </div>
+                  <div class="pua-summary-badge" [class.pua-assigned]="ua.assignTo !== AssignToType.NotAssigned">
+                    <mat-icon>{{ assignIcon(ua.assignTo) }}</mat-icon>
+                    {{ getAssignSummary(ua) }}
+                  </div>
+                  <mat-icon class="pua-expand-icon">{{ expandedUnitIndex === ua.unitIndex ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </div>
+ 
+                <!-- Unit assignment form (expanded) -->
+                <div class="pua-body" *ngIf="expandedUnitIndex === ua.unitIndex" @slideDown>
+ 
+                  <!-- Assign type cards -->
+                  <div class="assign-type-group">
+                    <div class="assign-type-card"
+                         *ngFor="let opt of dropdownData().assignToOptions"
+                         [class.selected]="ua.assignTo === opt.value"
+                         (click)="updateUnitAssignment(ua.unitIndex, 'assignTo', opt.value)">
+                      <mat-icon>{{ assignIcon(opt.value) }}</mat-icon>
+                      <span>{{ opt.label }}</span>
+                      <div class="assign-check" *ngIf="ua.assignTo === opt.value">
+                        <mat-icon>check_circle</mat-icon>
+                      </div>
+                    </div>
+                  </div>
+ 
+                  <!-- User selection -->
+                  <mat-form-field appearance="outline" class="full-width" *ngIf="ua.assignTo === AssignToType.User" @slideDown>
+                    <mat-label>Select Employee</mat-label>
+                    <mat-icon matPrefix>person</mat-icon>
+                    <mat-select [value]="ua.assignUserId"
+                                (selectionChange)="updateUnitAssignment(ua.unitIndex, 'assignUserId', $event.value)">
+                      <mat-option *ngFor="let u of filteredUsers" [value]="u.value">{{ u.label }}</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+ 
+                  <!-- Site + Area -->
+                  <div class="form-grid" *ngIf="ua.assignTo === AssignToType.Site" @slideDown>
+                    <mat-form-field appearance="outline">
+                      <mat-label>Site / Branch</mat-label>
+                      <mat-icon matPrefix>location_city</mat-icon>
+                      <mat-select [value]="ua.siteId"
+                                  (selectionChange)="updateUnitAssignment(ua.unitIndex, 'siteId', $event.value)">
+                        <mat-option *ngFor="let s of dropdownData().sites" [value]="s.value">{{ s.label }}</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>Area</mat-label>
+                      <mat-icon matPrefix>map</mat-icon>
+                      <mat-select [value]="ua.areaId"
+                                  (selectionChange)="updateUnitAssignment(ua.unitIndex, 'areaId', $event.value)">
+                        <mat-option *ngFor="let a of getFilteredAreasForUnit(ua.unitIndex)" [value]="a.value">{{ a.label }}</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+ 
+                  <!-- Auto-collapse after selection (UX: collapse when assignment is complete) -->
+                  <div class="pua-done-hint"
+                       *ngIf="ua.assignTo !== AssignToType.NotAssigned && getAssignSummary(ua) !== 'Not Assigned'">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>Assignment set — click the header to collapse</span>
+                  </div>
+ 
+                </div>
+              </div>
+ 
+            </div><!-- /per-unit-assign-grid -->
+          </div>
+
+        </ng-container><!-- /multi-unit -->
+
+        <!-- Transfer dates & notes (always shown, applies to all units) -->
+        <div class="section-title" style="margin-top:20px">
+          <mat-icon>event</mat-icon><span>Transfer Details</span>
+        </div>
+        <form [formGroup]="globalAssignForm" class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Transfer Date</mat-label>
+            <mat-icon matPrefix>event</mat-icon>
+            <input matInput [matDatepicker]="transferPicker" formControlName="transferDate">
+            <mat-datepicker-toggle matIconSuffix [for]="transferPicker"></mat-datepicker-toggle>
+            <mat-datepicker #transferPicker></mat-datepicker>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Due Date</mat-label>
+            <mat-icon matPrefix>event_busy</mat-icon>
+            <input matInput [matDatepicker]="duePicker" formControlName="dueDate">
+            <mat-datepicker-toggle matIconSuffix [for]="duePicker"></mat-datepicker-toggle>
+            <mat-datepicker #duePicker></mat-datepicker>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="col-span-2">
+            <mat-label>Assignment Notes</mat-label>
+            <mat-icon matPrefix>note</mat-icon>
+            <textarea matInput formControlName="note" rows="2" placeholder="Notes about this assignment..."></textarea>
+          </mat-form-field>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- ─── STEP 4: Documents ─── -->
+    <div class="step-panel" *ngIf="currentStep === 4" @stepAnim>
+      <div class="step-content">
+
+        <div class="section-title">
+          <mat-icon>folder_open</mat-icon>
+          <span>Documents &amp; Images</span>
+        </div>
+
+        <div class="doc-shared-note">
+          <mat-icon>info</mat-icon>
+          <span>Documents and images are shared across all units in this batch.</span>
+        </div>
+
+        <div class="file-upload-grid">
+          <!-- Asset Image -->
+          <div class="file-upload-card" [class.has-file]="filePreviews['imageUrl']">
+            <div class="file-upload-icon-zone" (click)="triggerFileInput('imageUrl')"
+                 (dragover)="onDragOver($event)" (drop)="onDrop($event, 'imageUrl')">
+              <ng-container *ngIf="!filePreviews['imageUrl']">
+                <mat-icon class="upload-icon">image</mat-icon>
+                <span class="upload-title">Asset Image</span>
+                <span class="upload-hint">JPG, PNG, WEBP · Max 5MB</span>
+                <button mat-stroked-button type="button" class="upload-browse-btn">
+                  <mat-icon>upload</mat-icon> Browse
+                </button>
+              </ng-container>
+              <ng-container *ngIf="filePreviews['imageUrl']">
+                <img [src]="filePreviews['imageUrl']" class="file-preview-img" alt="Asset preview">
+                <div class="preview-overlay">
+                  <button mat-icon-button type="button" (click)="removeFile('imageUrl', $event)" class="remove-file-btn">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </ng-container>
+            </div>
+            <input #imageUrlInput type="file" accept=".jpg,.jpeg,.png,.webp" style="display:none"
+                   (change)="onFileSelected($event, 'imageUrl')">
+            <div class="file-name-row" *ngIf="fileNames['imageUrl']">
+              <mat-icon class="file-name-icon">photo</mat-icon>
+              <span>{{ fileNames['imageUrl'] }}</span>
+            </div>
+          </div>
+
+          <!-- Delivery Note -->
+          <div class="file-upload-card" [class.has-file]="filePreviews['deliveryNote']">
+            <div class="file-upload-icon-zone" (click)="triggerFileInput('deliveryNote')"
+                 (dragover)="onDragOver($event)" (drop)="onDrop($event, 'deliveryNote')">
+              <ng-container *ngIf="!filePreviews['deliveryNote']">
+                <mat-icon class="upload-icon">local_shipping</mat-icon>
+                <span class="upload-title">Delivery Note</span>
+                <span class="upload-hint">PDF, JPG, PNG · Max 10MB</span>
+                <button mat-stroked-button type="button" class="upload-browse-btn">
+                  <mat-icon>upload</mat-icon> Browse
+                </button>
+              </ng-container>
+              <ng-container *ngIf="filePreviews['deliveryNote']">
+                <ng-container *ngIf="isImagePreview('deliveryNote'); else delPdf">
+                  <img [src]="filePreviews['deliveryNote']" class="file-preview-img" alt="Delivery Note">
+                </ng-container>
+                <ng-template #delPdf><div class="doc-preview-icon"><mat-icon>picture_as_pdf</mat-icon><span>PDF Document</span></div></ng-template>
+                <div class="preview-overlay">
+                  <button mat-icon-button type="button" (click)="removeFile('deliveryNote', $event)" class="remove-file-btn"><mat-icon>delete</mat-icon></button>
+                </div>
+              </ng-container>
+            </div>
+            <input #deliveryNoteInput type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+                   (change)="onFileSelected($event, 'deliveryNote')">
+            <div class="file-name-row" *ngIf="fileNames['deliveryNote']">
+              <mat-icon class="file-name-icon">description</mat-icon><span>{{ fileNames['deliveryNote'] }}</span>
+            </div>
+          </div>
+
+          <!-- Purchase Receipt -->
+          <div class="file-upload-card" [class.has-file]="filePreviews['purchaseReceipt']">
+            <div class="file-upload-icon-zone" (click)="triggerFileInput('purchaseReceipt')"
+                 (dragover)="onDragOver($event)" (drop)="onDrop($event, 'purchaseReceipt')">
+              <ng-container *ngIf="!filePreviews['purchaseReceipt']">
+                <mat-icon class="upload-icon">receipt</mat-icon>
+                <span class="upload-title">Purchase Receipt</span>
+                <span class="upload-hint">PDF, JPG, PNG · Max 10MB</span>
+                <button mat-stroked-button type="button" class="upload-browse-btn"><mat-icon>upload</mat-icon> Browse</button>
+              </ng-container>
+              <ng-container *ngIf="filePreviews['purchaseReceipt']">
+                <ng-container *ngIf="isImagePreview('purchaseReceipt'); else rcptPdf">
+                  <img [src]="filePreviews['purchaseReceipt']" class="file-preview-img" alt="Receipt">
+                </ng-container>
+                <ng-template #rcptPdf><div class="doc-preview-icon"><mat-icon>picture_as_pdf</mat-icon><span>PDF Document</span></div></ng-template>
+                <div class="preview-overlay">
+                  <button mat-icon-button type="button" (click)="removeFile('purchaseReceipt', $event)" class="remove-file-btn"><mat-icon>delete</mat-icon></button>
+                </div>
+              </ng-container>
+            </div>
+            <input #purchaseReceiptInput type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+                   (change)="onFileSelected($event, 'purchaseReceipt')">
+            <div class="file-name-row" *ngIf="fileNames['purchaseReceipt']">
+              <mat-icon class="file-name-icon">description</mat-icon><span>{{ fileNames['purchaseReceipt'] }}</span>
+            </div>
+          </div>
+
+          <!-- Invoice -->
+          <div class="file-upload-card" [class.has-file]="filePreviews['invoice']">
+            <div class="file-upload-icon-zone" (click)="triggerFileInput('invoice')"
+                 (dragover)="onDragOver($event)" (drop)="onDrop($event, 'invoice')">
+              <ng-container *ngIf="!filePreviews['invoice']">
+                <mat-icon class="upload-icon">receipt_long</mat-icon>
+                <span class="upload-title">Invoice</span>
+                <span class="upload-hint">PDF, JPG, PNG · Max 10MB</span>
+                <button mat-stroked-button type="button" class="upload-browse-btn"><mat-icon>upload</mat-icon> Browse</button>
+              </ng-container>
+              <ng-container *ngIf="filePreviews['invoice']">
+                <ng-container *ngIf="isImagePreview('invoice'); else invPdf">
+                  <img [src]="filePreviews['invoice']" class="file-preview-img" alt="Invoice">
+                </ng-container>
+                <ng-template #invPdf><div class="doc-preview-icon"><mat-icon>picture_as_pdf</mat-icon><span>PDF Document</span></div></ng-template>
+                <div class="preview-overlay">
+                  <button mat-icon-button type="button" (click)="removeFile('invoice', $event)" class="remove-file-btn"><mat-icon>delete</mat-icon></button>
+                </div>
+              </ng-container>
+            </div>
+            <input #invoiceInput type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+                   (change)="onFileSelected($event, 'invoice')">
+            <div class="file-name-row" *ngIf="fileNames['invoice']">
+              <mat-icon class="file-name-icon">description</mat-icon><span>{{ fileNames['invoice'] }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Notes -->
+        <div class="section-title" style="margin-top:28px">
+          <mat-icon>note_alt</mat-icon><span>Additional Notes</span>
+        </div>
+        <form [formGroup]="notesForm">
+          <mat-form-field appearance="outline" style="width:100%">
+            <mat-label>Notes</mat-label>
+            <mat-icon matPrefix>note</mat-icon>
+            <textarea matInput formControlName="note" rows="3" placeholder="Any additional notes..."></textarea>
+          </mat-form-field>
+        </form>
+
+      </div>
+    </div>
+
+  </div><!-- /popup-body -->
+
+  <!-- ══════════════════════ FOOTER ══════════════════════ -->
+  <div class="popup-footer">
+    <button mat-stroked-button type="button" (click)="onCancel()" class="footer-cancel-btn">
+      <mat-icon>close</mat-icon> Cancel
+    </button>
+
+    <div class="footer-nav">
+      <button mat-stroked-button type="button" (click)="prevStep()"
+              [disabled]="currentStep === 0" class="nav-btn">
+        <mat-icon>chevron_left</mat-icon> Previous
+      </button>
+
+      <div class="step-dots">
+        <span class="dot" *ngFor="let s of steps; let i = index"
+              [class.active]="currentStep === i"
+              [class.done]="completedSteps.has(i)"
+              (click)="goToStep(i)"></span>
+      </div>
+
+      <button mat-raised-button type="button" color="primary"
+              *ngIf="currentStep < steps.length - 1"
+              (click)="nextStep()" class="nav-btn nav-btn--primary">
+        Next <mat-icon>chevron_right</mat-icon>
+      </button>
+
+      <button mat-raised-button type="button" color="primary"
+              *ngIf="currentStep === steps.length - 1"
+              (click)="onSubmit()" [disabled]="submitting" class="nav-btn nav-btn--submit">
+        <mat-spinner *ngIf="submitting" diameter="18" class="btn-spinner"></mat-spinner>
+        <mat-icon *ngIf="!submitting">save</mat-icon>
+        {{ submitting ? 'Saving...' : 'Add Asset' }}
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── GLOBAL ASSIGN TEMPLATE ──────────────────────────────────────────────── -->
+<ng-template #globalAssignTpl let-form let-forUnit="forUnit">
+  <form [formGroup]="globalAssignForm" class="global-assign-form">
+    <div class="assign-type-group" *ngIf="forUnit === -1">
+      <div class="assign-type-card"
+           *ngFor="let opt of dropdownData().assignToOptions"
+           [class.selected]="globalAssignForm.get('assignTo')?.value === opt.value"
+           (click)="selectGlobalAssignType(opt.value)">
+        <mat-icon>{{ assignIcon(opt.value) }}</mat-icon>
+        <span>{{ opt.label }}</span>
+        <div class="assign-check" *ngIf="globalAssignForm.get('assignTo')?.value === opt.value">
+          <mat-icon>check_circle</mat-icon>
+        </div>
+      </div>
+    </div>
+
+    <ng-container *ngIf="globalAssignForm.get('assignTo')?.value === AssignToType.User">
+      <mat-form-field appearance="outline" class="full-width" @slideDown>
+        <mat-label>Select Employee</mat-label>
+        <mat-icon matPrefix>person</mat-icon>
+        <mat-select formControlName="assignUserId">
+          <mat-option>
+            <ngx-mat-select-search placeholderLabel="Search employee..."
+                                   noEntriesFoundLabel="No employee found"
+                                   [formControl]="userSearchCtrl">
+            </ngx-mat-select-search>
+          </mat-option>
+          <mat-option *ngFor="let u of filteredUsers" [value]="u.value">{{ u.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </ng-container>
+
+    <ng-container *ngIf="globalAssignForm.get('assignTo')?.value === AssignToType.Site">
+      <div class="form-grid" @slideDown>
+        <mat-form-field appearance="outline">
+          <mat-label>Site / Branch</mat-label>
+          <mat-icon matPrefix>location_city</mat-icon>
+          <mat-select formControlName="siteId" (selectionChange)="onGlobalSiteChange($event.value)">
+            <mat-option *ngFor="let s of dropdownData().sites" [value]="s.value">{{ s.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Area</mat-label>
+          <mat-icon matPrefix>map</mat-icon>
+          <mat-select formControlName="areaId">
+            <mat-option *ngFor="let a of filteredAreasGlobal" [value]="a.value">{{ a.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </ng-container>
+  </form>
+</ng-template>

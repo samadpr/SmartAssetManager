@@ -2,38 +2,56 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { jwtDecode } from 'jwt-decode';
 import { AccountService } from '../account/account.service';
+import { PermissionService } from '../permission/permission.service';
 
-// ASP.NET Core Identity uses these long URI-based claim keys
+// Keep your existing claim URI constants exactly as they are
 export const MS_ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
 export const MS_NAME_CLAIM = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name';
 
 export interface JwtPayload {
-  // Short-form keys (may or may not be present depending on backend config)
   email?: string;
   role?: string | string[];
   name?: string;
   exp: number;
-  // Microsoft .NET long-form claim keys
   [MS_ROLE_CLAIM]?: string | string[];
   [MS_NAME_CLAIM]?: string;
-  // Allow any other claims
   [key: string]: any;
 }
-
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private accountService = inject(AccountService);
-  private tokenKey = 'auth_token';
+  private permissionService = inject(PermissionService);  // ← ADD THIS LINE
+  private tokenKey = 'auth_token';           // ← YOUR original key, unchanged
   private companyDataKey = 'company_info';
   private userDataKey = 'user_profile';
 
+  constructor(private router: Router) {
+    // ── ADD: rehydrate permissions on page refresh ────────────────────────────
+    // When the page is refreshed, the token is still in localStorage but the
+    // in-memory PermissionService signal is empty. This re-loads it.
+    const token = this.getToken();
+    if (token) {
+      try {
+        const decoded = jwtDecode<JwtPayload>(token);
+        if (decoded.exp > Date.now() / 1000) {
+          this.permissionService.loadFromToken(token);  // ← rehydrate
+        } else {
+          // Token expired — clean up silently
+          this.clearToken();
+        }
+      } catch {
+        this.clearToken();
+      }
+    }
+  }
 
-  constructor(private router: Router) { }
+  // ── YOUR EXISTING METHODS — UNCHANGED ────────────────────────────────────────
 
   setToken(token: string): void {
     localStorage.setItem(this.tokenKey, token);
+    this.permissionService.loadFromToken(token);  // ← ADD THIS LINE ONLY
   }
 
   getToken(): string | null {
@@ -43,14 +61,17 @@ export class AuthService {
 
   clearToken(): void {
     localStorage.removeItem(this.tokenKey);
+    this.permissionService.clear();  // ← ADD THIS LINE ONLY
   }
 
   clearDatas(): void {
+    // ← UNCHANGED
     localStorage.removeItem(this.companyDataKey);
     localStorage.removeItem(this.userDataKey);
   }
 
   isAuthenticated(): boolean {
+    // ← UNCHANGED — your original logic
     const token = this.getToken();
     if (!token) return false;
     try {
@@ -62,6 +83,7 @@ export class AuthService {
   }
 
   getUser(): JwtPayload | null {
+    // ← UNCHANGED
     const token = this.getToken();
     if (!token) return null;
     try {
@@ -71,33 +93,27 @@ export class AuthService {
     }
   }
 
-  /**
-   * Returns all roles from the token, handling both:
-   *  - ASP.NET Core long claim URI  (MS_ROLE_CLAIM)
-   *  - Short 'role' key
-   * Always returns a string array (empty if no roles found).
-   */
   getRoles(): string[] {
+    // ← UNCHANGED — your original dual-claim logic is kept
     const decoded = this.getUser();
     if (!decoded) return [];
 
-    // Microsoft namespace claim (ASP.NET Core default)
     const msClaim = decoded[MS_ROLE_CLAIM];
     if (msClaim) return Array.isArray(msClaim) ? msClaim : [msClaim];
 
-    // Short-form fallback
     const roleClaim = decoded['role'];
     if (roleClaim) return Array.isArray(roleClaim) ? roleClaim : [roleClaim];
 
     return [];
   }
 
-  /** Convenience: check if the current user has a specific role */
   hasRole(role: string): boolean {
+    // ← UNCHANGED
     return this.getRoles().includes(role);
   }
 
   logout(): void {
+    // ← UNCHANGED
     this.accountService.logout().subscribe({
       next: (res) => {
         console.log(res.message || 'Logout successful');
@@ -113,7 +129,9 @@ export class AuthService {
       }
     });
   }
+
   adminLogout(): void {
+    // ← UNCHANGED
     this.accountService.logout().subscribe({
       next: (res) => {
         console.log(res.message || 'Logout successful');

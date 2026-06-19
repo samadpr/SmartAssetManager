@@ -6,7 +6,6 @@ import { Subscriptions } from '../../../models/admin/subscriptions.interface';
   providedIn: 'root'
 })
 export class CompanyStorageService {
-
   private readonly KEY = 'company_info';
 
   save(company: Partial<Company>): void {

@@ -1,792 +1,893 @@
-<app-page-header [title]="'Asset Reports'" [breadcrumbs]="[
-    { label: 'Reports', url: '/reports' },
-    { label: 'Asset Reports' }
-  ]">
+<app-page-header
+  [title]="'Asset Reports'"
+  [breadcrumbs]="[{ label: 'Reports', url: '/reports' }, { label: 'Asset Reports' }]">
 </app-page-header>
+
+<div class="ar-page">
  
-<!-- Main Container -->
-<div class="report-container" style="padding: 24px; display: block !important;">
- 
-  <!-- FILTER CARD -->
-  <mat-card class="filter-card" style="margin-bottom: 24px; display: block !important;">
-    <mat-card-content style="display: block !important;">
- 
-      <!-- Filter Header -->
-      <div class="filter-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div class="filter-title" style="display: flex; align-items: center; gap: 12px;">
-          <mat-icon>filter_list</mat-icon>
-          <span style="font-size: 1.25rem; font-weight: 600;">Filters & Search</span>
-        </div>
-        <button mat-stroked-button color="warn" (click)="clearAllFilters()">
-          <mat-icon>clear_all</mat-icon>
-          Clear All
-        </button>
+  <!-- ══════════════════════ KPI STRIP ══════════════════════ -->
+  <div class="kpi-strip" *ngIf="!loading()">
+    <div class="kpi-card kpi-primary" [@fadeUp]>
+      <div class="kpi-ico"><mat-icon>inventory_2</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ grandTotalBatches() }}</span>
+        <span class="kpi-lbl">Total Batches</span>
       </div>
- 
-      <!-- Search Bar -->
-      <div class="search-section" style="margin-bottom: 16px;">
-        <mat-form-field appearance="outline" style="width: 100%;">
-          <mat-label>Search Assets</mat-label>
-          <input
-            matInput
-            [formControl]="searchControl"
-            placeholder="Search by ID, Name, Brand, Model, Description...">
-          <mat-icon matPrefix>search</mat-icon>
-          <button
-            matSuffix
-            mat-icon-button
-            (click)="searchControl.setValue('')"
-            *ngIf="searchControl.value">
-            <mat-icon>close</mat-icon>
-          </button>
-        </mat-form-field>
+    </div>
+    <div class="kpi-card kpi-cyan" [@fadeUp]>
+      <div class="kpi-ico"><mat-icon>widgets</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ grandTotalUnits() }}</span>
+        <span class="kpi-lbl">Total Units</span>
       </div>
- 
-      <!-- Advanced Filters -->
-      <mat-expansion-panel class="filter-expansion" style="margin-top: 16px;">
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <mat-icon>tune</mat-icon>
-            <span style="margin-left: 12px;">Advanced Filters</span>
-          </mat-panel-title>
-          <mat-panel-description>
-            {{ activeFilters().length }} active filter(s)
-          </mat-panel-description>
-        </mat-expansion-panel-header>
- 
-        <!-- Filter Grid -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 24px;">
- 
-          <!-- Category -->
-          <mat-form-field appearance="outline">
-            <mat-label>Category</mat-label>
-            <mat-select [formControl]="categoryControl">
-              <mat-option value="">All Categories</mat-option>
-              <mat-option *ngFor="let cat of filterOptions().categories" [value]="cat.id">
-                {{ cat.name }}
-              </mat-option>
-            </mat-select>
-            <mat-icon matPrefix>category</mat-icon>
-          </mat-form-field>
- 
-          <!-- Sub Category -->
-          <mat-form-field appearance="outline">
-            <mat-label>Sub Category</mat-label>
-            <mat-select [formControl]="subCategoryControl">
-              <mat-option value="">All Sub Categories</mat-option>
-              <mat-option *ngFor="let subCat of filterOptions().subCategories" [value]="subCat.id">
-                {{ subCat.name }}
-              </mat-option>
-            </mat-select>
-            <mat-icon matPrefix>subdirectory_arrow_right</mat-icon>
-          </mat-form-field>
- 
-          <!-- Department -->
-          <mat-form-field appearance="outline">
-            <mat-label>Department</mat-label>
-            <mat-select [formControl]="departmentControl">
-              <mat-option value="">All Departments</mat-option>
-              <mat-option *ngFor="let dept of filterOptions().departments" [value]="dept.id">
-                {{ dept.name }}
-              </mat-option>
-            </mat-select>
-            <mat-icon matPrefix>account_tree</mat-icon>
-          </mat-form-field>
- 
-          <!-- Sub Department -->
-          <mat-form-field appearance="outline">
-            <mat-label>Sub Department</mat-label>
-            <mat-select [formControl]="subDepartmentControl">
-              <mat-option value="">All Sub Departments</mat-option>
-              <mat-option *ngFor="let subDept of filterOptions().subDepartments" [value]="subDept.id">
-                {{ subDept.name }}
-              </mat-option>
-            </mat-select>
-            <mat-icon matPrefix>subdirectory_arrow_right</mat-icon>
-          </mat-form-field>
- 
-          <!-- Site -->
-          <mat-form-field appearance="outline">
-            <mat-label>Site/Branch</mat-label>
-            <mat-select [formControl]="siteControl">
-              <mat-option value="">All Sites</mat-option>
-              <mat-option *ngFor="let site of filterOptions().sites" [value]="site.id">
-                {{ site.name }}
-              </mat-option>
-            </mat-select>
-            <mat-icon matPrefix>location_city</mat-icon>
-          </mat-form-field>
- 
-          <!-- Area -->
-          <mat-form-field appearance="outline">
-            <mat-label>Area</mat-label>
-            <mat-select [formControl]="areaControl">
-              <mat-option value="">All Areas</mat-option>
-              <mat-option *ngFor="let area of filterOptions().areas" [value]="area.id">
-                {{ area.name }}
-              </mat-option>
-            </mat-select>
-            <mat-icon matPrefix>map</mat-icon>
-          </mat-form-field>
- 
-          <!-- Supplier -->
-          <mat-form-field appearance="outline">
-            <mat-label>Supplier</mat-label>
-            <mat-select [formControl]="supplierControl">
-              <mat-option value="">All Suppliers</mat-option>
-              <mat-option *ngFor="let supplier of filterOptions().suppliers" [value]="supplier.id">
-                {{ supplier.name }}
-              </mat-option>
-            </mat-select>
-            <mat-icon matPrefix>local_shipping</mat-icon>
-          </mat-form-field>
- 
-          <!-- Asset Status -->
-          <mat-form-field appearance="outline">
-            <mat-label>Asset Status</mat-label>
-            <mat-select [formControl]="assetStatusControl">
-              <mat-option value="">All Statuses</mat-option>
-              <mat-option *ngFor="let status of filterOptions().assetStatuses" [value]="status.id">
-                {{ status.name }}
-              </mat-option>
-            </mat-select>
-            <mat-icon matPrefix>info</mat-icon>
-          </mat-form-field>
- 
-          <!-- Asset Type -->
-          <mat-form-field appearance="outline">
-            <mat-label>Asset Type</mat-label>
-            <mat-select [formControl]="assetTypeControl">
-              <mat-option value="">All Types</mat-option>
-              <mat-option *ngFor="let type of filterOptions().assetTypes" [value]="type.id">
-                {{ type.name }}
-              </mat-option>
-            </mat-select>
-            <mat-icon matPrefix>inventory_2</mat-icon>
-          </mat-form-field>
- 
-          <!-- Assigned To -->
-          <mat-form-field appearance="outline">
-            <mat-label>Assigned To</mat-label>
-            <mat-select [formControl]="assignTypeControl">
-              <mat-option value="">All Assignment Types</mat-option>
-              <mat-option *ngFor="let type of filterOptions().assignTypes" [value]="type.id">
-                {{ type.name }}
-              </mat-option>
-            </mat-select>
-            <mat-icon matPrefix>assignment_ind</mat-icon>
-          </mat-form-field>
- 
-          <!-- Start Date -->
-          <mat-form-field appearance="outline">
-            <mat-label>Start Date</mat-label>
-            <input matInput [matDatepicker]="startPicker" [formControl]="startDateControl">
-            <mat-datepicker-toggle matPrefix [for]="startPicker"></mat-datepicker-toggle>
-            <mat-datepicker #startPicker></mat-datepicker>
-          </mat-form-field>
- 
-          <!-- End Date -->
-          <mat-form-field appearance="outline">
-            <mat-label>End Date</mat-label>
-            <input matInput [matDatepicker]="endPicker" [formControl]="endDateControl">
-            <mat-datepicker-toggle matPrefix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker #endPicker></mat-datepicker>
-          </mat-form-field>
- 
-          <!-- Disposal Specific Filters -->
-          <ng-container *ngIf="reportType() === 'disposal'">
-            <mat-form-field appearance="outline">
-              <mat-label>Disposal Method</mat-label>
-              <mat-select [formControl]="disposalMethodControl">
-                <mat-option value="">All Methods</mat-option>
-                <mat-option *ngFor="let method of filterOptions().disposalMethods" [value]="method.id">
-                  {{ method.name }}
-                </mat-option>
-              </mat-select>
-              <mat-icon matPrefix>delete_forever</mat-icon>
-            </mat-form-field>
- 
-            <mat-form-field appearance="outline">
-              <mat-label>Disposal Start Date</mat-label>
-              <input matInput [matDatepicker]="disposalStartPicker" [formControl]="disposalStartDateControl">
-              <mat-datepicker-toggle matPrefix [for]="disposalStartPicker"></mat-datepicker-toggle>
-              <mat-datepicker #disposalStartPicker></mat-datepicker>
-            </mat-form-field>
- 
-            <mat-form-field appearance="outline">
-              <mat-label>Disposal End Date</mat-label>
-              <input matInput [matDatepicker]="disposalEndPicker" [formControl]="disposalEndDateControl">
-              <mat-datepicker-toggle matPrefix [for]="disposalEndPicker"></mat-datepicker-toggle>
-              <mat-datepicker #disposalEndPicker></mat-datepicker>
-            </mat-form-field>
-          </ng-container>
- 
-        </div>
- 
-        <!-- Depreciation Checkbox -->
-        <div *ngIf="reportType() !== 'disposal'" style="padding: 16px; background: var(--mat-sys-primary-container); border-radius: 8px; margin: 0 24px 24px 24px;">
-          <mat-checkbox [formControl]="depreciableOnlyControl">
-            Show Depreciable Assets Only
-          </mat-checkbox>
-        </div>
- 
-      </mat-expansion-panel>
- 
-      <!-- Active Filters Chips -->
-      <div *ngIf="activeFilters().length > 0" style="display: flex; align-items: center; gap: 12px; margin-top: 20px; padding: 16px; background: var(--mat-sys-surface-container-highest); border-radius: 12px; flex-wrap: wrap;">
-        <span style="font-weight: 600;">Active Filters:</span>
-        <mat-chip-set>
-          <mat-chip *ngFor="let filter of activeFilters()" (removed)="removeFilter(filter)">
-            {{ filter.label }}
-            <button matChipRemove>
-              <mat-icon>cancel</mat-icon>
-            </button>
-          </mat-chip>
-        </mat-chip-set>
+    </div>
+    <div class="kpi-card kpi-green" [@fadeUp]>
+      <div class="kpi-ico"><mat-icon>attach_money</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ formatCurrencyCompact(grandTotalValue()) }}</span>
+        <span class="kpi-lbl">Total Value</span>
       </div>
+    </div>
+    <div class="kpi-card kpi-purple" [@fadeUp]>
+      <div class="kpi-ico"><mat-icon>trending_down</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ grandDepreciableUnits() }}</span>
+        <span class="kpi-lbl">Depreciable</span>
+      </div>
+    </div>
+    <div class="kpi-card kpi-red" [@fadeUp]>
+      <div class="kpi-ico"><mat-icon>delete_forever</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ grandDisposedUnits() }}</span>
+        <span class="kpi-lbl">Disposed</span>
+      </div>
+    </div>
+    <div class="kpi-card kpi-amber" [@fadeUp]>
+      <div class="kpi-ico"><mat-icon>assignment_ind</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-val">{{ grandAssignedUnits() }}</span>
+        <span class="kpi-lbl">Assigned</span>
+      </div>
+    </div>
+  </div>
  
-    </mat-card-content>
-  </mat-card>
+  <!-- KPI Skeleton -->
+  <div class="kpi-strip" *ngIf="loading()">
+    <div class="kpi-card kpi-skel" *ngFor="let s of [1,2,3,4,5,6]">
+      <div class="sk-ico"></div>
+      <div class="sk-lines">
+        <div class="sk-line sk-val"></div>
+        <div class="sk-line sk-lbl"></div>
+      </div>
+    </div>
+  </div>
  
-  <!-- STATISTICS CARDS -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 24px;">
+  <!-- ══════════════════════ TOOLBAR ══════════════════════ -->
+  <div class="ar-toolbar">
  
-    <!-- Full Report Statistics -->
-    <ng-container *ngIf="reportType() === 'full'">
+    <!-- Report type tabs -->
+    <div class="report-tabs">
+      <button class="rtab" [class.active]="reportType() === 'full'"
+              (click)="onReportTypeChange('full')">
+        <mat-icon>assignment</mat-icon>
+        <span>Full Report</span>
+      </button>
+      <button class="rtab" [class.active]="reportType() === 'depreciation'"
+              (click)="onReportTypeChange('depreciation')">
+        <mat-icon>trending_down</mat-icon>
+        <span>Depreciation</span>
+      </button>
+      <button class="rtab" [class.active]="reportType() === 'disposal'"
+              (click)="onReportTypeChange('disposal')">
+        <mat-icon>delete_forever</mat-icon>
+        <span>Disposal</span>
+      </button>
+    </div>
  
-      <mat-card class="stat-card primary-stat">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>inventory_2</mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value stat-value--lg">{{ totalAssets() }}</div>
-              <div class="stat-label">Total Assets</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
+    <span class="tb-spacer"></span>
  
-      <mat-card class="stat-card success-stat">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>attach_money</mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(totalValue()))">
-                {{ formatCurrencyCompact(totalValue()) }}
-              </div>
-              <div class="stat-label">Total Value</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
+    <!-- Search -->
+    <div class="tb-search">
+      <mat-icon class="ts-icon">search</mat-icon>
+      <input class="ts-input" placeholder="Search batches, categories, suppliers…"
+             [formControl]="searchControl" />
+      <button *ngIf="searchControl.value" mat-icon-button class="ts-clear"
+              (click)="searchControl.setValue('')">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
  
-      <mat-card class="stat-card warning-stat">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>trending_down</mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value stat-value--lg">{{ depreciableAssets() }}</div>
-              <div class="stat-label">Depreciable Assets</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
+    <!-- Filter button — shows count badge when filters active -->
+    <button class="filter-toggle-btn"
+            [class.filter-active]="activeFilterCount() > 0"
+            (click)="toggleFilterPanel()"
+            [matTooltip]="filterPanelOpen() ? 'Close filters' : 'Open filters'">
+      <mat-icon>tune</mat-icon>
+      <span>Filters</span>
+      <span class="filter-count-badge" *ngIf="activeFilterCount() > 0">
+        {{ activeFilterCount() }}
+      </span>
+    </button>
  
-      <mat-card class="stat-card info-stat">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>analytics</mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(totalDepreciationValue()))">
-                {{ formatCurrencyCompact(totalDepreciationValue()) }}
-              </div>
-              <div class="stat-label">Depreciation Value</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
- 
-    </ng-container>
- 
-    <!-- Depreciation Report Statistics -->
-    <ng-container *ngIf="reportType() === 'depreciation'">
- 
-      <mat-card class="stat-card depreciation-count-stat">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>trending_down</mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value stat-value--lg">{{ totalDepreciableAssets() }}</div>
-              <div class="stat-label">Depreciable Assets</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
- 
-      <mat-card class="stat-card depreciation-value-stat">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>analytics</mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(totalDepreciationCost()))">
-                {{ formatCurrencyCompact(totalDepreciationCost()) }}
-              </div>
-              <div class="stat-label">Total Depreciable Cost</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
- 
-      <mat-card class="stat-card salvage-value-stat">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>savings</mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(totalSalvageValue()))">
-                {{ formatCurrencyCompact(totalSalvageValue()) }}
-              </div>
-              <div class="stat-label">Total Salvage Value</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
- 
-      <mat-card class="stat-card net-depreciation-stat">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>calculate</mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(netDepreciationValue()))">
-                {{ formatCurrencyCompact(netDepreciationValue()) }}
-              </div>
-              <div class="stat-label">Net Depreciation</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
- 
-    </ng-container>
- 
-    <!-- Disposal Report Statistics -->
-    <ng-container *ngIf="reportType() === 'disposal'">
- 
-      <mat-card class="stat-card disposal-stat">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>delete_forever</mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value stat-value--lg">{{ totalDisposedAssets() }}</div>
-              <div class="stat-label">Disposed Assets</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
- 
-      <mat-card class="stat-card disposal-value-stat">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>monetization_on</mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value" [ngClass]="getStatValueClass(formatCurrencyCompact(totalDisposedValue()))">
-                {{ formatCurrencyCompact(totalDisposedValue()) }}
-              </div>
-              <div class="stat-label">Total Disposed Value</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
- 
-      <!-- Disposal Method Breakdown Cards -->
-      <mat-card class="stat-card method-stat" *ngFor="let entry of disposalMethodCounts() | keyvalue | slice:0:2">
-        <mat-card-content>
-          <div class="stat-inner">
-            <div class="stat-icon-wrap">
-              <mat-icon>
-                {{ entry.key === 'Sold' ? 'sell' : entry.key === 'Donated' ? 'volunteer_activism' : entry.key === 'Recycled' ? 'recycling' : 'dangerous' }}
-              </mat-icon>
-            </div>
-            <div class="stat-details">
-              <div class="stat-value stat-value--lg">{{ entry.value }}</div>
-              <div class="stat-label">{{ entry.key }}</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
- 
-    </ng-container>
+    <!-- Export -->
+    <button mat-stroked-button [matMenuTriggerFor]="exportMenu"
+            [disabled]="exportLoading()" class="tb-btn">
+      <mat-icon>{{ exportLoading() ? 'hourglass_empty' : 'download' }}</mat-icon>
+      {{ exportLoading() ? 'Exporting…' : 'Export' }}
+    </button>
+    <mat-menu #exportMenu="matMenu">
+      <button mat-menu-item (click)="exportToPDF()">
+        <mat-icon style="color:#d32f2f">picture_as_pdf</mat-icon> Export PDF
+      </button>
+      <button mat-menu-item (click)="exportToExcel()">
+        <mat-icon style="color:#2e7d32">table_chart</mat-icon> Export Excel
+      </button>
+      <button mat-menu-item (click)="exportToCSV()">
+        <mat-icon style="color:#1565c0">description</mat-icon> Export CSV
+      </button>
+      <mat-divider></mat-divider>
+      <button mat-menu-item (click)="printReport()">
+        <mat-icon style="color:#6a1b9a">print</mat-icon> Print Report
+      </button>
+    </mat-menu>
  
   </div>
  
-  <!-- REPORT TYPE & EXPORT -->
-  <mat-card style="margin-bottom: 24px; display: block !important;">
-    <mat-card-content style="display: block !important;">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+  <!-- ══════════════════════ FILTER PANEL ══════════════════════ -->
+  <div class="filter-panel" *ngIf="filterPanelOpen()" [@filterPanel]>
  
-        <mat-radio-group [value]="reportType()" (change)="toggleReportType($event.value)" style="display: flex; gap: 24px;">
-          <mat-radio-button value="full">
-            <span style="display: flex; align-items: center; gap: 8px;">
-              <mat-icon>assignment</mat-icon>
-              Full Asset Report
-            </span>
-          </mat-radio-button>
-          <mat-radio-button value="depreciation">
-            <span style="display: flex; align-items: center; gap: 8px;">
+    <div class="fp-header">
+      <div class="fp-title">
+        <mat-icon>tune</mat-icon>
+        <span>Advanced Filters</span>
+        <span class="fp-active-count" *ngIf="activeFilterCount() > 0">
+          {{ activeFilterCount() }} active
+        </span>
+      </div>
+      <button mat-button class="fp-clear-btn" *ngIf="activeFilterCount() > 0"
+              (click)="clearAllFilters()">
+        <mat-icon>clear_all</mat-icon> Clear All
+      </button>
+      <button mat-icon-button class="fp-close-btn" (click)="toggleFilterPanel()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+ 
+    <div class="fp-grid">
+ 
+      <!-- Category -->
+      <mat-form-field appearance="outline" class="fp-field">
+        <mat-label>Category</mat-label>
+        <mat-select [formControl]="categoryFilter">
+          <mat-option value="">All Categories</mat-option>
+          <mat-option *ngFor="let c of uniqueCategories()" [value]="c">{{ c }}</mat-option>
+        </mat-select>
+        <mat-icon matPrefix>category</mat-icon>
+        <button *ngIf="categoryFilter.value" matSuffix mat-icon-button
+                (click)="$event.stopPropagation(); categoryFilter.setValue('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+ 
+      <!-- Sub Category -->
+      <mat-form-field appearance="outline" class="fp-field">
+        <mat-label>Sub Category</mat-label>
+        <mat-select [formControl]="subCategoryFilter">
+          <mat-option value="">All Sub Categories</mat-option>
+          <mat-option *ngFor="let c of uniqueSubCategories()" [value]="c">{{ c }}</mat-option>
+        </mat-select>
+        <mat-icon matPrefix>subdirectory_arrow_right</mat-icon>
+        <button *ngIf="subCategoryFilter.value" matSuffix mat-icon-button
+                (click)="$event.stopPropagation(); subCategoryFilter.setValue('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+ 
+      <!-- Department -->
+      <mat-form-field appearance="outline" class="fp-field">
+        <mat-label>Department</mat-label>
+        <mat-select [formControl]="departmentFilter">
+          <mat-option value="">All Departments</mat-option>
+          <mat-option *ngFor="let d of uniqueDepartments()" [value]="d">{{ d }}</mat-option>
+        </mat-select>
+        <mat-icon matPrefix>account_tree</mat-icon>
+        <button *ngIf="departmentFilter.value" matSuffix mat-icon-button
+                (click)="$event.stopPropagation(); departmentFilter.setValue('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+ 
+      <!-- Status -->
+      <mat-form-field appearance="outline" class="fp-field">
+        <mat-label>Asset Status</mat-label>
+        <mat-select [formControl]="statusFilter">
+          <mat-option value="">All Statuses</mat-option>
+          <mat-option *ngFor="let s of uniqueStatuses()" [value]="s">{{ s }}</mat-option>
+        </mat-select>
+        <mat-icon matPrefix>info</mat-icon>
+        <button *ngIf="statusFilter.value" matSuffix mat-icon-button
+                (click)="$event.stopPropagation(); statusFilter.setValue('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+ 
+      <!-- Site -->
+      <mat-form-field appearance="outline" class="fp-field">
+        <mat-label>Site / Branch</mat-label>
+        <mat-select [formControl]="siteFilter">
+          <mat-option value="">All Sites</mat-option>
+          <mat-option *ngFor="let s of uniqueSites()" [value]="s">{{ s }}</mat-option>
+        </mat-select>
+        <mat-icon matPrefix>location_city</mat-icon>
+        <button *ngIf="siteFilter.value" matSuffix mat-icon-button
+                (click)="$event.stopPropagation(); siteFilter.setValue('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+      <!-- Area -->                                         
+      <mat-form-field appearance="outline" class="fp-field">
+        <mat-label>Area</mat-label>
+        <mat-select [formControl]="areaFilter">
+          <mat-option value="">All Areas</mat-option>
+          <mat-option *ngFor="let a of uniqueAreas()" [value]="a">{{ a }}</mat-option>
+        </mat-select>
+        <mat-icon matPrefix>map</mat-icon>
+        <button *ngIf="areaFilter.value" matSuffix mat-icon-button
+                (click)="$event.stopPropagation(); areaFilter.setValue('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+ 
+      <!-- Supplier -->
+      <mat-form-field appearance="outline" class="fp-field">
+        <mat-label>Supplier</mat-label>
+        <mat-select [formControl]="supplierFilter">
+          <mat-option value="">All Suppliers</mat-option>
+          <mat-option *ngFor="let s of uniqueSuppliers()" [value]="s">{{ s }}</mat-option>
+        </mat-select>
+        <mat-icon matPrefix>local_shipping</mat-icon>
+        <button *ngIf="supplierFilter.value" matSuffix mat-icon-button
+                (click)="$event.stopPropagation(); supplierFilter.setValue('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+ 
+      <!-- Assignment Type -->
+      <mat-form-field appearance="outline" class="fp-field">
+        <mat-label>Assignment</mat-label>
+        <mat-select [formControl]="assignTypeFilter">
+          <mat-option value="">All Assignments</mat-option>
+          <mat-option value="1">Has User-assigned</mat-option>
+          <mat-option value="0">Has Unassigned</mat-option>
+          <mat-option value="3">Has Disposed</mat-option>
+        </mat-select>
+        <mat-icon matPrefix>assignment_ind</mat-icon>
+        <button *ngIf="assignTypeFilter.value" matSuffix mat-icon-button
+                (click)="$event.stopPropagation(); assignTypeFilter.setValue('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+ 
+      <!-- Date From -->
+      <mat-form-field appearance="outline" class="fp-field">
+        <mat-label>Created From</mat-label>
+        <input matInput [matDatepicker]="fromPicker" [formControl]="startDate">
+        <mat-datepicker-toggle matPrefix [for]="fromPicker"></mat-datepicker-toggle>
+        <mat-datepicker #fromPicker></mat-datepicker>
+        <button *ngIf="startDate.value" matSuffix mat-icon-button
+                (click)="$event.stopPropagation(); startDate.setValue(null)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+ 
+      <!-- Date To -->
+      <mat-form-field appearance="outline" class="fp-field">
+        <mat-label>Created To</mat-label>
+        <input matInput [matDatepicker]="toPicker" [formControl]="endDate">
+        <mat-datepicker-toggle matPrefix [for]="toPicker"></mat-datepicker-toggle>
+        <mat-datepicker #toPicker></mat-datepicker>
+        <button *ngIf="endDate.value" matSuffix mat-icon-button
+                (click)="$event.stopPropagation(); endDate.setValue(null)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+ 
+      <!-- Depreciable only toggle -->
+      <div class="fp-toggle-cell" *ngIf="reportType() !== 'disposal'">
+        <div class="fp-toggle-wrap">
+          <mat-slide-toggle [formControl]="depOnlyToggle" color="primary">
+            <span class="fp-toggle-label">
               <mat-icon>trending_down</mat-icon>
-              Depreciation Report
+              Depreciable assets only
             </span>
-          </mat-radio-button>
-          <mat-radio-button value="disposal">
-            <span style="display: flex; align-items: center; gap: 8px;">
-              <mat-icon>delete_forever</mat-icon>
-              Disposal Report
-              <mat-icon
-                [matBadge]="totalDisposedAssets().toString()"
-                matBadgeColor="warn"
-                matBadgeSize="small"
-                *ngIf="totalDisposedAssets() > 0"
-                style="visibility: hidden; width: 0;">
-              </mat-icon>
+          </mat-slide-toggle>
+        </div>
+      </div>
+ 
+    </div><!-- /fp-grid -->
+ 
+    <!-- Active filter chips inside panel -->
+    <div class="fp-chips" *ngIf="activeFilterCount() > 0">
+      <span class="fp-chips-label">Active filters:</span>
+      <mat-chip-set>
+        <mat-chip *ngFor="let f of activeFilters()"
+                  (removed)="removeFilter(f.key)"
+                  class="fp-chip">
+          {{ f.label }}
+          <button matChipRemove><mat-icon>cancel</mat-icon></button>
+        </mat-chip>
+      </mat-chip-set>
+    </div>
+ 
+  </div><!-- /filter-panel -->
+ 
+  <!-- Results info bar -->
+  <div class="results-bar" *ngIf="!loading()">
+    <span class="rb-count">
+      Showing <strong>{{ filteredBatches().length }}</strong> of
+      <strong>{{ totalCount() }}</strong> batches
+      <span *ngIf="filteredBatches().length !== batches().length" class="rb-filtered">
+        (filtered from {{ batches().length }} on this page)
+      </span>
+    </span>
+    <span class="rb-hint">
+      <mat-icon>touch_app</mat-icon> Click a row to expand units
+    </span>
+  </div>
+ 
+  <!-- ══════════════════════ LOADING STATE ══════════════════════ -->
+  <div class="loading-state" *ngIf="loading()">
+    <div class="ls-row" *ngFor="let s of [1,2,3,4,5]"></div>
+  </div>
+ 
+  <!-- ══════════════════════ EMPTY STATE ══════════════════════ -->
+  <div class="empty-state" *ngIf="!loading() && filteredBatches().length === 0" [@fadeUp]>
+    <div class="es-icon-wrap"><mat-icon>inventory_2</mat-icon></div>
+    <h3>No batches found</h3>
+    <p *ngIf="activeFilterCount() > 0">Try adjusting your search or filters.</p>
+    <p *ngIf="activeFilterCount() === 0 && reportType() === 'depreciation'">No depreciable assets found.</p>
+    <p *ngIf="activeFilterCount() === 0 && reportType() === 'disposal'">No disposed assets found.</p>
+    <p *ngIf="activeFilterCount() === 0 && reportType() === 'full'">No assets found for this organisation.</p>
+    <button mat-stroked-button *ngIf="activeFilterCount() > 0" (click)="clearAllFilters()">
+      Clear Filters
+    </button>
+  </div>
+ 
+  <!-- ══════════════════════ BATCH LIST ══════════════════════ -->
+  <div class="batch-list" *ngIf="!loading() && filteredBatches().length > 0"
+       [@staggerList]="filteredBatches().length">
+ 
+    <!-- List header -->
+    <div class="bl-header">
+      <div class="blh-thumb"></div>
+      <div class="blh-name">Batch / Asset</div>
+      <div class="blh-cat">Category</div>
+      <div class="blh-units">Units</div>
+      <div class="blh-value">Value</div>
+      <div class="blh-assigned">Assigned</div>
+      <div class="blh-status">Status</div>
+      <div class="blh-date">Created</div>
+      <div class="blh-actions"></div>
+    </div>
+ 
+    <!-- Batch rows -->
+    <div class="batch-row"
+         *ngFor="let batch of filteredBatches(); trackBy: trackByBatchId"
+         [class.br-expanded]="batch._expanded"
+         [@fadeUp]>
+ 
+      <!-- ── Summary row ── -->
+      <div class="br-summary" (click)="toggleBatch(batch)" matRipple>
+ 
+        <div class="brs-thumb">
+          <img *ngIf="getFileUrl(batch.imageUrl)" [src]="getFileUrl(batch.imageUrl)"
+               [alt]="batch.assetName" class="brs-img"
+               (error)="$any($event.target).style.display='none'" />
+          <div *ngIf="!getFileUrl(batch.imageUrl)" class="brs-img-ph">
+            <mat-icon>inventory_2</mat-icon>
+          </div>
+        </div>
+ 
+        <div class="brs-name">
+          <span class="brs-asset-name">{{ batch.assetName }}</span>
+          <div class="brs-meta">
+            <span class="brs-code"><mat-icon>tag</mat-icon>{{ batch.batchCode }}</span>
+            <span class="brs-sub" *ngIf="batch.subCategoryDisplay">{{ batch.subCategoryDisplay }}</span>
+            <span class="brs-dept" *ngIf="batch.departmentDisplay">
+              <mat-icon>business_center</mat-icon>{{ batch.departmentDisplay }}
             </span>
-          </mat-radio-button>
-        </mat-radio-group>
- 
-        <div style="display: flex; gap: 12px;">
-          <button mat-raised-button color="primary" [matMenuTriggerFor]="exportMenu">
-            <mat-icon>download</mat-icon>
-            Export
-          </button>
-          <mat-menu #exportMenu="matMenu">
-            <button mat-menu-item (click)="exportToPDF()">
-              <mat-icon>picture_as_pdf</mat-icon>
-              <span>Export as PDF</span>
-            </button>
-            <button mat-menu-item (click)="exportToExcel()">
-              <mat-icon>table_chart</mat-icon>
-              <span>Export as Excel</span>
-            </button>
-            <button mat-menu-item (click)="exportToCSV()">
-              <mat-icon>description</mat-icon>
-              <span>Export as CSV</span>
-            </button>
-          </mat-menu>
- 
-          <button mat-raised-button color="accent" (click)="printReport()">
-            <mat-icon>print</mat-icon>
-            Print
-          </button>
+          </div>
         </div>
  
-      </div>
-    </mat-card-content>
-  </mat-card>
- 
-  <!-- DATA TABLE -->
-  <mat-card class="table-card">
-    <mat-card-content style="padding: 0 !important;">
- 
-      <div *ngIf="loading()" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100px 20px; gap: 24px;">
-        <mat-spinner diameter="60"></mat-spinner>
-        <p style="margin: 0; font-size: 1.125rem; font-weight: 500;">Loading asset report data...</p>
-      </div>
- 
-      <div *ngIf="!loading()" style="overflow: hidden; border-radius: 16px;">
- 
-        <!-- FULL REPORT TABLE -->
-        <div *ngIf="reportType() === 'full'" style="overflow-x: auto;">
-          <table mat-table [dataSource]="dataSource" matSort class="asset-table" style="width: 100%;">
- 
-            <ng-container matColumnDef="assetId">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset ID</th>
-              <td mat-cell *matCellDef="let asset">
-                <span class="asset-id">{{ asset.assetId }}</span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-              <td mat-cell *matCellDef="let asset">
-                <div class="asset-name-cell">
-                  <strong>{{ asset.name }}</strong>
-                </div>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="category">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
-              <td mat-cell *matCellDef="let asset">
-                <div class="category-cell">
-                  <span class="category-badge">{{ asset.categoryDisplay }}</span>
-                  <small *ngIf="asset.subCategoryDisplay">{{ asset.subCategoryDisplay }}</small>
-                </div>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="department">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Department</th>
-              <td mat-cell *matCellDef="let asset">
-                <div class="department-cell">
-                  <span>{{ asset.departmentDisplay || '-' }}</span>
-                  <small *ngIf="asset.subDepartmentDisplay">{{ asset.subDepartmentDisplay }}</small>
-                </div>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="quantity">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Quantity</th>
-              <td mat-cell *matCellDef="let asset" class="text-right">
-                <span class="quantity-badge">{{ asset.quantity || 0 }}</span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="unitPrice">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Unit Price</th>
-              <td mat-cell *matCellDef="let asset" class="text-right">
-                <span class="price-text">{{ formatCurrency(asset.unitPrice) }}</span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="assetStatus">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-              <td mat-cell *matCellDef="let asset">
-                <span class="status-badge"
-                  [class.status-in-use]="asset.assetStatusDisplay === 'InUse'"
-                  [class.status-available]="asset.assetStatusDisplay === 'Available'">
-                  {{ asset.assetStatusDisplay || '-' }}
-                </span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="createdDate">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Created Date</th>
-              <td mat-cell *matCellDef="let asset">
-                {{ formatDate(asset.createdDate) }}
-              </td>
-            </ng-container>
- 
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
- 
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-                <div class="no-data-message">
-                  <mat-icon>inbox</mat-icon>
-                  <p>No assets found matching your criteria</p>
-                </div>
-              </td>
-            </tr>
- 
-          </table>
- 
-          <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons class="table-paginator"></mat-paginator>
+        <div class="brs-cat">
+          <span class="cat-chip" *ngIf="batch.categoryDisplay">{{ batch.categoryDisplay }}</span>
+          <span class="cell-empty" *ngIf="!batch.categoryDisplay">—</span>
         </div>
  
-        <!-- DEPRECIATION TABLE -->
-        <div *ngIf="reportType() === 'depreciation'" style="overflow-x: auto;">
-          <table mat-table [dataSource]="depreciationDataSource" matSort class="asset-table" style="width: 100%;">
- 
-            <ng-container matColumnDef="assetId">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset ID</th>
-              <td mat-cell *matCellDef="let asset">
-                <span class="asset-id">{{ asset.assetId }}</span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-              <td mat-cell *matCellDef="let asset">
-                <strong>{{ asset.name }}</strong>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="depreciableCost">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Depreciable Cost</th>
-              <td mat-cell *matCellDef="let asset" class="text-right">
-                <span class="price-text">{{ formatCurrency(asset.depreciableCost) }}</span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="salvageValue">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Salvage Value</th>
-              <td mat-cell *matCellDef="let asset" class="text-right">
-                <span class="price-text">{{ formatCurrency(asset.salvageValue) }}</span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="depreciationMethod">
-              <th mat-header-cell *matHeaderCellDef>Method</th>
-              <td mat-cell *matCellDef="let asset">
-                {{ getDepreciationMethodName(asset.depreciationMethod) }}
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="dateAquired">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Date Acquired</th>
-              <td mat-cell *matCellDef="let asset">
-                {{ formatDate(asset.dateAquired) }}
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Schedule</th>
-              <td mat-cell *matCellDef="let asset">
-                <button
-                  mat-icon-button
-                  color="primary"
-                  [matTooltip]="'View Depreciation Schedule'"
-                  (click)="openDepreciationSchedule(asset)">
-                  <mat-icon>analytics</mat-icon>
-                </button>
-              </td>
-            </ng-container>
- 
-            <tr mat-header-row *matHeaderRowDef="depreciationColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: depreciationColumns;" class="table-row"></tr>
- 
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell no-data-cell" [attr.colspan]="depreciationColumns.length">
-                <div class="no-data-message">
-                  <mat-icon>inbox</mat-icon>
-                  <p>No depreciable assets found</p>
-                </div>
-              </td>
-            </tr>
- 
-          </table>
- 
-          <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons class="table-paginator"></mat-paginator>
+        <div class="brs-units">
+          <div class="units-nums">
+            <span class="units-active">{{ batch.activeQuantity }}</span>
+            <span class="units-sep">/</span>
+            <span class="units-total">{{ batch.originalQuantity }}</span>
+          </div>
+          <div class="units-track">
+            <div class="units-fill"
+                 [style.width.%]="utilizationPct(batch)"
+                 [style.background]="statusColor(batch.assetStatusDisplay)"></div>
+          </div>
         </div>
  
-        <!-- DISPOSAL TABLE -->
-        <div *ngIf="reportType() === 'disposal'" style="overflow-x: auto;">
-          <table mat-table [dataSource]="disposalDataSource" matSort class="asset-table disposal-table" style="width: 100%;">
- 
-            <ng-container matColumnDef="assetId">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset ID</th>
-              <td mat-cell *matCellDef="let asset">
-                <span class="asset-id disposal-id">{{ asset.assetId }}</span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset Name</th>
-              <td mat-cell *matCellDef="let asset">
-                <div class="asset-name-cell">
-                  <strong>{{ asset.name }}</strong>
-                </div>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="category">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
-              <td mat-cell *matCellDef="let asset">
-                <div class="category-cell">
-                  <span class="category-badge">{{ asset.categoryDisplay }}</span>
-                  <small *ngIf="asset.subCategoryDisplay">{{ asset.subCategoryDisplay }}</small>
-                </div>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="quantity">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Quantity</th>
-              <td mat-cell *matCellDef="let asset" class="text-right">
-                <span class="quantity-badge disposal-quantity">{{ asset.quantity || 0 }}</span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="unitPrice">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-right">Unit Price</th>
-              <td mat-cell *matCellDef="let asset" class="text-right">
-                <span class="price-text">{{ formatCurrency(asset.unitPrice) }}</span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="disposalMethod">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Disposal Method</th>
-              <td mat-cell *matCellDef="let asset">
-                <span class="disposal-method-badge"
-                  [class.method-sold]="asset.disposalMethod === 1"
-                  [class.method-donated]="asset.disposalMethod === 2"
-                  [class.method-recycled]="asset.disposalMethod === 3"
-                  [class.method-destroyed]="asset.disposalMethod === 4">
-                  <mat-icon style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;">
-                    {{ asset.disposalMethod === 1 ? 'sell' :
-                       asset.disposalMethod === 2 ? 'volunteer_activism' :
-                       asset.disposalMethod === 3 ? 'recycling' :
-                       asset.disposalMethod === 4 ? 'dangerous' : 'help_outline' }}
-                  </mat-icon>
-                  {{ getDisposalMethodName(asset.disposalMethod) }}
-                </span>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="disposalDate">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Disposal Date</th>
-              <td mat-cell *matCellDef="let asset">
-                <div class="disposal-date-cell">
-                  <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: var(--mat-sys-error); margin-right: 4px;">event</mat-icon>
-                  {{ formatDate(asset.disposalDate) }}
-                </div>
-              </td>
-            </ng-container>
- 
-            <ng-container matColumnDef="disposalStatus">
-              <th mat-header-cell *matHeaderCellDef>Approval Status</th>
-              <td mat-cell *matCellDef="let asset">
-                <span class="disposal-status-badge"
-                  [class.status-pending]="asset.disposalAppStatus === 1"
-                  [class.status-approved]="asset.disposalAppStatus === 2"
-                  [class.status-rejected]="asset.disposalAppStatus === 3">
-                  <mat-icon style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;">
-                    {{ asset.disposalAppStatus === 1 ? 'schedule' :
-                       asset.disposalAppStatus === 2 ? 'check_circle' :
-                       'cancel' }}
-                  </mat-icon>
-                  {{ getDisposalStatusName(asset.disposalAppStatus) }}
-                </span>
-              </td>
-            </ng-container>
- 
-            <tr mat-header-row *matHeaderRowDef="disposalColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: disposalColumns;" class="table-row disposal-row"></tr>
- 
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell no-data-cell" [attr.colspan]="disposalColumns.length">
-                <div class="no-data-message">
-                  <mat-icon>delete_forever</mat-icon>
-                  <p>No disposed assets found</p>
-                  <small style="margin-top: 8px; opacity: 0.7;">Try adjusting your filters or date range</small>
-                </div>
-              </td>
-            </tr>
- 
-          </table>
- 
-          <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons class="table-paginator"></mat-paginator>
+        <div class="brs-value">
+          <span class="val-text">{{ formatCurrencyCompact(batch.totalValue) }}</span>
+          <span class="val-sub" *ngIf="batch.unitPrice">{{ formatCurrencyCompact(batch.unitPrice) }}/unit</span>
         </div>
  
-      </div>
+        <div class="brs-assigned">
+          <div class="assign-mini" matTooltip="Assigned units">
+            <span class="am-dot am-user"></span>
+            <span class="am-val">{{ batch.assignedCount }}</span>
+          </div>
+          <div class="assign-mini" matTooltip="Unassigned units">
+            <span class="am-dot am-none"></span>
+            <span class="am-val">{{ batch.unassignedCount }}</span>
+          </div>
+          <div class="assign-mini" *ngIf="batch.disposedCount > 0" matTooltip="Disposed units">
+            <span class="am-dot am-disp"></span>
+            <span class="am-val">{{ batch.disposedCount }}</span>
+          </div>
+        </div>
  
-    </mat-card-content>
-  </mat-card>
+        <div class="brs-status">
+
+          <!-- Mixed statuses across units — show the breakdown instead of one misleading chip -->
+          <div class="status-breakdown" *ngIf="hasMultipleStatuses(batch)">
+            <div class="sb-row" *ngFor="let s of getStatusBreakdown(batch).slice(0, 3)"
+                 [matTooltip]="s.status + ' · ' + s.count + ' unit(s)'">
+              <span class="sb-dot" [style.background]="statusColor(s.status)"></span>
+              <span class="sb-label">{{ s.status }}</span>
+              <span class="sb-count">{{ s.count }}</span>
+            </div>
+            <span class="sb-overflow" *ngIf="getStatusBreakdown(batch).length > 3">
+              +{{ getStatusBreakdown(batch).length - 3 }} more
+            </span>
+          </div>
+
+          <!-- All units share one status — keep the familiar single chip -->
+          <ng-container *ngIf="!hasMultipleStatuses(batch)">
+            <span class="status-chip" *ngIf="batch.assetStatusDisplay"
+                  [style.background]="statusColor(batch.assetStatusDisplay) + '22'"
+                  [style.color]="statusColor(batch.assetStatusDisplay)"
+                  [style.borderColor]="statusColor(batch.assetStatusDisplay) + '55'">
+              <span class="sdot" [style.background]="statusColor(batch.assetStatusDisplay)"></span>
+              {{ batch.assetStatusDisplay }}
+            </span>
+            <span class="cell-empty" *ngIf="!batch.assetStatusDisplay">—</span>
+          </ng-container>
+
+          <span class="dep-badge" *ngIf="batch.depreciableCount > 0"
+                [matTooltip]="batch.depreciableCount + ' depreciable unit(s)'">
+            <mat-icon>trending_down</mat-icon>{{ batch.depreciableCount }}
+          </span>
+        </div>
  
-</div>
+        <div class="brs-date">{{ fmt(batch.createdDate) }}</div>
+ 
+        <div class="brs-actions">
+          <mat-icon class="expand-icon" [class.rotated]="batch._expanded">
+            expand_more
+          </mat-icon>
+        </div>
+ 
+      </div><!-- /br-summary -->
+ 
+      <!-- ── Expanded panel ── -->
+      <div class="br-units" *ngIf="batch._expanded" [@expandRow]>
+ 
+        <div class="units-loading" *ngIf="batch._loadingUnits">
+          <mat-spinner diameter="26"></mat-spinner>
+          <span>Loading units…</span>
+        </div>
+ 
+        <div class="units-empty" *ngIf="!batch._loadingUnits && (!batch.units || batch.units.length === 0)">
+          <mat-icon>inbox</mat-icon>
+          <span>No units found in this batch.</span>
+        </div>
+ 
+        <ng-container *ngIf="!batch._loadingUnits && batch.units && batch.units.length > 0">
+ 
+          <!-- ────────────────────────────────────────────────────────────
+               FULL REPORT — simple unit table
+          ──────────────────────────────────────────────────────────────── -->
+          <ng-container *ngIf="reportType() === 'full'">
+            <div class="units-table-wrap">
+              <table class="units-table">
+                <thead>
+                  <tr>
+                    <th class="col-seq">#</th>
+                    <th class="col-id">Asset ID</th>
+                    <th class="col-serial">Serial No.</th>
+                    <th class="col-assign">Assigned To</th>
+                    <th class="col-site">Site / Area</th>
+                    <th class="col-status">Status</th>
+                    <th class="col-avail">Avail.</th>
+                    <th class="col-dep">Depreciable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let unit of batch.units; trackBy: trackByUnitId"
+                      [class.row-disposed]="isDisposed(unit)">
+                    <td><span class="seq-badge">{{ unit.batchSequence }}</span></td>
+                    <td><span class="id-chip"><mat-icon>tag</mat-icon>{{ unit.assetId }}</span></td>
+                    <td><span class="mono">{{ unit.assetSerialNo || '—' }}</span></td>
+                    <td>
+                      <span class="assign-badge"
+                            [class.ab-user]="unit.assignTo === 1"
+                            [class.ab-site]="unit.assignTo === 2"
+                            [class.ab-disp]="unit.assignTo === 3"
+                            [class.ab-none]="unit.assignTo === 0">
+                        <mat-icon>{{ assignIcon(unit.assignTo) }}</mat-icon>
+                        {{ assignLabel(unit.assignTo) }}
+                      </span>
+                      <div class="assign-sub" *ngIf="unit.assignUserDisplay">
+                        <mat-icon>person</mat-icon>{{ unit.assignUserDisplay }}
+                      </div>
+                    </td>
+                    <td>
+                      <div class="loc-row" *ngIf="unit.siteDisplay">
+                        <mat-icon>location_city</mat-icon>{{ unit.siteDisplay }}
+                      </div>
+                      <div class="loc-row loc-area" *ngIf="unit.areaDisplay">
+                        <mat-icon>map</mat-icon>{{ unit.areaDisplay }}
+                      </div>
+                      <span class="cell-empty" *ngIf="!unit.siteDisplay && !unit.areaDisplay">—</span>
+                    </td>
+                    <td>
+                      <span class="status-chip" *ngIf="unit.assetStatusDisplay"
+                            [style.background]="statusColor(unit.assetStatusDisplay) + '22'"
+                            [style.color]="statusColor(unit.assetStatusDisplay)"
+                            [style.borderColor]="statusColor(unit.assetStatusDisplay) + '55'">
+                        <span class="sdot" [style.background]="statusColor(unit.assetStatusDisplay)"></span>
+                        {{ unit.assetStatusDisplay }}
+                      </span>
+                    </td>
+                    <td>
+                      <mat-icon class="avail-yes" *ngIf="unit.isAvilable">check_circle</mat-icon>
+                      <mat-icon class="avail-no"  *ngIf="!unit.isAvilable">cancel</mat-icon>
+                    </td>
+                    <td>
+                      <span class="dep-badge" *ngIf="unit.isDepreciable">
+                        <mat-icon>trending_down</mat-icon>{{ unit.depreciationMethodDisplay ?? 'Yes' }}
+                      </span>
+                      <span class="cell-empty" *ngIf="!unit.isDepreciable">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ng-container>
+ 
+          <!-- ────────────────────────────────────────────────────────────
+               DEPRECIATION — batch summary card + open dialog button
+          ──────────────────────────────────────────────────────────────── -->
+          <ng-container *ngIf="reportType() === 'depreciation'">
+ 
+            <div *ngIf="!hasDepreciableUnits(batch)" class="no-dep-notice">
+              <mat-icon>info_outline</mat-icon>
+              <span>No depreciable units in this batch.</span>
+            </div>
+ 
+            <ng-container *ngIf="hasDepreciableUnits(batch)">
+ 
+              <!-- Batch depreciation summary card -->
+              <div class="dep-batch-card" [@fadeUp]>
+ 
+                <!-- Header row -->
+                <div class="dbc-header">
+                  <div class="dbc-title-row">
+                    <mat-icon class="dbc-icon">analytics</mat-icon>
+                    <div class="dbc-titles">
+                      <span class="dbc-title">Batch Depreciation Summary</span>
+                      <span class="dbc-sub">
+                        {{ getBatchDepreciableCount(batch) }} depreciable unit(s) ·
+                        All units share the same depreciation parameters
+                      </span>
+                    </div>
+                  </div>
+                  <button mat-raised-button color="primary" class="dbc-open-btn"
+                          (click)="openDepreciationDialog(batch)">
+                    <mat-icon>open_in_new</mat-icon>
+                    View Full Schedule & Chart
+                  </button>
+                </div>
+ 
+                <!-- Stat cards row -->
+                <div class="dbc-stats">
+                  <div class="dbc-stat dbc-cost">
+                    <div class="dbc-stat-ico"><mat-icon>payments</mat-icon></div>
+                    <div class="dbc-stat-body">
+                      <span class="dbc-stat-lbl">Total Depr. Cost</span>
+                      <span class="dbc-stat-val">
+                        {{ formatCurrencyCompact((getBatchRepUnit(batch)?.depreciableCost ?? 0) * getBatchDepreciableCount(batch)) }}
+                      </span>
+                      <span class="dbc-stat-hint">
+                        {{ formatCurrencyCompact(getBatchRepUnit(batch)?.depreciableCost) }} × {{ getBatchDepreciableCount(batch) }} units
+                      </span>
+                    </div>
+                  </div>
+                  <div class="dbc-stat dbc-salvage">
+                    <div class="dbc-stat-ico"><mat-icon>savings</mat-icon></div>
+                    <div class="dbc-stat-body">
+                      <span class="dbc-stat-lbl">Total Salvage Value</span>
+                      <span class="dbc-stat-val">
+                        {{ formatCurrencyCompact((getBatchRepUnit(batch)?.salvageValue ?? 0) * getBatchDepreciableCount(batch)) }}
+                      </span>
+                      <span class="dbc-stat-hint">
+                        {{ formatCurrencyCompact(getBatchRepUnit(batch)?.salvageValue) }}/unit
+                      </span>
+                    </div>
+                  </div>
+                  <div class="dbc-stat dbc-deprec">
+                    <div class="dbc-stat-ico"><mat-icon>trending_down</mat-icon></div>
+                    <div class="dbc-stat-body">
+                      <span class="dbc-stat-lbl">Total Depreciated</span>
+                      <span class="dbc-stat-val">
+                        {{ formatCurrencyCompact(getBatchTotalDeprec(batch)) }}
+                      </span>
+                      <span class="dbc-stat-hint">
+                        {{ getBatchDeprecProgress(batch).toFixed(1) }}% of cost base
+                      </span>
+                    </div>
+                  </div>
+                  <div class="dbc-stat dbc-method">
+                    <div class="dbc-stat-ico"><mat-icon>calculate</mat-icon></div>
+                    <div class="dbc-stat-body">
+                      <span class="dbc-stat-lbl">Method</span>
+                      <span class="dbc-stat-val-sm">{{ getBatchRepUnit(batch)?.depreciationMethodDisplay ?? '—' }}</span>
+                      <span class="dbc-stat-hint">{{ getBatchRepUnit(batch)?.depreciationInMonth ?? '—' }} months period</span>
+                    </div>
+                  </div>
+                </div>
+ 
+                <!-- Depreciation progress bar -->
+                <div class="dbc-progress-section">
+                  <div class="dbc-progress-labels">
+                    <span class="dbc-prog-label">Overall Depreciation Progress</span>
+                    <span class="dbc-prog-pct">{{ getBatchDeprecProgress(batch).toFixed(1) }}%</span>
+                  </div>
+                  <div class="dbc-progress-track">
+                    <div class="dbc-progress-fill"
+                         [style.width.%]="getBatchDeprecProgress(batch)"></div>
+                  </div>
+                  <div class="dbc-progress-ends">
+                    <span>Start: {{ formatCurrencyCompact((getBatchRepUnit(batch)?.depreciableCost ?? 0) * getBatchDepreciableCount(batch)) }}</span>
+                    <span>Remaining: {{ getBatchRepUnit(batch) ? formatCurrencyCompact(getLastBookValue(getBatchRepUnit(batch)) * getBatchDepreciableCount(batch)) : '—' }}</span>
+                  </div>
+                </div>
+ 
+                <!-- Representative unit info strip -->
+                <div class="dbc-rep-strip" *ngIf="getBatchRepUnit(batch) as rep">
+                  <div class="dbc-rep-item">
+                    <span class="dbc-rep-lbl">Representative Unit</span>
+                    <span class="dbc-rep-val code">{{ rep.assetId }}</span>
+                  </div>
+                  <div class="dbc-rep-sep"></div>
+                  <div class="dbc-rep-item">
+                    <span class="dbc-rep-lbl">Serial</span>
+                    <span class="dbc-rep-val mono">{{ rep.assetSerialNo || '—' }}</span>
+                  </div>
+                  <div class="dbc-rep-sep"></div>
+                  <div class="dbc-rep-item">
+                    <span class="dbc-rep-lbl">Date Acquired</span>
+                    <span class="dbc-rep-val">{{ fmt(rep.dateAquired) }}</span>
+                  </div>
+                  <div class="dbc-rep-sep"></div>
+                  <div class="dbc-rep-item">
+                    <span class="dbc-rep-lbl">Period</span>
+                    <span class="dbc-rep-val">{{ rep.depreciationInMonth }} months</span>
+                  </div>
+                  <div class="dbc-rep-sep"></div>
+                  <div class="dbc-rep-item">
+                    <span class="dbc-rep-lbl">Depreciation Years</span>
+                    <span class="dbc-rep-val">{{ rep.depreciationSchedule?.length ?? 0 }} years</span>
+                  </div>
+                </div>
+                 <div class="dbc-no-schedule-notice"
+                     *ngIf="getBatchRepUnit(batch) && !getBatchRepUnit(batch)?.depreciationSchedule?.length">
+                  <div class="dno-icon"><mat-icon>info_outline</mat-icon></div>
+                  <div class="dno-body">
+                    <span class="dno-title">Schedule not generated</span>
+                    <span class="dno-msg">
+                      <ng-container *ngIf="(getBatchRepUnit(batch)?.depreciationInMonth ?? 0) < 12">
+                        Useful life is <strong>{{ getBatchRepUnit(batch)?.depreciationInMonth }} month(s)</strong>
+                        — depreciation spans less than one full year, so no yearly schedule is produced.
+                        <ng-container *ngIf="(getBatchRepUnit(batch)?.depreciableCost ?? 0) > 0">
+                          Monthly depreciation:
+                          <strong>{{ formatCurrencyCompact(
+                            ((getBatchRepUnit(batch)?.depreciableCost ?? 0) - (getBatchRepUnit(batch)?.salvageValue ?? 0))
+                            / (getBatchRepUnit(batch)?.depreciationInMonth ?? 1)
+                          ) }}/month</strong>
+                          over {{ getBatchRepUnit(batch)?.depreciationInMonth }} month(s).
+                        </ng-container>
+                      </ng-container>
+                      <ng-container *ngIf="(getBatchRepUnit(batch)?.depreciationInMonth ?? 0) >= 12">
+                        The depreciation schedule was not computed for this batch. Please verify the asset's
+                        depreciation settings are complete (cost, salvage value, method, period).
+                      </ng-container>
+                    </span>
+                  </div>
+                </div>
+                <!-- Compact per-unit schedule preview (first 4 rows only) -->
+                <div class="dbc-sched-preview" *ngIf="getBatchRepUnit(batch)?.depreciationSchedule?.length">
+                  <div class="dbc-sched-label">
+                    <mat-icon>table_chart</mat-icon>
+                    Schedule Preview (per unit) —
+                    <a class="dbc-sched-link" (click)="openDepreciationDialog(batch)">
+                      View full schedule with charts
+                    </a>
+                  </div>
+                  <table class="sched-table">
+                    <thead>
+                      <tr>
+                        <th>Year</th>
+                        <th class="tr">Opening (per unit)</th>
+                        <th class="tr">Depreciation (per unit)</th>
+                        <th class="tr">Closing (per unit)</th>
+                        <th class="tr">Batch Total Depr.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of getBatchRepUnit(batch)!.depreciationSchedule!.slice(0, 4); let i = index"
+                          [class.row-even]="i % 2 === 0">
+                        <td><span class="yr-badge">Yr {{ row.year }}</span></td>
+                        <td class="tr mono-cell">{{ formatCurrency(row.bookValueYearBegining) }}</td>
+                        <td class="tr">
+                          <span class="dep-amt">
+                            <mat-icon>arrow_downward</mat-icon>{{ formatCurrency(row.depreciation) }}
+                          </span>
+                        </td>
+                        <td class="tr mono-cell closing">{{ formatCurrency(row.bookValueYearEnd) }}</td>
+                        <td class="tr">
+                          <span class="batch-depr-val">
+                            {{ formatCurrencyCompact(row.depreciation * getBatchDepreciableCount(batch)) }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div class="dbc-sched-more"
+                       *ngIf="(getBatchRepUnit(batch)?.depreciationSchedule?.length ?? 0) > 4">
+                    <span>+ {{ (getBatchRepUnit(batch)?.depreciationSchedule?.length ?? 0) - 4 }} more years —</span>
+                    <a (click)="openDepreciationDialog(batch)">View all in full schedule</a>
+                  </div>
+                </div>
+ 
+              </div><!-- /dep-batch-card -->
+ 
+              <!-- Units list for depreciation mode -->
+              <div class="dep-units-list">
+                <div class="dul-header">
+                  <mat-icon>view_list</mat-icon>
+                  <span>Depreciable Units ({{ getBatchDepreciableCount(batch) }})</span>
+                </div>
+                <div class="dul-wrap">
+                  <div *ngFor="let unit of batch.units; trackBy: trackByUnitId">
+                    <div *ngIf="unit.isDepreciable" class="dul-item">
+                      <span class="seq-badge">{{ unit.batchSequence }}</span>
+                      <span class="id-chip"><mat-icon>tag</mat-icon>{{ unit.assetId }}</span>
+                      <span class="mono dul-serial">{{ unit.assetSerialNo || '—' }}</span>
+                      <span class="assign-badge"
+                            [class.ab-user]="unit.assignTo === 1"
+                            [class.ab-site]="unit.assignTo === 2"
+                            [class.ab-none]="unit.assignTo === 0">
+                        <mat-icon>{{ assignIcon(unit.assignTo) }}</mat-icon>
+                        {{ unit.assignUserDisplay ?? unit.siteDisplay ?? assignLabel(unit.assignTo) }}
+                      </span>
+                      <div class="dul-spacer"></div>
+                      <span class="dul-cost">{{ formatCurrencyCompact(unit.depreciableCost) }}</span>
+                      <span class="dul-sched-count" *ngIf="unit.depreciationSchedule?.length">
+                        <mat-icon>event_note</mat-icon>{{ unit.depreciationSchedule!.length }} yrs
+                      </span>
+                      <span class="dul-no-sched" *ngIf="!unit.depreciationSchedule?.length">
+                        <mat-icon>warning_amber</mat-icon> No schedule
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+ 
+            </ng-container>
+ 
+          </ng-container><!-- /depreciation -->
+ 
+          <!-- ────────────────────────────────────────────────────────────
+               DISPOSAL — disposed units table
+          ──────────────────────────────────────────────────────────────── -->
+          <ng-container *ngIf="reportType() === 'disposal'">
+            <div class="no-dep-notice" *ngIf="!hasDisposedUnits(batch)">
+              <mat-icon>info_outline</mat-icon>
+              <span>No disposed units in this batch.</span>
+            </div>
+            <div class="units-table-wrap" *ngIf="hasDisposedUnits(batch)">
+              <table class="units-table disposal-table">
+                <thead>
+                  <tr>
+                    <th class="col-seq">#</th>
+                    <th class="col-id">Asset ID</th>
+                    <th class="col-serial">Serial</th>
+                    <th class="col-method">Disposal Method</th>
+                    <th class="col-disdate">Disposal Date</th>
+                    <th class="col-disstatus">Approval</th>
+                    <th class="col-doc">Document</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let unit of batch.units | disposeFilter; trackBy: trackByUnitId"
+                      class="row-disposed-entry">
+                    <td><span class="seq-badge seq-disp">{{ unit.batchSequence }}</span></td>
+                    <td><span class="id-chip id-chip-disp"><mat-icon>tag</mat-icon>{{ unit.assetId }}</span></td>
+                    <td><span class="mono">{{ unit.assetSerialNo || '—' }}</span></td>
+                    <td>
+                      <span class="method-badge"
+                            [class.method-sold]="unit.disposalMethod === 1"
+                            [class.method-donated]="unit.disposalMethod === 2"
+                            [class.method-recycled]="unit.disposalMethod === 3"
+                            [class.method-destroyed]="unit.disposalMethod === 4">
+                        <mat-icon>{{
+                          unit.disposalMethod === 1 ? 'sell' :
+                          unit.disposalMethod === 2 ? 'volunteer_activism' :
+                          unit.disposalMethod === 3 ? 'recycling' :
+                          unit.disposalMethod === 4 ? 'dangerous' : 'help_outline'
+                        }}</mat-icon>
+                        {{ unit.disposalMethodDisplay ?? '—' }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="disp-date">
+                        <mat-icon>event</mat-icon>{{ fmt(unit.disposalDate) }}
+                      </div>
+                    </td>
+                    <td>
+                      <span class="disp-status"
+                            [class.ds-approved]="unit.disposalAppStatus === 2"
+                            [class.ds-pending]="unit.disposalAppStatus === 1"
+                            [class.ds-rejected]="unit.disposalAppStatus === 3">
+                        <mat-icon>{{
+                          unit.disposalAppStatus === 2 ? 'check_circle' :
+                          unit.disposalAppStatus === 1 ? 'schedule' : 'cancel'
+                        }}</mat-icon>
+                        {{ unit.disposalAppStatus === 2 ? 'Approved' :
+                           unit.disposalAppStatus === 1 ? 'Pending' : 'Rejected' }}
+                      </span>
+                    </td>
+                    <td>
+                      <a *ngIf="unit.disposalDocument" [href]="unit.disposalDocument"
+                         target="_blank" class="doc-link">
+                        <mat-icon>attach_file</mat-icon> View
+                      </a>
+                      <span *ngIf="!unit.disposalDocument" class="cell-empty">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ng-container>
+ 
+        </ng-container><!-- /units loaded -->
+      </div><!-- /br-units -->
+    </div><!-- /batch-row -->
+  </div><!-- /batch-list -->
+ 
+  <!-- ══════════════════════ PAGINATION ══════════════════════ -->
+  <div class="ar-pagination" *ngIf="totalCount() > pageSize() && !loading()">
+    <mat-paginator
+      [length]="totalCount()"
+      [pageSize]="pageSize()"
+      [pageIndex]="currentPage() - 1"
+      [pageSizeOptions]="PAGE_SIZE_OPTIONS"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+      class="ar-paginator">
+    </mat-paginator>
+  </div>
+ 
+</div><!-- /ar-page -->

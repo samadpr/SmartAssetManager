@@ -1,94 +1,285 @@
-<div class="otp-container" [@fadeIn]>
-  <!-- Background Overlay -->
-  <div class="overlay-backdrop" [@slideInUp]></div>
-  
-  <!-- Main OTP Card -->
-  <div class="otp-card-container">
-    <mat-card class="otp-card">
-      <mat-card-content class="p-0">
-        
-        <!-- Header Section -->
-        <div class="otp-header text-center mb-4">
-          <div class="icon-container mb-3">
-            <mat-icon class="verification-icon">mark_email_read</mat-icon>
+<div class="otp-page" [@pageIn]>
+
+  <!-- ── Animated background particles ── -->
+  <div class="bg-particles">
+    <div class="particle"
+      *ngFor="let p of particles"
+      [style.left]="p.x + '%'"
+      [style.top]="p.y + '%'"
+      [style.animationDelay]="p.delay + 's'"
+      [style.animationDuration]="p.duration + 's'">
+    </div>
+  </div>
+
+  <!-- ── Floating orbs ── -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="otp-wrapper">
+
+    <!-- ══════════════════════════════════════
+         LEFT PANEL — branding + info
+    ══════════════════════════════════════ -->
+    <div class="left-panel">
+      <div class="left-inner">
+
+        <!-- Logo -->
+        <div class="logo-section">
+          <div class="logo-mark">
+            <img src="/assets/images/logos/infoasset_logo-1.png" alt="INFOASSET" class="logo-img" />
           </div>
-          <h2 class="otp-title">Verify Your Email</h2>
-          <p class="otp-subtitle">
-            We've sent a verification code to <br>
-            <strong>{{ regresponse.email || 'your email' }}</strong>
+          <span class="logo-text">INFOASSET</span>
+        </div>
+
+        <!-- Headline -->
+        <div class="hero-text">
+          <h1 class="hero-title">
+            <span class="line-1">One Last</span>
+            <span class="line-2">Quick Step</span>
+          </h1>
+          <p class="hero-sub">
+            We just sent a verification code to your email.
+            Confirm it now to activate your INFOASSET account.
           </p>
         </div>
 
-        <!-- Loading State -->
-        <div *ngIf="isLoading" class="loading-container text-center mb-4">
-          <mat-progress-spinner 
-            [diameter]="40" 
-            color="primary"
-            mode="indeterminate">
-          </mat-progress-spinner>
-          <p class="loading-text mt-2">Verifying your code...</p>
-        </div>
-
-        <!-- OTP Input Section -->
-        <div *ngIf="!isLoading" class="otp-input-section mb-4">
-          <div class="otp-input-container">
-            <input 
-              #otpInput
-              type="text" 
-              class="otp-input" 
-              [(ngModel)]="otptext"
-              placeholder="Enter 6-digit code"
-              maxlength="6"
-              (input)="onOtpInput($event)"
-              (keyup.enter)="confirmOTP()"
-              autocomplete="one-time-code"
-              inputmode="numeric"
-            />
-          </div>
-          
-          <!-- Error Message -->
-          <div *ngIf="errorMessage" class="error-message text-center mt-2">
-            <mat-icon class="error-icon">error</mat-icon>
-            {{ errorMessage }}
+        <!-- Steps progress — highlight step 2 -->
+        <div class="steps-list">
+          <div class="step-item" *ngFor="let s of steps; let i = index"
+            [class.completed]="s.done"
+            [class.active]="s.current"
+            [style.animationDelay]="(0.12 * i) + 's'">
+            <div class="step-badge">
+              <svg *ngIf="s.done" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M3 8l3.5 3.5L13 4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span *ngIf="!s.done">{{ i + 1 }}</span>
+            </div>
+            <div class="step-text">
+              <span class="step-title">{{ s.title }}</span>
+              <span class="step-desc">{{ s.desc }}</span>
+            </div>
+            <div class="step-connector" *ngIf="i < steps.length - 1"></div>
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div *ngIf="!isLoading" class="action-buttons">
-          <button 
-            mat-raised-button 
-            color="primary" 
-            class="verify-btn"
-            [disabled]="otptext.length !== 6 || isSubmitting"
-            (click)="confirmOTP()">
-            <mat-icon class="me-2">verified</mat-icon>
-            {{ isSubmitting ? 'Verifying...' : 'Verify Email' }}
-          </button>
+        <!-- Security badge row -->
+        <div class="trust-row">
+          <div class="trust-badge" *ngFor="let b of badges">
+            <span class="trust-icon">{{ b.icon }}</span>
+            <span>{{ b.label }}</span>
+          </div>
         </div>
 
-        <!-- Resend Section -->
-        <div *ngIf="!isLoading" class="resend-section text-center mt-4">
-          <p class="resend-text">Didn't receive the code?</p>
-          <button 
-            mat-button 
-            color="primary" 
-            class="resend-btn"
-            [disabled]="resendCooldown > 0 || isResending"
-            (click)="resendOTP()">
-            <mat-icon class="me-1">refresh</mat-icon>
-            {{ isResending ? 'Sending...' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code' }}
-          </button>
+        <!-- Email hint card -->
+        <div class="email-hint-card">
+          <div class="email-hint-icon">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="4" width="16" height="13" rx="2"/>
+              <path d="M2 7l8 5 8-5"/>
+            </svg>
+          </div>
+          <div class="email-hint-text">
+            <span class="email-hint-label">Verification sent to</span>
+            <span class="email-hint-value">{{ regresponse.email || 'your registered email' }}</span>
+          </div>
         </div>
 
-        <!-- Back to Register -->
-        <div class="back-link text-center mt-4">
-          <button mat-button color="accent" (click)="goBack()">
-            <mat-icon class="me-1">arrow_back</mat-icon>
-            Back to Registration
-          </button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         RIGHT PANEL — OTP form
+    ══════════════════════════════════════ -->
+    <div class="right-panel">
+      <div class="form-wrapper">
+
+        <!-- ── Avatar ── -->
+        <div class="avatar-section">
+          <div class="avatar-container"
+            [class.happy]="avatarHappy"
+            [class.thinking]="avatarThinking"
+            [class.error-shake]="avatarError">
+            <div class="avatar-body">
+              <div class="avatar-face">
+                <div class="eyes-row">
+                  <div class="eye" [class.blink]="eyeBlink" [class.wide]="avatarHappy">
+                    <div class="pupil" [style.transform]="'translate(' + pupilX + 'px, ' + pupilY + 'px)'"></div>
+                  </div>
+                  <div class="eye" [class.blink]="eyeBlink" [class.wide]="avatarHappy">
+                    <div class="pupil" [style.transform]="'translate(' + pupilX + 'px, ' + pupilY + 'px)'"></div>
+                  </div>
+                </div>
+                <div class="nose"></div>
+                <div class="mouth"
+                  [class.smile]="avatarHappy"
+                  [class.sad]="avatarError">
+                </div>
+              </div>
+              <!-- Checkmark overlay on success -->
+              <div class="avatar-success-ring" [class.visible]="avatarHappy && otpVerified">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M5 12l4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <!-- Speech bubble -->
+          <div class="speech-bubble" [class.show]="bubbleText">
+            <span>{{ bubbleText }}</span>
+          </div>
         </div>
 
-      </mat-card-content>
-    </mat-card>
+        <!-- ── Header ── -->
+        <div class="form-header">
+          <h2 class="form-title">Verify Your Email</h2>
+          <p class="form-subtitle">
+            Enter the 6-digit code sent to
+            <strong class="email-highlight">{{ regresponse.email || 'your email' }}</strong>
+          </p>
+        </div>
+
+        <!-- ── Form Card ── -->
+        <div class="form-card">
+
+          <!-- Loading state -->
+          <div *ngIf="isLoading" class="loading-state">
+            <div class="loading-spinner-wrap">
+              <div class="loading-ring"></div>
+              <div class="loading-ring ring-2"></div>
+            </div>
+            <p class="loading-text">Preparing verification...</p>
+          </div>
+
+          <div *ngIf="!isLoading" class="otp-content">
+
+            <!-- ── 6 individual digit boxes ── -->
+            <div class="otp-label">Enter verification code</div>
+            <div class="otp-boxes-row"
+              (paste)="onPaste($event)">
+              <input
+                *ngFor="let box of otpBoxes; let i = index"
+                #otpBox
+                type="text"
+                inputmode="numeric"
+                maxlength="1"
+                class="otp-box"
+                [class.filled]="box.value"
+                [class.focused]="box.focused"
+                [class.error]="otpError && !box.value"
+                [class.success]="otpVerified"
+                [(ngModel)]="box.value"
+                (input)="onBoxInput($event, i)"
+                (keydown)="onBoxKeydown($event, i)"
+                (focus)="onBoxFocus(i)"
+                (blur)="onBoxBlur(i)"
+                autocomplete="one-time-code"
+              />
+            </div>
+
+            <!-- ── Progress dots ── -->
+            <div class="otp-progress">
+              <div class="otp-dot"
+                *ngFor="let box of otpBoxes"
+                [class.filled]="box.value">
+              </div>
+            </div>
+
+            <!-- ── Error message ── -->
+            <div class="error-banner" *ngIf="errorMessage" [@errorIn]>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+                <circle cx="10" cy="10" r="8"/>
+                <path d="M10 6v4M10 13v.5" stroke-linecap="round"/>
+              </svg>
+              <span>{{ errorMessage }}</span>
+            </div>
+
+            <!-- ── Success banner ── -->
+            <div class="success-banner" *ngIf="otpVerified" [@errorIn]>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <circle cx="10" cy="10" r="8"/>
+                <path d="M6.5 10l2.5 2.5L13.5 7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Code verified! Redirecting you now...</span>
+            </div>
+
+            <!-- ── Verify button ── -->
+            <button
+              class="verify-btn"
+              [class.loading]="isSubmitting"
+              [class.success]="otpVerified"
+              [disabled]="otpFullValue.length !== 6 || isSubmitting || otpVerified"
+              (click)="confirmOTP()">
+              <span class="btn-content" *ngIf="!isSubmitting && !otpVerified">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M9 12l2 2 4-4M5 5h10a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Verify Email
+              </span>
+              <span class="btn-loader" *ngIf="isSubmitting && !otpVerified">
+                <span class="btn-spinner"></span>
+                Verifying...
+              </span>
+              <span class="btn-content" *ngIf="otpVerified">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                  <path d="M4 10l4.5 4.5L16 6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Verified!
+              </span>
+            </button>
+
+            <!-- ── Divider ── -->
+            <div class="section-divider">
+              <span>Didn't receive the code?</span>
+            </div>
+
+            <!-- ── Resend row ── -->
+            <div class="resend-row">
+              <button
+                class="resend-btn"
+                [disabled]="resendCooldown > 0 || isResending"
+                (click)="resendOTP()">
+                <!-- Cooldown ring -->
+                <div class="cooldown-ring" *ngIf="resendCooldown > 0">
+                  <svg viewBox="0 0 32 32">
+                    <circle cx="16" cy="16" r="13" fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-dasharray="81.68"
+                      [style.strokeDashoffset]="getCooldownOffset()"
+                      stroke-linecap="round"
+                      transform="rotate(-90 16 16)"/>
+                  </svg>
+                  <span class="cooldown-num">{{ resendCooldown }}</span>
+                </div>
+                <svg *ngIf="resendCooldown <= 0 && !isResending"
+                  viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16">
+                  <path d="M4 4v5h5M16 16v-5h-5M4.07 12A8 8 0 1016 8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="btn-spinner small" *ngIf="isResending"></span>
+                <span>{{ isResending ? 'Sending...' : resendCooldown > 0 ? 'Resend Code' : 'Resend Code' }}</span>
+              </button>
+
+              <button class="back-btn" (click)="goBack()">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15">
+                  <path d="M12 4L6 10l6 6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Back to Register
+              </button>
+            </div>
+
+            <!-- ── Help text ── -->
+            <p class="help-text">
+              Check your spam folder if you haven't received it.
+              The code expires in <strong>10 minutes</strong>.
+            </p>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </div>

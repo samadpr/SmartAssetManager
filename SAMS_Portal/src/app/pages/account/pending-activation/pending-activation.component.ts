@@ -105,6 +105,8 @@ export class PendingActivationComponent implements OnInit, OnDestroy {
     this.companyService.getCurrentUserCompany().subscribe(res => {
       if (res?.success && res.data?.isActive === true) {
         this._onActivated();
+      } else if(res?.success && res.data && res.data?.subscriptionId == null && res.data?.isActive == false || null) {
+        this.goToCompanyOnboarding();
       }
     });
   }
@@ -121,6 +123,10 @@ export class PendingActivationComponent implements OnInit, OnDestroy {
  
   goToDashboard(): void {
     this.router.navigateByUrl('/dashboard');
+  }
+
+  goToCompanyOnboarding(): void {
+    this.router.navigateByUrl('/company-onboarding');
   }
  
   logout(): void {

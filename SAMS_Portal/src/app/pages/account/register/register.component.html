@@ -1,171 +1,611 @@
-<div class="container-fluid p-0">
-    <div class="row w-100 h-100 g-0 align-items-center justify-content-center ">
-        <div class="col-lg-7 col-md-12 col-sm-12 justify-content-center">
-            <div class="registration-container w-100 px-4">
-                <!-- Brand Logo Section -->
-                <div class="text-left mb-4">
-                    <h2 class="left-title mb-1">Sign Up</h2>
-                    <p class="left-subtitle">Enter details to create your account</p>
-                </div>
-                <!-- Registration Form -->
-                <mat-card class="form-card shadow-sm">
-                    <mat-card-content class="p-4">
-                        <form class="registration-form" [formGroup]="_regform" (ngSubmit)="proceedregister()">
-                            <div class="row mb-3">
-                                <div class="col-md-6 mb-3 col-sm-12 mb-md-0">
-                                    <mat-form-field appearance="outline" class="w-100">
-                                        <mat-label>First Name</mat-label>
-                                        <input matInput  formControlName="firstName" placeholder="Enter your first name">
-                                        <mat-icon matSuffix>person</mat-icon>
-                                        <mat-error *ngIf="_regform.get('firstName')?.invalid && _regform.get('firstName')?.touched"></mat-error>
-                                    </mat-form-field>
-                                </div>
-                                <div class="col-md-6 col-sm-12">
-                                    <mat-form-field appearance="outline" class="w-100">
-                                        <mat-label>Last Name</mat-label>
-                                        <input matInput  formControlName="lastName" placeholder="Enter your last name">
-                                        <mat-icon matSuffix>person</mat-icon>
-                                        <mat-error *ngIf="_regform.get('lastName')?.invalid && _regform.get('lastName')?.touched"></mat-error>
-                                    </mat-form-field>
-                                </div>
-                            </div>
-                            <div class="col-md-12 col-sm-12 mb-3">
-                                <mat-form-field appearance="outline" class="w-100">
-                                    <mat-label>Email Address</mat-label>
-                                    <input matInput  formControlName="email" type="email" placeholder="Enter your email">
-                                    <mat-icon matSuffix>email</mat-icon>
-                                    <mat-error *ngIf="_regform.get('email')?.invalid && _regform.get('email')?.touched"></mat-error>
-                                </mat-form-field>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6 col-sm-12 mb-3 mb-md-0">
-                                    <mat-form-field appearance="outline" class="w-100">
-                                        <mat-label>Password</mat-label>
-                                        <input matInput  formControlName="password" [type]="hidePassword ? 'password' : 'text'"
-                                            placeholder="Create password">
-                                        <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword"
-                                            type="button">
-                                            <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
-                                        </button>
-                                        <mat-error *ngIf="_regform.get('password')?.invalid && _regform.get('password')?.touched"></mat-error>
-                                    </mat-form-field>
-                                </div>
-                                <div class="col-md-6 col-sm-12">
-                                    <mat-form-field appearance="outline" class="w-100">
-                                        <mat-label>Confirm Password</mat-label>
-                                        <input matInput  formControlName="confirmPassword" [type]="hideConfirmPassword ? 'password' : 'text'"
-                                            placeholder="Confirm password">
-                                        <button mat-icon-button matSuffix
-                                            (click)="hideConfirmPassword = !hideConfirmPassword" type="button">
-                                            <mat-icon>{{hideConfirmPassword ? 'visibility_off' :
-                                                'visibility'}}</mat-icon>
-                                        </button>
-                                        <mat-error *ngIf="_regform.get('confirmPassword')?.invalid && _regform.get('confirmPassword')?.touched"></mat-error>
-                                    </mat-form-field>
-                                </div>
-                            </div>
+<div class="register-page">
 
-                            <div class="row mb-3">
-                                <div class="col-md-6 col-sm-12 mb-3 mb-md-0">
-                                    <mat-form-field appearance="outline" class="w-100">
-                                        <mat-label>Phone Number</mat-label>
-                                        <input matInput  formControlName="phoneNumber" type="tel" placeholder="Enter your phone number">
-                                        <mat-icon matSuffix>phone</mat-icon>
-                                        <mat-error *ngIf="_regform.get('phoneNumber')?.invalid && _regform.get('phoneNumber')?.touched"></mat-error>
-                                    </mat-form-field>
-                                </div>
-                                <div class="col-md-6 col-sm-12">
-                                    <mat-form-field appearance="outline" class="w-100">
-                                        <mat-label>Country (Optional)</mat-label>
-                                        <mat-select formControlName="country" [compareWith]="compareCountries">
-                                            <mat-select-trigger>
-                                                <ng-container *ngIf="getSelectedCountry() as country">
-                                                    <img [src]="getFlagUrl(country.code)" width="24" height="16"
-                                                        style="margin-right: 8px;" />
-                                                    {{ country.name }}
-                                                </ng-container>
-                                            </mat-select-trigger>
-                                            <!-- <mat-option disabled>
-                                                <input matInput  formControlName="country" type="text" placeholder="Search country..."
-                                                    [(ngModel)]="searchText"
-                                                    (ngModelChange)="filterCountries($event)" />
-                                            </mat-option> -->
-
-                                            <mat-option *ngFor="let country of filteredCountries"
-                                                [value]="country.name">
-                                                <img [src]="getFlagUrl(country.code)" width="24" height="16"
-                                                    style="margin-right: 8px;" />
-                                                {{ country.name }}
-                                            </mat-option>
-                                        </mat-select>
-                                        <mat-icon matSuffix>public</mat-icon>
-                                    </mat-form-field>
-                                </div>
-                            </div>
-                            <!-- <div class="mb-3">
-                                <mat-form-field appearance="outline" class="w-100">
-                                    <mat-label>Leave a comment</mat-label>
-                                    <textarea matInput  formControlName="" placeholder="Ex. It makes me feel..."></textarea>
-                                </mat-form-field>
-                            </div> -->
-
-                            <!-- Submit Button -->
-                            <div class="d-grid">
-                                <button mat-raised-button color="primary" type="submit" class="submit-btn py-3" [disabled]="_regform.invalid || isSubmitting">
-                                    <mat-icon class="me-2">person_add</mat-icon>
-                                    {{ isSubmitting ? 'Create Account...' : 'Create Account' }}
-                                </button>
-                            </div>
-
-                            <!-- Login Link -->
-                            <div class="text-center mt-4">
-                                <p class="mb-0" style="color: var(--mat-sys-on-surface-variant);">Already have an
-                                    account?
-                                    <a routerLink="/login" class="text-decoration-none fw-medium login-link">Sign in here</a>
-                                </p>
-                            </div>
-                        </form>
-                    </mat-card-content>
-                </mat-card>
-            </div>
-        </div>
-        <div class="col-lg-5 col-md-5 d-none d-md-flex bg-color">
-            <div class="illustration-container text-center">
-                <!-- Brand Logo at Top -->
-                <div class="brand-logo mb-4">
-                    <img class="brand-logo-icon" src="assets/images/logos/infoasset_logo-1.webp" alt="">
-                    <h4 class="brand-name mt-2">INFOASSET</h4>
-                </div>
-                <!-- Main Illustration Image -->
-                <div class="illustration-image-container mb-4">
-                    <img src="assets\images\infoasset-dashboard1.webp" alt="Registration Illustration"
-                        class="illustration-image">
-                </div>
-                <!-- Content Section -->
-                <div class="illustration-content">
-                    <h3 class="illustration-title mb-3">Welcome to Our Platform</h3>
-                    <p class="illustration-text mb-4">
-                        Join thousands of users who trust our platform for their business needs.
-                        Create your account and start your journey with us today.
-                    </p>
-
-                    <!-- Feature Icons -->
-                    <div class="feature-icons d-flex justify-content-center gap-4">
-                        <div class="feature-item">
-                            <mat-icon class="feature-icon">security</mat-icon>
-                            <small class="d-block mt-2">Secure</small>
-                        </div>
-                        <div class="feature-item">
-                            <mat-icon class="feature-icon">speed</mat-icon>
-                            <small class="d-block mt-2">Fast</small>
-                        </div>
-                        <div class="feature-item">
-                            <mat-icon class="feature-icon">support_agent</mat-icon>
-                            <small class="d-block mt-2">Support</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <!-- Animated background particles -->
+  <div class="bg-particles">
+    <div class="particle"
+      *ngFor="let p of particles"
+      [style.left]="p.x + '%'"
+      [style.top]="p.y + '%'"
+      [style.animationDelay]="p.delay + 's'"
+      [style.animationDuration]="p.duration + 's'">
     </div>
+  </div>
+
+  <!-- Floating orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="register-wrapper">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div class="left-inner">
+
+        <!-- Logo -->
+        <div class="logo-section">
+          <div class="logo-mark">
+            <img src="/assets/images/logos/infoasset_logo-1.png" alt="INFOASSET" class="logo-img" />
+          </div>
+          <span class="logo-text">INFOASSET</span>
+        </div>
+
+        <!-- Headline -->
+        <div class="hero-text">
+          <h1 class="hero-title">
+            <span class="line-1">Join the Smartest</span>
+            <span class="line-2">Asset Platform</span>
+          </h1>
+          <p class="hero-sub">Set up your account in minutes and take full control of your organisation's assets.</p>
+        </div>
+
+        <!-- Steps -->
+        <div class="steps-list">
+          <div class="step-item" *ngFor="let s of steps; let i = index" [style.animationDelay]="(0.15 * i) + 's'">
+            <div class="step-number">{{ i + 1 }}</div>
+            <div class="step-text">
+              <span class="step-title">{{ s.title }}</span>
+              <span class="step-desc">{{ s.desc }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trust badges -->
+        <div class="trust-row">
+          <div class="trust-badge" *ngFor="let b of badges">
+            <span class="trust-icon">{{ b.icon }}</span>
+            <span>{{ b.label }}</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL — Registration Form -->
+    <div class="right-panel">
+      <div class="form-wrapper">
+
+        <!-- Avatar -->
+        <div class="avatar-section">
+          <div class="avatar-container" [class.happy]="avatarHappy" [class.thinking]="avatarThinking">
+            <div class="avatar-body">
+              <div class="avatar-face">
+                <div class="eyes-row">
+                  <div class="eye" [class.blink]="eyeBlink">
+                    <div class="pupil" [style.transform]="'translate(' + pupilX + 'px, ' + pupilY + 'px)'"></div>
+                  </div>
+                  <div class="eye" [class.blink]="eyeBlink">
+                    <div class="pupil" [style.transform]="'translate(' + pupilX + 'px, ' + pupilY + 'px)'"></div>
+                  </div>
+                </div>
+                <div class="nose"></div>
+                <div class="mouth"
+                  [class.smile]="avatarHappy"
+                  [class.covered]="passwordFocused || confirmFocused">
+                </div>
+              </div>
+              <!-- Cover hands -->
+              <div class="cover-hands" [class.visible]="passwordFocused || confirmFocused">
+                <div class="hand left-hand">
+                  <div class="finger f1"></div>
+                  <div class="finger f2"></div>
+                  <div class="finger f3"></div>
+                </div>
+                <div class="hand right-hand">
+                  <div class="finger f1"></div>
+                  <div class="finger f2"></div>
+                  <div class="finger f3"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Speech bubble -->
+          <div class="speech-bubble" [class.show]="bubbleText">
+            <span>{{ bubbleText }}</span>
+          </div>
+        </div>
+
+        <!-- Header -->
+        <div class="form-header">
+          <h2 class="form-title">Create your account</h2>
+          <p class="form-subtitle">Fill in the details below to get started</p>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-wrap">
+          <div class="progress-bar" [style.width]="formProgress + '%'"></div>
+        </div>
+        <p class="progress-label">{{ formProgress }}% complete</p>
+
+        <!-- Form Card -->
+        <div class="form-card">
+          <form [formGroup]="_regform" (ngSubmit)="proceedregister()" autocomplete="off">
+
+            <!-- Name row -->
+            <div class="field-row two-col">
+              <!-- First Name -->
+              <div class="field-group">
+                <label class="field-label">First Name <span class="required">*</span></label>
+                <div class="input-wrap"
+                  [class.focused]="firstFocused"
+                  [class.has-error]="_regform.get('firstName')?.invalid && _regform.get('firstName')?.touched"
+                  [class.has-value]="_regform.get('firstName')?.value">
+                  <span class="input-icon">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <circle cx="10" cy="7" r="3.5"/>
+                      <path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <input type="text" formControlName="firstName" placeholder="John"
+                    class="form-input"
+                    (focus)="onFieldFocus('first')"
+                    (blur)="onFieldBlur('first')"
+                    autocomplete="given-name" />
+                  <span class="valid-tick" *ngIf="_regform.get('firstName')?.valid && _regform.get('firstName')?.touched">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="#10b981" stroke-width="2">
+                      <path d="M3 8l3.5 3.5L13 5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+                <div class="field-error" *ngIf="_regform.get('firstName')?.invalid && _regform.get('firstName')?.touched">
+                  First name is required
+                </div>
+              </div>
+
+              <!-- Last Name -->
+              <div class="field-group">
+                <label class="field-label">Last Name <span class="required">*</span></label>
+                <div class="input-wrap"
+                  [class.focused]="lastFocused"
+                  [class.has-error]="_regform.get('lastName')?.invalid && _regform.get('lastName')?.touched"
+                  [class.has-value]="_regform.get('lastName')?.value">
+                  <span class="input-icon">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <circle cx="10" cy="7" r="3.5"/>
+                      <path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <input type="text" formControlName="lastName" placeholder="Doe"
+                    class="form-input"
+                    (focus)="onFieldFocus('last')"
+                    (blur)="onFieldBlur('last')"
+                    autocomplete="family-name" />
+                  <span class="valid-tick" *ngIf="_regform.get('lastName')?.valid && _regform.get('lastName')?.touched">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="#10b981" stroke-width="2">
+                      <path d="M3 8l3.5 3.5L13 5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+                <div class="field-error" *ngIf="_regform.get('lastName')?.invalid && _regform.get('lastName')?.touched">
+                  Last name is required
+                </div>
+              </div>
+            </div>
+
+            <!-- Email -->
+            <div class="field-group">
+              <label class="field-label">Email Address <span class="required">*</span></label>
+              <div class="input-wrap"
+                [class.focused]="emailFocused"
+                [class.has-error]="_regform.get('email')?.invalid && _regform.get('email')?.touched"
+                [class.has-value]="_regform.get('email')?.value">
+                <span class="input-icon">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="4" width="16" height="13" rx="2"/>
+                    <path d="M2 7l8 5 8-5"/>
+                  </svg>
+                </span>
+                <input type="email" formControlName="email" placeholder="you@company.com"
+                  class="form-input"
+                  (focus)="onFieldFocus('email')"
+                  (blur)="onFieldBlur('email')"
+                  (input)="onEmailInput()"
+                  autocomplete="email" />
+                <span class="valid-tick" *ngIf="_regform.get('email')?.valid && _regform.get('email')?.touched">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="#10b981" stroke-width="2">
+                    <path d="M3 8l3.5 3.5L13 5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              </div>
+              <div class="field-error" *ngIf="_regform.get('email')?.invalid && _regform.get('email')?.touched">
+                <span *ngIf="_regform.get('email')?.errors?.['required']">Email is required</span>
+                <span *ngIf="_regform.get('email')?.errors?.['email']">Please enter a valid email</span>
+              </div>
+            </div>
+
+            <!-- Password row -->
+            <div class="field-row two-col">
+              <!-- Password -->
+              <div class="field-group">
+                <label class="field-label">Password <span class="required">*</span></label>
+                <div class="input-wrap"
+                  [class.focused]="passwordFocused"
+                  [class.has-error]="_regform.get('password')?.invalid && _regform.get('password')?.touched">
+                  <span class="input-icon">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="4" y="9" width="12" height="9" rx="2"/>
+                      <path d="M7 9V6a3 3 0 016 0v3"/>
+                    </svg>
+                  </span>
+                  <input [type]="hidePassword ? 'password' : 'text'"
+                    formControlName="password"
+                    placeholder="Create password"
+                    class="form-input"
+                    (focus)="onFieldFocus('password')"
+                    (blur)="onFieldBlur('password')"
+                    (input)="onPasswordInput()"
+                    autocomplete="new-password" />
+                  <button type="button" class="toggle-pw" (click)="hidePassword = !hidePassword" tabindex="-1">
+                    <svg *ngIf="hidePassword" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M2 10s3.5-6 8-6 8 6 8 6-3.5 6-8 6-8-6-8-6z"/>
+                      <circle cx="10" cy="10" r="2.5"/>
+                    </svg>
+                    <svg *ngIf="!hidePassword" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M3 3l14 14M12.5 12.5A2.5 2.5 0 017.5 7.5"/>
+                      <path d="M6 6.5C4 7.7 2.5 9.5 2 10c.8 1.2 4 5 8 5a7.4 7.4 0 003.5-.9"/>
+                      <path d="M10 5a8 8 0 014.5 1.5C16.2 7.7 17.5 9.5 18 10a10 10 0 01-2.5 2.8"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Confirm Password -->
+              <div class="field-group">
+                <label class="field-label">Confirm Password <span class="required">*</span></label>
+                <div class="input-wrap"
+                  [class.focused]="confirmFocused"
+                  [class.has-error]="confirmPasswordError">
+                  <span class="input-icon">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="4" y="9" width="12" height="9" rx="2"/>
+                      <path d="M7 9V6a3 3 0 016 0v3"/>
+                    </svg>
+                  </span>
+                  <input [type]="hideConfirmPassword ? 'password' : 'text'"
+                    formControlName="confirmPassword"
+                    placeholder="Confirm password"
+                    class="form-input"
+                    (focus)="onFieldFocus('confirm')"
+                    (blur)="onFieldBlur('confirm')"
+                    autocomplete="new-password" />
+                  <button type="button" class="toggle-pw" (click)="hideConfirmPassword = !hideConfirmPassword" tabindex="-1">
+                    <svg *ngIf="hideConfirmPassword" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M2 10s3.5-6 8-6 8 6 8 6-3.5 6-8 6-8-6-8-6z"/>
+                      <circle cx="10" cy="10" r="2.5"/>
+                    </svg>
+                    <svg *ngIf="!hideConfirmPassword" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M3 3l14 14M12.5 12.5A2.5 2.5 0 017.5 7.5"/>
+                      <path d="M6 6.5C4 7.7 2.5 9.5 2 10c.8 1.2 4 5 8 5a7.4 7.4 0 003.5-.9"/>
+                      <path d="M10 5a8 8 0 014.5 1.5C16.2 7.7 17.5 9.5 18 10a10 10 0 01-2.5 2.8"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Password feedback row (below the two-col row) -->
+            <div class="pw-feedback-row">
+              <div class="pw-feedback-left">
+                <!-- Password strength meter -->
+                <div class="strength-wrap" *ngIf="_regform.get('password')?.value">
+                  <div class="strength-bars">
+                    <div class="s-bar" [class.active]="pwStrength >= 1" [class]="'lvl-' + pwStrength"></div>
+                    <div class="s-bar" [class.active]="pwStrength >= 2" [class]="'lvl-' + pwStrength"></div>
+                    <div class="s-bar" [class.active]="pwStrength >= 3" [class]="'lvl-' + pwStrength"></div>
+                    <div class="s-bar" [class.active]="pwStrength >= 4" [class]="'lvl-' + pwStrength"></div>
+                  </div>
+                  <span class="strength-label" [class]="'lvl-txt-' + pwStrength">{{ pwStrengthLabel }}</span>
+                </div>
+                <!-- Password rules -->
+                <div class="pw-rules" *ngIf="passwordFocused || (_regform.get('password')?.touched && _regform.get('password')?.invalid)">
+                  <div class="pw-rule" [class.ok]="pwRules.length">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path *ngIf="pwRules.length" d="M2 6l2.5 2.5L10 3" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle *ngIf="!pwRules.length" cx="6" cy="6" r="4"/>
+                    </svg>
+                    At least 8 characters
+                  </div>
+                  <div class="pw-rule" [class.ok]="pwRules.upper">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path *ngIf="pwRules.upper" d="M2 6l2.5 2.5L10 3" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle *ngIf="!pwRules.upper" cx="6" cy="6" r="4"/>
+                    </svg>
+                    One uppercase letter
+                  </div>
+                  <div class="pw-rule" [class.ok]="pwRules.number">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path *ngIf="pwRules.number" d="M2 6l2.5 2.5L10 3" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle *ngIf="!pwRules.number" cx="6" cy="6" r="4"/>
+                    </svg>
+                    One number
+                  </div>
+                  <div class="pw-rule" [class.ok]="pwRules.special">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path *ngIf="pwRules.special" d="M2 6l2.5 2.5L10 3" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle *ngIf="!pwRules.special" cx="6" cy="6" r="4"/>
+                    </svg>
+                    One special character
+                  </div>
+                </div>
+                <div class="field-error" *ngIf="_regform.get('password')?.invalid && _regform.get('password')?.touched && !passwordFocused">
+                  <span *ngIf="_regform.get('password')?.errors?.['required']">Password is required</span>
+                  <span *ngIf="_regform.get('password')?.errors?.['minlength']">Minimum 8 characters</span>
+                  <span *ngIf="_regform.get('password')?.errors?.['pattern']">Must include uppercase, number & special character</span>
+                </div>
+              </div>
+              <div class="pw-feedback-right">
+                <div class="field-error" *ngIf="confirmPasswordError">
+                  <span *ngIf="_regform.get('confirmPassword')?.errors?.['required']">Please confirm your password</span>
+                  <span *ngIf="_regform.hasError('passwordMismatch') && !_regform.get('confirmPassword')?.errors?.['required']">Passwords do not match</span>
+                </div>
+                <div class="match-ok" *ngIf="passwordsMatch">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="#10b981" stroke-width="2">
+                    <path d="M3 8l3.5 3.5L13 5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Passwords match
+                </div>
+              </div>
+            </div>
+
+            <!-- Phone + Country row -->
+            <div class="field-row two-col">
+              <!-- Phone with country code -->
+              <div class="field-group">
+                <label class="field-label">Phone Number</label>
+                <div class="input-wrap phone-wrap"
+                  [class.focused]="phoneFocused"
+                  [class.has-error]="_regform.get('phoneNumber')?.invalid && _regform.get('phoneNumber')?.touched">
+                  <!-- Country code selector -->
+                  <div class="phone-code-selector" (click)="togglePhoneDropdown()" [class.open]="phoneDropdownOpen">
+                    <img [src]="getDialCodeFlag()" width="18" height="13" style="object-fit:contain; border-radius:2px;" />
+                    <span class="dial-code-text">{{ selectedDialCode }}</span>
+                    <svg class="code-chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 4.5l3 3 3-3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="phone-divider"></div>
+                  <input type="tel" formControlName="phoneNumber" placeholder="123 456 7890"
+                    class="form-input phone-input"
+                    (focus)="onFieldFocus('phone')"
+                    (blur)="onFieldBlur('phone')"
+                    autocomplete="tel" />
+
+                  <!-- Phone country code dropdown -->
+                  <div class="phone-dropdown" *ngIf="phoneDropdownOpen" (click)="$event.stopPropagation()">
+                    <div class="phone-dropdown-search">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
+                        <circle cx="6.5" cy="6.5" r="4.5"/>
+                        <path d="M10 10l3 3" stroke-linecap="round"/>
+                      </svg>
+                      <input type="text" placeholder="Search country..." [(ngModel)]="phoneSearchText" [ngModelOptions]="{standalone: true}" (input)="filterPhoneCountries()" class="phone-search-input" />
+                    </div>
+                    <div class="phone-dropdown-list">
+                      <div class="phone-dropdown-item" *ngFor="let c of filteredDialCountries"
+                        (click)="selectDialCode(c)">
+                        <img [src]="'https://flagcdn.com/w40/' + c.code.toLowerCase() + '.png'" width="20" height="14" style="object-fit:contain; border-radius:2px; flex-shrink:0;" />
+                        <span class="dial-country-name">{{ c.name }}</span>
+                        <span class="dial-code-badge">{{ c.dial }}</span>
+                      </div>
+                      <div class="phone-no-results" *ngIf="filteredDialCountries.length === 0">No countries found</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="field-error" *ngIf="_regform.get('phoneNumber')?.invalid && _regform.get('phoneNumber')?.touched">
+                  Please enter a valid phone number
+                </div>
+              </div>
+
+              <!-- Country -->
+              <div class="field-group">
+                <label class="field-label">Country</label>
+                <div class="input-wrap select-wrap" [class.focused]="countryFocused">
+                  <span class="input-icon">
+                    <ng-container *ngIf="getSelectedCountry() as country; else globeIcon">
+                      <img [src]="getFlagUrl(country.code)" width="22" height="16" style="object-fit:contain; border-radius:2px;" />
+                    </ng-container>
+                    <ng-template #globeIcon>
+                      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="10" cy="10" r="8"/>
+                        <path d="M2 10h16M10 2c-2 2.5-3 5-3 8s1 5.5 3 8M10 2c2 2.5 3 5 3 8s-1 5.5-3 8"/>
+                      </svg>
+                    </ng-template>
+                  </span>
+                  <select formControlName="country" class="form-input form-select"
+                    (focus)="onFieldFocus('country')"
+                    (blur)="onFieldBlur('country')"
+                    (change)="onCountryChange()">
+                    <option value="">Select country</option>
+                    <option *ngFor="let c of filteredCountries" [value]="c.name">{{ c.name }}</option>
+                  </select>
+                  <span class="select-chevron">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Terms -->
+            <div class="terms-row">
+              <label class="check-label">
+                <input type="checkbox" formControlName="agreeTerms" class="check-input" />
+                <span class="check-box">
+                  <svg viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2">
+                    <path d="M2 5l2.5 2.5L8 3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span class="check-text">
+                  I agree to the
+                  <a href="#" class="terms-link" (click)="openLegalModal('terms'); $event.preventDefault()">Terms of Service</a>
+                  and
+                  <a href="#" class="terms-link" (click)="openLegalModal('privacy'); $event.preventDefault()">Privacy Policy</a>
+                </span>
+              </label>
+            </div>
+
+            <!-- Submit -->
+            <button
+              type="submit"
+              class="submit-btn"
+              [class.loading]="isSubmitting"
+              [disabled]="_regform.invalid || isSubmitting">
+              <span class="btn-content" *ngIf="!isSubmitting">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M10 3v11M16 9l-6 6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Create Account
+              </span>
+              <span class="btn-loader" *ngIf="isSubmitting">
+                <span class="spinner"></span>
+                Creating account...
+              </span>
+            </button>
+
+            <!-- Login link -->
+            <p class="login-text">
+              Already have an account?
+              <a routerLink="/login" class="login-link">Sign in here</a>
+            </p>
+
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
 </div>
+
+<!-- ===================== LEGAL MODAL ===================== -->
+<div class="legal-modal-overlay" *ngIf="legalModalOpen" (click)="closeLegalModal()">
+  <div class="legal-modal" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="legal-modal-header">
+      <div class="legal-modal-title-row">
+        <div class="legal-modal-icon">
+          <svg *ngIf="legalModalType === 'terms'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke-linecap="round"/>
+          </svg>
+          <svg *ngIf="legalModalType === 'privacy'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="legal-modal-title">{{ legalModalType === 'terms' ? 'Terms of Service' : 'Privacy Policy' }}</h3>
+          <p class="legal-modal-subtitle">INFOASSET Smart Asset Management System · Last updated: January 2025</p>
+        </div>
+      </div>
+      <button class="legal-modal-close" (click)="closeLegalModal()">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 5l10 10M15 5L5 15" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Tab switcher -->
+    <div class="legal-tabs">
+      <button class="legal-tab" [class.active]="legalModalType === 'terms'" (click)="legalModalType = 'terms'">
+        Terms of Service
+      </button>
+      <button class="legal-tab" [class.active]="legalModalType === 'privacy'" (click)="legalModalType = 'privacy'">
+        Privacy Policy
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="legal-modal-body">
+
+      <!-- TERMS OF SERVICE -->
+      <div *ngIf="legalModalType === 'terms'">
+        <div class="legal-section">
+          <h4 class="legal-section-title">1. Acceptance of Terms</h4>
+          <p>By registering for and using the INFOASSET Smart Asset Management System ("SAMS"), you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not access or use the platform. Your continued use of the service following any changes constitutes your acceptance of the revised terms.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">2. Platform Description</h4>
+          <p>INFOASSET SAMS is an enterprise-grade asset management platform providing organisations with tools to track, manage, and maintain physical assets across multiple sites and branches. Features include QR & Barcode generation, RFID/GPS tracking, role-based access control (RBAC), asset lifecycle management, supplier management, maintenance scheduling, and comprehensive reporting.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">3. Account Responsibilities</h4>
+          <p>You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorised access to your account. Your organisation's administrator is responsible for managing user roles, permissions, and access within your SAMS instance. Each account must represent a single legal entity or individual.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">4. Asset Data & Accuracy</h4>
+          <p>You are responsible for the accuracy of all asset data entered into the system. INFOASSET SAMS provides tools and infrastructure; the validity and completeness of asset records, valuations, depreciation schedules, and maintenance logs remain your organisation's responsibility. We are not liable for business decisions made based on asset data you have entered.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">5. Subscription & Billing</h4>
+          <p>Access to SAMS is provided on a subscription basis. Pricing depends on your selected plan, number of users, and asset count. Subscriptions are billed in advance. Failure to maintain an active subscription will result in read-only access. Data is retained for 90 days after subscription expiry before permanent deletion.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">6. Prohibited Use</h4>
+          <p>You may not use SAMS to store or manage data related to illegal assets or activities; attempt to reverse-engineer or exploit the platform; share access credentials with unauthorised parties; use automated scripts to extract bulk data without prior written approval; or circumvent any security or access control measures.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">7. Service Availability</h4>
+          <p>We strive for 99.5% uptime. Scheduled maintenance windows are announced 48 hours in advance. INFOASSET is not liable for losses arising from service interruptions outside our reasonable control, including infrastructure outages from third-party cloud providers.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">8. Termination</h4>
+          <p>Either party may terminate the service relationship with 30 days' written notice. We reserve the right to suspend accounts that violate these terms, engage in fraudulent activity, or compromise platform security, without prior notice. Upon termination, you may request a data export within 30 days.</p>
+        </div>
+      </div>
+
+      <!-- PRIVACY POLICY -->
+      <div *ngIf="legalModalType === 'privacy'">
+        <div class="legal-section">
+          <h4 class="legal-section-title">1. Information We Collect</h4>
+          <p>We collect information you provide during registration (name, email, phone, country), asset and organisational data you enter into SAMS, device and browser information for security purposes (IP address, operating system, browser type), geolocation data when you grant permission, and usage analytics to improve platform performance.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">2. How We Use Your Data</h4>
+          <p>Your data is used to operate and improve the SAMS platform, authenticate your identity and manage your session, send transactional emails (OTP verification, account alerts, subscription notices), provide customer support, generate anonymised usage analytics, and comply with legal obligations. We do not sell your personal data to third parties.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">3. Asset & Organisational Data</h4>
+          <p>All asset records, user data, site configurations, and reports you create in SAMS belong to your organisation. We act as a data processor on your behalf. This data is stored in encrypted form and is never used for commercial profiling, shared with competitors, or accessed by INFOASSET staff without your explicit consent or a legal requirement.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">4. Data Security</h4>
+          <p>We implement industry-standard security measures including AES-256 encryption at rest, TLS 1.3 encryption in transit, role-based access controls, multi-factor authentication options, regular security audits, and automated intrusion detection. Your passwords are hashed using bcrypt and are never stored in plain text.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">5. Cookies & Tracking</h4>
+          <p>SAMS uses essential session cookies required for authentication and security. We use analytics cookies (with your consent) to understand feature usage patterns. No advertising or third-party tracking cookies are used. You can manage cookie preferences in your account settings.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">6. Data Retention</h4>
+          <p>Active account data is retained for the duration of your subscription. Deleted records are soft-deleted and permanently purged after 30 days. Upon account closure, all data is retained for 90 days to allow export, then permanently deleted. Audit logs are retained for 12 months for compliance purposes.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">7. Your Rights (GDPR & PDPA)</h4>
+          <p>You have the right to access, rectify, or export your personal data at any time from account settings. You may request account deletion, object to data processing, and request data portability. For organisations in the EU/EEA, we comply with GDPR. We respond to data subject requests within 30 days.</p>
+        </div>
+        <div class="legal-section">
+          <h4 class="legal-section-title">8. Contact Us</h4>
+          <p>For privacy concerns, data requests, or to report a security issue, contact our Data Protection Officer at <strong>privacy&#64;infoasset.com</strong>. For general support, use the in-app help centre or email <strong>support&#64;infoasset.com</strong>.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="legal-modal-footer">
+      <span class="legal-footer-note">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
+          <circle cx="8" cy="8" r="6"/>
+          <path d="M8 5v3M8 11v.5" stroke-linecap="round"/>
+        </svg>
+        By checking the box, you acknowledge you have read and agree to both documents.
+      </span>
+      <button class="legal-accept-btn" (click)="acceptAndClose()">
+        I Understand &amp; Accept
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Click outside to close phone dropdown -->
+<div class="phone-dropdown-backdrop" *ngIf="phoneDropdownOpen" (click)="closePhoneDropdown()"></div>

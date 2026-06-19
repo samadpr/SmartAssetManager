@@ -2,3 +2,756 @@
     { label: 'Admin Dashboard' }
   ]">
 </app-admin-page-header>
+
+<!-- ── GLOBAL SKELETON ──────────────────────────────────────────────────── -->
+@if (pageLoading()) {
+  <div class="page-skeleton">
+    <div class="sk-kpi-row">
+      @for (i of [1,2,3,4,5,6,7,8]; track i) { <div class="sk sk--kpi"></div> }
+    </div>
+    <div class="sk-row-2">
+      <div class="sk sk--health"></div>
+      <div class="sk sk--rev"></div>
+    </div>
+    <div class="sk-row-2">
+      <div class="sk sk--chart-lg"></div>
+      <div class="sk sk--chart-sm"></div>
+    </div>
+    <div class="sk sk--table"></div>
+  </div>
+}
+ 
+@if (!pageLoading()) {
+<div class="dash-wrap" [@dashFade]>
+ 
+  <!-- ══════════════════════════════════════════════════════════════════
+       GREETING BAR
+       ══════════════════════════════════════════════════════════════════ -->
+  <div class="greeting-bar">
+    <div class="gb-left">
+      <div class="gb-icon-wrap">
+        <mat-icon>admin_panel_settings</mat-icon>
+      </div>
+      <div class="gb-text">
+        <span class="gb-main">System Control Panel</span>
+        <span class="gb-sub">Complete overview of the INFOASSET platform — all organizations, revenue &amp; users.</span>
+      </div>
+    </div>
+ 
+    @if (systemHealth(); as sh) {
+      <div class="health-pill" [style.border-color]="healthGradeColor(sh.grade)"
+           matTooltip="System Health: {{ sh.gradeLabel }} ({{ sh.score }}/100)">
+        <div class="hp-score" [style.color]="healthGradeColor(sh.grade)">{{ sh.score }}</div>
+        <div class="hp-grade" [style.color]="healthGradeColor(sh.grade)">{{ sh.grade }}</div>
+        <div class="hp-lbl">Health</div>
+      </div>
+    }
+ 
+    <div class="gb-date">
+      <mat-icon>calendar_today</mat-icon>
+      <span>{{ today | date:'EEE, dd MMM yyyy' }}</span>
+    </div>
+  </div>
+ 
+  <!-- ══════════════════════════════════════════════════════════════════
+       KPI ROW
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="kpi-row" [@stagger]="kpiCards().length">
+    @for (card of kpiCards(); track card.key; let i = $index) {
+      <mat-card class="kpi-card kpi-card--{{ card.color }}"
+                [style.animation-delay]="(i * 50) + 'ms'">
+        <mat-card-content>
+          <div class="kpi-inner">
+            <div class="kpi-info">
+              <span class="kpi-label">{{ card.label }}</span>
+              <span class="kpi-value">
+                @if (card.isCurrency) { {{ formatCurrency(card.value) }} }
+                @else { {{ card.value | number }} }
+              </span>
+              <span class="kpi-trend" [class.up]="card.trend >= 0" [class.dn]="card.trend < 0">
+                <mat-icon>{{ card.trend >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+                {{ card.trend >= 0 ? '+' : '' }}{{ card.trend }}% vs last month
+              </span>
+            </div>
+            <div class="kpi-icon">
+              <mat-icon>{{ card.icon }}</mat-icon>
+            </div>
+          </div>
+          @if (card.sparkline.length > 0) {
+            <div class="kpi-spark">
+              @for (b of card.sparkline; track $index) {
+                <div class="spark-b" [style.height.%]="b || 5"></div>
+              }
+            </div>
+          } @else {
+            <div class="kpi-spark kpi-spark--empty"></div>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+  </section>
+ 
+  <!-- ══════════════════════════════════════════════════════════════════
+       ROW A — System Health (40%) + Revenue Summary (60%)
+       ══════════════════════════════════════════════════════════════════ -->
+  <div class="row row--4060">
+ 
+    <!-- System Health Card -->
+    @if (systemHealth(); as sh) {
+      <mat-card class="dc">
+        <mat-card-header>
+          <div class="ch-left">
+            <mat-icon class="ci">health_and_safety</mat-icon>
+            <span class="ct">System Health</span>
+          </div>
+          <span class="sp"></span>
+          <div class="grade-badge"
+               [style.background]="healthGradeColor(sh.grade) + '1a'"
+               [style.color]="healthGradeColor(sh.grade)"
+               [style.border-color]="healthGradeColor(sh.grade)">
+            Grade {{ sh.grade }} — {{ sh.gradeLabel }}
+          </div>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="health-ring-wrap">
+            <div class="health-ring">
+              <svg viewBox="0 0 80 80" class="ring-svg">
+                <circle cx="40" cy="40" r="32" class="ring-track"/>
+                <circle cx="40" cy="40" r="32" class="ring-fill"
+                        [style.stroke]="healthGradeColor(sh.grade)"
+                        [style.stroke-dasharray]="(sh.score / 100 * 201) + ' 201'"/>
+              </svg>
+              <div class="ring-center">
+                <span class="ring-num" [style.color]="healthGradeColor(sh.grade)">{{ sh.score }}</span>
+                <span class="ring-of">/ 100</span>
+              </div>
+            </div>
+            <div class="health-bars">
+              <div class="hb-row">
+                <span class="hb-lbl">Active Companies</span>
+                <div class="hb-track"><div class="hb-fill" [style.width.%]="sh.activeCompanyPct" style="background:#10b981"></div></div>
+                <span class="hb-pct">{{ sh.activeCompanyPct }}%</span>
+              </div>
+              <div class="hb-row">
+                <span class="hb-lbl">Subscribed</span>
+                <div class="hb-track"><div class="hb-fill" [style.width.%]="sh.subscribedPct" style="background:#06b6d4"></div></div>
+                <span class="hb-pct">{{ sh.subscribedPct }}%</span>
+              </div>
+              <div class="hb-row">
+                <span class="hb-lbl">Expired Plans</span>
+                <div class="hb-track"><div class="hb-fill" [style.width.%]="sh.expiredPct" style="background:#ef4444"></div></div>
+                <span class="hb-pct">{{ sh.expiredPct }}%</span>
+              </div>
+            </div>
+          </div>
+          <!-- Alert counters -->
+          <div class="sh-alerts">
+            <div class="sha sha--warn">
+              <mat-icon>warning_amber</mat-icon>
+              <div>
+                <div class="sha-val">{{ sh.companiesNearAssetLimit }}</div>
+                <div class="sha-lbl">Near Asset Limit</div>
+              </div>
+            </div>
+            <div class="sha sha--info">
+              <mat-icon>schedule</mat-icon>
+              <div>
+                <div class="sha-val">{{ sh.expiringIn30Days }}</div>
+                <div class="sha-lbl">Expiring &lt;30d</div>
+              </div>
+            </div>
+            <div class="sha sha--error">
+              <mat-icon>pause_circle</mat-icon>
+              <div>
+                <div class="sha-val">{{ kpiCards()[7].value }}</div>
+                <div class="sha-lbl">Pending Activate</div>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+ 
+    <!-- Revenue Summary Card -->
+    @if (revenueOverview(); as rv) {
+      <mat-card class="dc">
+        <mat-card-header>
+          <div class="ch-left">
+            <mat-icon class="ci ci--success">account_balance</mat-icon>
+            <span class="ct">Revenue Overview</span>
+          </div>
+          <span class="sp"></span>
+          <div class="rev-growth-badge"
+               [class.rev-up]="rv.revenueGrowthPct >= 0"
+               [class.rev-dn]="rv.revenueGrowthPct < 0">
+            <mat-icon>{{ rv.revenueGrowthPct >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+            {{ rv.revenueGrowthPct >= 0 ? '+' : '' }}{{ rv.revenueGrowthPct }}% MoM
+          </div>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="rev-hero">
+            <div class="rh-total">
+              <span class="rh-label">Total Platform Revenue</span>
+              <span class="rh-amount">{{ formatCurrency(rv.totalRevenue) }}</span>
+            </div>
+          </div>
+ 
+          <div class="rev-grid">
+            <div class="rg-item rg-item--primary">
+              <mat-icon>payments</mat-icon>
+              <div>
+                <div class="rg-val">{{ formatCurrency(rv.thisMonthRevenue) }}</div>
+                <div class="rg-lbl">This Month</div>
+              </div>
+            </div>
+            <div class="rg-item">
+              <mat-icon>history</mat-icon>
+              <div>
+                <div class="rg-val">{{ formatCurrency(rv.lastMonthRevenue) }}</div>
+                <div class="rg-lbl">Last Month</div>
+              </div>
+            </div>
+            <div class="rg-item">
+              <mat-icon>calculate</mat-icon>
+              <div>
+                <div class="rg-val">{{ formatCurrency(rv.averageRevenuePerCompany) }}</div>
+                <div class="rg-lbl">Avg Per Company</div>
+              </div>
+            </div>
+            <div class="rg-item rg-item--gold">
+              <mat-icon>workspace_premium</mat-icon>
+              <div>
+                <div class="rg-val">{{ formatCurrency(rv.highestPlanAmount) }}</div>
+                <div class="rg-lbl">Highest Plan · {{ rv.highestPlanName }}</div>
+              </div>
+            </div>
+            <div class="rg-item rg-item--success">
+              <mat-icon>verified</mat-icon>
+              <div>
+                <div class="rg-val">{{ rv.activeSubscriptions }}</div>
+                <div class="rg-lbl">Active Subscriptions</div>
+              </div>
+            </div>
+            <div class="rg-item rg-item--error">
+              <mat-icon>event_busy</mat-icon>
+              <div>
+                <div class="rg-val">{{ rv.expiredSubscriptions }}</div>
+                <div class="rg-lbl">Expired Subscriptions</div>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+ 
+  <!-- ══════════════════════════════════════════════════════════════════
+       ROW B — Monthly Revenue Chart (65%) + Plan Distribution (35%)
+       ══════════════════════════════════════════════════════════════════ -->
+  <div class="row row--6535 row--equal-height">
+ 
+    <!-- Monthly Revenue Bar+Line Chart -->
+    <mat-card class="dc">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">bar_chart</mat-icon>
+          <span class="ct">Monthly Revenue &amp; Growth</span>
+        </div>
+        <span class="sp"></span>
+        <mat-button-toggle-group [(value)]="revenueChartPeriod" class="mtg">
+          <mat-button-toggle value="6">6M</mat-button-toggle>
+          <mat-button-toggle value="12">12M</mat-button-toggle>
+        </mat-button-toggle-group>
+      </mat-card-header>
+      <mat-card-content class="chart-card-content">
+        @if (chartLoading()) { <div class="sk sk--chart"></div> }
+        @else {
+          <div class="cw cw--fixed">
+            <canvas baseChart
+                    [data]="revenueChartData()"
+                    [options]="revenueChartOpts"
+                    type="bar">
+            </canvas>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+ 
+    <!-- Plan Distribution Donut -->
+    <mat-card class="dc dc--plan">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">donut_large</mat-icon>
+          <span class="ct">Plan Distribution</span>
+        </div>
+        <span class="sp"></span>
+        <span class="ct-sub">{{ planDonutTotal() }} companies</span>
+      </mat-card-header>
+      <mat-card-content class="plan-card-content">
+        @if (chartLoading()) { <div class="sk sk--donut"></div> }
+        @else if (planDistribution().length === 0) {
+          <div class="empty-chart"><mat-icon>donut_large</mat-icon><p>No plan data</p></div>
+        } @else {
+          <!-- Compact donut — fixed height so card doesn't stretch -->
+          <div class="cw cw--donut-compact">
+            <canvas baseChart
+                    [data]="planDonutData()"
+                    [options]="planDonutOpts"
+                    type="doughnut">
+            </canvas>
+          </div>
+ 
+          <!-- Plan detail list — scrollable, capped height -->
+          <div class="plan-list">
+            @for (plan of visiblePlans(); track plan.planId; let i = $index) {
+              <div class="plan-row">
+                <span class="plan-dot" [style.background]="planColor(i)"></span>
+                <span class="plan-name">{{ plan.planName }}</span>
+                <span class="plan-count">{{ plan.companyCount }} cos</span>
+                <span class="plan-pct" [style.color]="planColor(i)">{{ plan.percentage }}%</span>
+                <span class="plan-rev">{{ formatCurrency(plan.totalRevenue) }}</span>
+              </div>
+            }
+          </div>
+ 
+          <!-- View More / View Less toggle -->
+          @if (hasMorePlans()) {
+            <button mat-button class="plan-toggle-btn" (click)="toggleShowAllPlans()">
+              <mat-icon>{{ showAllPlans() ? 'expand_less' : 'expand_more' }}</mat-icon>
+              {{ showAllPlans() ? 'View Less' : 'View ' + (planDistribution().length - 1) + ' More Plans' }}
+            </button>
+          }
+        }
+      </mat-card-content>
+    </mat-card>
+ 
+  </div>
+ 
+  <!-- ══════════════════════════════════════════════════════════════════
+       ROW C — Company Growth (50%) + Asset Usage (50%)
+       ══════════════════════════════════════════════════════════════════ -->
+  <div class="row row--5050">
+ 
+    <!-- Company Growth Line Chart -->
+    <mat-card class="dc">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">show_chart</mat-icon>
+          <span class="ct">Company Growth Trend</span>
+        </div>
+        <span class="sp"></span>
+        <mat-button-toggle-group [(value)]="growthChartPeriod" class="mtg">
+          <mat-button-toggle value="6">6M</mat-button-toggle>
+          <mat-button-toggle value="12">12M</mat-button-toggle>
+        </mat-button-toggle-group>
+      </mat-card-header>
+      <mat-card-content>
+        @if (chartLoading()) { <div class="sk sk--chart"></div> }
+        @else {
+          <div class="cw">
+            <canvas baseChart
+                    [data]="growthChartData()"
+                    [options]="growthChartOpts"
+                    type="line">
+            </canvas>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+ 
+    <!-- Asset Usage Per Company -->
+    <mat-card class="dc">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">inventory_2</mat-icon>
+          <span class="ct">Asset Usage by Company</span>
+        </div>
+        <span class="sp"></span>
+        <span class="ct-sub">Top 8 active</span>
+      </mat-card-header>
+      <mat-card-content>
+        @if (chartLoading()) { <div class="sk sk--chart"></div> }
+        @else {
+          <div class="cw">
+            <canvas baseChart
+                    [data]="assetUsageChartData()"
+                    [options]="assetUsageChartOpts"
+                    type="bar">
+            </canvas>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+ 
+  </div>
+ 
+  <!-- ══════════════════════════════════════════════════════════════════
+       TOP REVENUE COMPANIES — Ranked Cards
+       ══════════════════════════════════════════════════════════════════ -->
+  <mat-card class="dc dc--full">
+    <mat-card-header>
+      <div class="ch-left">
+        <mat-icon class="ci ci--gold">emoji_events</mat-icon>
+        <span class="ct">Top Revenue Companies</span>
+      </div>
+      <span class="sp"></span>
+      <button mat-stroked-button class="va-btn" routerLink="/admin/companies-list">
+        View All <mat-icon iconPositionEnd>chevron_right</mat-icon>
+      </button>
+    </mat-card-header>
+    <mat-card-content>
+      @if (topRevenueCompanies().length === 0) {
+        <div class="empty-state"><mat-icon>emoji_events</mat-icon><p>No subscription data yet</p></div>
+      } @else {
+        <div class="rev-scroll">
+          <div class="rev-cards-row">
+            @for (company of topRevenueCompanies(); track company.companyId) {
+              <div class="rev-card" [class.rev-card--top3]="company.rank <= 3">
+ 
+                <!-- Rank badge -->
+                <div class="rank-badge" [style.background]="rankColor(company.rank) + '22'" [style.color]="rankColor(company.rank)" [style.border-color]="rankColor(company.rank)">
+                  <mat-icon [style.color]="rankColor(company.rank)">{{ rankIcon(company.rank) }}</mat-icon>
+                  <span>#{{ company.rank }}</span>
+                </div>
+ 
+                <!-- Company identity -->
+                <div class="rc-company">
+                  <div class="thumb thumb--co">
+                    @if (hasImg(company.logo)) {
+                      <img class="thumb-img" [src]="company.logo" [alt]="company.companyName" (error)="onImgError($event)"/>
+                      <div class="img-fb co-av" [style.background]="avatarColor(company.companyName)">{{ initials(company.companyName) }}</div>
+                    } @else {
+                      <div class="co-av" [style.background]="avatarColor(company.companyName)">{{ initials(company.companyName) }}</div>
+                    }
+                  </div>
+                  <div>
+                    <div class="rc-name">{{ company.companyName }}</div>
+                    <div class="rc-plan">{{ company.planName ?? 'No plan' }}</div>
+                  </div>
+                </div>
+ 
+                <!-- Plan amount = "revenue" for this company -->
+                <div class="rc-amount" [style.color]="rankColor(company.rank)">
+                  {{ formatCurrency(company.planAmount) }}
+                </div>
+                <div class="rc-share">{{ company.revenueShare }}% share</div>
+ 
+                <!-- Stats row -->
+                <div class="rc-stats">
+                  <span><mat-icon>inventory_2</mat-icon>{{ company.assetCount }}</span>
+                  <span><mat-icon>people</mat-icon>{{ company.userCount }}</span>
+                </div>
+ 
+                <!-- Status -->
+                <div class="sub-badge {{ statusCss(company.subscriptionStatus) }}">
+                  <mat-icon>{{ statusIcon(company.subscriptionStatus) }}</mat-icon>
+                  {{ statusLabel(company.subscriptionStatus) }}
+                </div>
+ 
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+ 
+  <!-- ══════════════════════════════════════════════════════════════════
+       ROW D — Recent Companies Table (full width)
+       ══════════════════════════════════════════════════════════════════ -->
+  <mat-card class="dc dc--full dc--table">
+    <mat-card-header>
+      <div class="ch-left">
+        <mat-icon class="ci">corporate_fare</mat-icon>
+        <span class="ct">Recently Registered Companies</span>
+      </div>
+      <span class="sp"></span>
+      <button mat-stroked-button class="va-btn" routerLink="/admin/companies-list">
+        View All <mat-icon iconPositionEnd>chevron_right</mat-icon>
+      </button>
+    </mat-card-header>
+    <mat-card-content class="np">
+      <div class="tscroll">
+        <table mat-table [dataSource]="recentCompaniesDS" class="dt">
+ 
+          <!-- Rank -->
+          <ng-container matColumnDef="rank">
+            <th mat-header-cell *matHeaderCellDef class="th-sticky">#</th>
+            <td mat-cell *matCellDef="let r; let i = index">
+              <span class="row-num">{{ i + 1 }}</span>
+            </td>
+          </ng-container>
+ 
+          <!-- Company -->
+          <ng-container matColumnDef="company">
+            <th mat-header-cell *matHeaderCellDef class="th-sticky">Company</th>
+            <td mat-cell *matCellDef="let r">
+              <div class="ta-cell">
+                <div class="thumb thumb--co">
+                  @if (hasImg(r.logo)) {
+                    <img class="thumb-img" [src]="r.logo" [alt]="r.name" (error)="onImgError($event)"/>
+                    <div class="img-fb co-av" [style.background]="avatarColor(r.name)">{{ initials(r.name) }}</div>
+                  } @else {
+                    <div class="co-av" [style.background]="avatarColor(r.name)">{{ initials(r.name) }}</div>
+                  }
+                </div>
+                <div>
+                  <div class="tp">{{ r.name }}</div>
+                  <div class="ts">{{ r.email }}</div>
+                  @if (r.country) { <div class="ts"><mat-icon class="pin">place</mat-icon>{{ r.city ? r.city + ', ' : '' }}{{ r.country }}</div> }
+                </div>
+              </div>
+            </td>
+          </ng-container>
+ 
+          <!-- Admin user -->
+          <ng-container matColumnDef="admin">
+            <th mat-header-cell *matHeaderCellDef class="th-sticky">Admin</th>
+            <td mat-cell *matCellDef="let r">
+              @if (r.adminName) {
+                <div class="ta-cell">
+                  <div class="thumb thumb--user">
+                    @if (hasImg(r.adminPic)) {
+                      <img class="thumb-img thumb-img--round" [src]="r.adminPic" [alt]="r.adminName" (error)="onImgError($event)"/>
+                      <div class="img-fb ua" [style.background]="avatarColor(r.adminName)">{{ initials(r.adminName) }}</div>
+                    } @else {
+                      <div class="ua" [style.background]="avatarColor(r.adminName)">{{ initials(r.adminName) }}</div>
+                    }
+                  </div>
+                  <div>
+                    <div class="tp">{{ r.adminName }}</div>
+                    <div class="ts">{{ r.adminEmail }}</div>
+                    <div class="ts">
+                      <mat-icon class="verify-icon" [class.verified]="r.adminVerified" [class.unverified]="!r.adminVerified">
+                        {{ r.adminVerified ? 'mark_email_read' : 'mark_email_unread' }}
+                      </mat-icon>
+                      {{ r.adminVerified ? 'Verified' : 'Unverified' }}
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <span class="muted">No admin</span>
+              }
+            </td>
+          </ng-container>
+ 
+          <!-- Plan -->
+          <ng-container matColumnDef="plan">
+            <th mat-header-cell *matHeaderCellDef class="th-sticky">Plan</th>
+            <td mat-cell *matCellDef="let r">
+              @if (r.planName) {
+                <div>
+                  <div class="plan-tag">{{ r.planName }}</div>
+                  <div class="ts rev-amt">{{ formatCurrency(r.planAmount) }}</div>
+                </div>
+              } @else {
+                <span class="muted">No plan</span>
+              }
+            </td>
+          </ng-container>
+ 
+          <!-- Assets -->
+          <ng-container matColumnDef="assets">
+            <th mat-header-cell *matHeaderCellDef class="th-sticky">Assets</th>
+            <td mat-cell *matCellDef="let r">
+              <span class="count-badge">{{ r.assetCount | number }}</span>
+            </td>
+          </ng-container>
+ 
+          <!-- Users -->
+          <ng-container matColumnDef="users">
+            <th mat-header-cell *matHeaderCellDef class="th-sticky">Users / SysUsers</th>
+            <td mat-cell *matCellDef="let r">
+              <div class="user-counts">
+                <span class="count-badge">{{ r.userCount }}</span>
+                <span class="ts">/ {{ r.systemUsers }} login</span>
+              </div>
+            </td>
+          </ng-container>
+ 
+          <!-- Status -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef class="th-sticky">Status</th>
+            <td mat-cell *matCellDef="let r">
+              <div class="sub-badge {{ statusCss(r.status) }}">
+                <mat-icon>{{ statusIcon(r.status) }}</mat-icon>
+                {{ statusLabel(r.status) }}
+              </div>
+            </td>
+          </ng-container>
+ 
+          <!-- Date -->
+          <ng-container matColumnDef="date">
+            <th mat-header-cell *matHeaderCellDef class="th-sticky">Registered</th>
+            <td mat-cell *matCellDef="let r">
+              <span class="ts">{{ r.createdDate | date:'dd MMM yyyy' }}</span>
+            </td>
+          </ng-container>
+ 
+          <tr mat-header-row *matHeaderRowDef="companyCols; sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: companyCols;" class="dr"
+              [routerLink]="['/admin/companies', row.id]"></tr>
+        </table>
+        @if (recentCompaniesDS.data.length === 0) {
+          <div class="empty-state"><mat-icon>corporate_fare</mat-icon><p>No companies yet</p></div>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+ 
+  <!-- ══════════════════════════════════════════════════════════════════
+       ROW E — Asset Usage Table (55%) + Recent System Users (45%)
+       ══════════════════════════════════════════════════════════════════ -->
+  <div class="row row--5545">
+ 
+    <!-- Asset Usage / Capacity -->
+    <mat-card class="dc dc--table">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">storage</mat-icon>
+          <span class="ct">Asset Capacity by Company</span>
+        </div>
+        <span class="sp"></span>
+        <span class="ct-sub">Ordered by usage %</span>
+      </mat-card-header>
+      <mat-card-content class="np">
+        <div class="tscroll tscroll--sm">
+          <table mat-table [dataSource]="assetSummaryDS" class="dt">
+ 
+            <ng-container matColumnDef="company">
+              <th mat-header-cell *matHeaderCellDef class="th-sticky">Company</th>
+              <td mat-cell *matCellDef="let r">
+                <div>
+                  <div class="tp">{{ r.companyName }}</div>
+                  <div class="ts">{{ r.planName ?? 'No plan' }}</div>
+                </div>
+              </td>
+            </ng-container>
+ 
+            <ng-container matColumnDef="assets">
+              <th mat-header-cell *matHeaderCellDef class="th-sticky">Assets</th>
+              <td mat-cell *matCellDef="let r">
+                <span class="count-badge">{{ r.assetCount }}</span>
+                <span class="ts"> / {{ r.assetLimit }}</span>
+              </td>
+            </ng-container>
+ 
+            <ng-container matColumnDef="usage">
+              <th mat-header-cell *matHeaderCellDef class="th-sticky">Usage</th>
+              <td mat-cell *matCellDef="let r">
+                <div class="usage-wrap">
+                  <mat-progress-bar mode="determinate"
+                    [value]="r.usagePct"
+                    [style.--mdc-linear-progress-active-indicator-color]="usageColor(r.usagePct)">
+                  </mat-progress-bar>
+                  <span class="usage-pct" [style.color]="usageColor(r.usagePct)">{{ r.usagePct }}%</span>
+                </div>
+              </td>
+            </ng-container>
+ 
+            <ng-container matColumnDef="value">
+              <th mat-header-cell *matHeaderCellDef class="th-sticky">Asset Value</th>
+              <td mat-cell *matCellDef="let r">
+                <span class="tm">{{ formatCurrency(r.totalAssetValue) }}</span>
+              </td>
+            </ng-container>
+ 
+            <ng-container matColumnDef="users">
+              <th mat-header-cell *matHeaderCellDef class="th-sticky">Users</th>
+              <td mat-cell *matCellDef="let r">
+                <span class="count-badge">{{ r.userCount }}</span>
+                <span class="ts"> / {{ r.userLimit }}</span>
+              </td>
+            </ng-container>
+ 
+            <tr mat-header-row *matHeaderRowDef="assetCols; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: assetCols;" class="dr"></tr>
+          </table>
+          @if (assetSummaryDS.data.length === 0) {
+            <div class="empty-state"><mat-icon>storage</mat-icon><p>No data</p></div>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+ 
+    <!-- Recent System Login Users -->
+    <mat-card class="dc dc--table">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">manage_accounts</mat-icon>
+          <span class="ct">System Login Users</span>
+        </div>
+        <span class="sp"></span>
+        <button mat-stroked-button class="va-btn" routerLink="/admin/companies-list">
+          View All <mat-icon iconPositionEnd>chevron_right</mat-icon>
+        </button>
+      </mat-card-header>
+      <mat-card-content class="np">
+        <div class="tscroll tscroll--sm">
+          <table mat-table [dataSource]="recentUsersDS" class="dt">
+ 
+            <ng-container matColumnDef="user">
+              <th mat-header-cell *matHeaderCellDef class="th-sticky">User</th>
+              <td mat-cell *matCellDef="let r">
+                <div class="ta-cell">
+                  <div class="thumb thumb--user">
+                    @if (hasImg(r.profilePic)) {
+                      <img class="thumb-img thumb-img--round" [src]="r.profilePic" [alt]="r.fullName" (error)="onImgError($event)"/>
+                      <div class="img-fb ua" [style.background]="avatarColor(r.fullName)">{{ initials(r.fullName) }}</div>
+                    } @else {
+                      <div class="ua" [style.background]="avatarColor(r.fullName)">{{ initials(r.fullName) }}</div>
+                    }
+                  </div>
+                  <div>
+                    <div class="tp">{{ r.fullName }}</div>
+                    <div class="ts">{{ r.email }}</div>
+                    <div class="ts">
+                      <mat-icon class="verify-icon" [class.verified]="r.isVerified" [class.unverified]="!r.isVerified">
+                        {{ r.isVerified ? 'verified_user' : 'gpp_maybe' }}
+                      </mat-icon>
+                      {{ r.isVerified ? 'Email Verified' : 'Unverified' }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+ 
+            <ng-container matColumnDef="company">
+              <th mat-header-cell *matHeaderCellDef class="th-sticky">Company</th>
+              <td mat-cell *matCellDef="let r">
+                <span class="ctag">{{ r.companyName }}</span>
+              </td>
+            </ng-container>
+ 
+            <ng-container matColumnDef="access">
+              <th mat-header-cell *matHeaderCellDef class="th-sticky">Access</th>
+              <td mat-cell *matCellDef="let r">
+                @if (r.hasAccess) {
+                  <span class="access-badge access-badge--on"><mat-icon>lock_open</mat-icon>Active</span>
+                } @else {
+                  <span class="access-badge access-badge--off"><mat-icon>lock</mat-icon>Revoked</span>
+                }
+              </td>
+            </ng-container>
+ 
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef class="th-sticky">Joined</th>
+              <td mat-cell *matCellDef="let r">
+                <span class="ts">{{ r.createdDate | date:'dd MMM yy' }}</span>
+              </td>
+            </ng-container>
+ 
+            <tr mat-header-row *matHeaderRowDef="userCols; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: userCols;" class="dr"></tr>
+          </table>
+          @if (recentUsersDS.data.length === 0) {
+            <div class="empty-state"><mat-icon>manage_accounts</mat-icon><p>No system users yet</p></div>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+ 
+  </div>
+ 
+</div>
+}

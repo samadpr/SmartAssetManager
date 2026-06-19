@@ -2,7 +2,7 @@
   <!-- Left Section: Logo & Menu -->
   <div class="navbar-header" [style.width]="layoutService.headerSidenavWidth()">
     <!-- Logo icon (always shown) -->
-    <img class="logo-icon" src="assets/images/logos/infoasset_logo-1.png" alt="Logo Icon" />
+    <img class="logo-icon" src="/assets/images/logos/infoasset_logo-1.png" alt="Logo Icon" />
 
     <!-- Logo name (only shown when expanded) -->
     <span class="logo-name" [class.hidden]="layoutService.collapsed()">INFOASSET</span>
@@ -16,6 +16,24 @@
 
   <!-- Right Section: Theme & Company Menu -->
   <div class="header-actions">
+      <!-- <button mat-icon-button class="ai-header-btn"
+          matTooltip="SAMS AI Assistant"
+          (click)="openAiChat()">
+    <span class="ai-btn-inner">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+           style="width:20px;height:20px">
+        <rect x="5" y="7" width="14" height="10" rx="3"
+              stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="9" cy="12" r="1.5" fill="currentColor"/>
+        <circle cx="15" cy="12" r="1.5" fill="currentColor"/>
+        <path d="M9 17v1.5M15 17v1.5" stroke="currentColor"
+              stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M12 7V5M10 5h4" stroke="currentColor"
+              stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="ai-btn-label">AI</span>
+    </span>
+  </button> -->
     <!-- Theme Switcher Button -->
     <button 
       mat-icon-button 
@@ -45,7 +63,7 @@
         [src]="companyLogo()" 
         alt="Company Logo"
         class="company-logo-img"
-        (error)="companyLogo.set('assets/images/logos/company_logo.png')" />
+        (error)="companyLogo.set('/assets/images/logos/company_logo.png')" />
     </button>
 
     <!-- Company Menu -->
@@ -57,7 +75,7 @@
             [src]="companyLogo()" 
             alt="Company Logo"
             class="company-logo-large"
-            (error)="companyLogo.set('assets/images/company_logo.png')" />
+            (error)="companyLogo.set('/assets/images/company_logo.png')" />
         </div>
         <div class="company-details">
           <div class="company-name-text">{{ companyName() }}</div>

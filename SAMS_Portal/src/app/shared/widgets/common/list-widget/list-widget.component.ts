@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewChecked, AfterViewInit, ChangeDetectorRef, Component, computed, EventEmitter, inject, Input, OnInit, Output, signal, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, DestroyRef, EventEmitter, inject, Input, OnDestroy, OnInit, Output, signal, ViewChild } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,21 +26,13 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { MatDividerModule } from '@angular/material/divider';
 import { CompanyStorageService } from '../../../../core/services/localStorage/company/company-storage.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-// ✅ ADD NEW TYPES
-export type ActionButtonType =
-  | 'raised'
-  | 'flat'
-  | 'stroked'
-  | 'icon'
-  | 'fab'
-  | 'mini-fab';
-
-export type ActionPosition =
-  | 'start'
-  | 'end'
-  | 'replace';
-
+// ─── Public types ─────────────────────────────────────────────────────────────
+ 
+export type ActionButtonType = 'raised' | 'flat' | 'stroked' | 'icon' | 'fab' | 'mini-fab';
+export type ActionPosition   = 'start' | 'end' | 'replace';
+ 
 export interface ActionPopupConfig {
   title: string;
   subtitle?: string;
@@ -51,12 +43,13 @@ export interface ActionPopupConfig {
   submitButtonText?: string;
   onSubmit?: (data: any, item: any) => any;
 }
-
+ 
 export interface ListColumn {
   key: string;
   label: string;
   sortable?: boolean;
-  type?: 'text' | 'number' | 'date' | 'currency' | 'boolean' | 'avatar' | 'phone' | 'email' | 'address' | 'country' | 'file';
+  type?: 'text' | 'number' | 'date' | 'currency' | 'boolean' | 'avatar'
+       | 'phone' | 'email' | 'address' | 'country' | 'file';
   format?: string;
   visible?: boolean;
   width?: string;
@@ -76,35 +69,24 @@ export interface ListColumn {
   showEmailVerification?: boolean;
   disableUnverifiedClick?: boolean;
 }
-
-// ✅ UPDATED ListAction interface
+ 
 export interface ListAction {
   key: string;
   label: string;
   icon: string;
-
-  // NEW: Button customization
   buttonType?: ActionButtonType;
   color?: 'primary' | 'accent' | 'warn' | 'success' | 'info' | string;
-
-  // NEW: Positioning
   position?: ActionPosition;
   order?: number;
-
-  // NEW: Visibility conditions
   hidden?: boolean;
   showIf?: (item: any) => boolean;
   disabledIf?: (item: any) => boolean;
-
-  // NEW: Popup configuration
   popup?: ActionPopupConfig;
-
-  // Existing properties
   tooltip?: string;
   confirmMessage?: string;
   confirmTitle?: string;
 }
-
+ 
 export interface ListConfig {
   title: string;
   showSearch?: boolean;
@@ -121,28 +103,98 @@ export interface ListConfig {
   maxVisibleRows?: number;
   exportFileName?: string;
   emptyMessage?: string;
-
-  // ✅ NEW: Custom actions header
   actionsHeaderLabel?: string;
-
   columns: ListColumn[];
   actions?: ListAction[];
 }
-
+ 
 export interface SelectionActionEvent {
   action: 'delete' | 'export' | 'custom';
   selectedItems: any[];
   customAction?: string;
 }
-
+ 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PERSISTENCE HELPERS
+// Keys:
+//   Column visibility  →  lw_cols_<safe_title>
+//   Page size          →  lw_pgsize_<safe_title>
+// ═══════════════════════════════════════════════════════════════════════════════
+ 
+function _safeKey(title: string): string {
+  return title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+}
+function _colsKey(title: string): string { return `lw_cols_${_safeKey(title)}`; }
+function _pgSzKey(title: string): string { return `lw_pgsize_${_safeKey(title)}`; }
+ 
+function _lsGet(k: string): string | null {
+  try { return localStorage.getItem(k); } catch { return null; }
+}
+function _lsSet(k: string, v: string): void {
+  try { localStorage.setItem(k, v); } catch { /* SSR / private mode */ }
+}
+ 
+function _saveColVis(key: string, cols: ListColumn[]): void {
+  const state: Record<string, boolean> = {};
+  cols.forEach(c => { state[c.key] = c.visible !== false; });
+  _lsSet(key, JSON.stringify(state));
+}
+function _loadColVis(key: string): Record<string, boolean> | null {
+  const raw = _lsGet(key);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+function _applyColVis(cols: ListColumn[], state: Record<string, boolean>): void {
+  cols.forEach(c => {
+    if (Object.prototype.hasOwnProperty.call(state, c.key)) c.visible = state[c.key];
+  });
+}
+ 
+function _savePgSz(key: string, size: number): void { _lsSet(key, String(size)); }
+function _loadPgSz(key: string): number | null {
+  const raw = _lsGet(key);
+  if (!raw) return null;
+  const n = parseInt(raw, 10);
+  return isNaN(n) ? null : n;
+}
+ 
+// ═══════════════════════════════════════════════════════════════════════════════
+// FORMATTER CACHE
+// ═══════════════════════════════════════════════════════════════════════════════
+ 
+const _fmtCache = new Map<string, Intl.NumberFormat>();
+const _numFmt   = new Intl.NumberFormat();
+ 
+function _getCurrencyFmt(code: string): Intl.NumberFormat {
+  if (!_fmtCache.has(code)) {
+    try {
+      _fmtCache.set(code, new Intl.NumberFormat('en', {
+        style: 'currency', currency: code,
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+      }));
+    } catch {
+      _fmtCache.set(code, new Intl.NumberFormat('en', {
+        style: 'currency', currency: 'USD',
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+      }));
+    }
+  }
+  return _fmtCache.get(code)!;
+}
+ 
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+ 
 @Component({
   selector: 'app-list-widget',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatTableModule,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    MatTableModule,
     MatPaginatorModule,
     MatSortModule,
     MatCheckboxModule,
@@ -153,7 +205,7 @@ export interface SelectionActionEvent {
     MatInputModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    MatDividerModule 
+    MatDividerModule
   ],
   templateUrl: './list-widget.component.html',
   styleUrl: './list-widget.component.scss',
@@ -167,12 +219,7 @@ export interface SelectionActionEvent {
         animate('300ms ease-out', style({ opacity: 0, transform: 'translateY(-10px)' }))
       ])
     ]),
-    trigger('rowAnimation', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'scale(0.98)' }),
-        animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1)' }))
-      ])
-    ]),
+    // rowAnimation intentionally removed — animating 200 rows on load caused the jank
     trigger('badgeAnimation', [
       transition(':enter', [
         style({ opacity: 0, transform: 'scale(0.8)' }),
@@ -200,308 +247,355 @@ export interface SelectionActionEvent {
         animate('200ms ease-in', style({ opacity: 0, maxHeight: 0 }))
       ])
     ])
-  ],
+  ]
 })
-export class ListWidgetComponent implements OnInit, AfterViewInit, AfterViewChecked {
- 
+export class ListWidgetComponent implements OnInit, AfterViewInit, OnDestroy  {
+  
+  // ─── @ViewChild WITHOUT static:true ────────────────────────────────────────
+  // Do NOT use { static: true } — the paginator is inside *ngIf in the template.
+  // static:true tries to resolve the query at compile time (before *ngIf runs)
+  // and always returns undefined. Default static:false resolves after view init.
   @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatSort)      sort!: MatSort;
  
   @Input() config!: ListConfig;
   @Input() loading = false;
  
+  // ─── data setter ─────────────────────────────────────────────────────────
+  // CRITICAL RACE-CONDITION FIX:
+  //
+  // In Angular, parent change detection runs in this order:
+  //   1. Parent ngOnInit
+  //   2. Parent ngAfterViewInit  ← @ViewChild children are resolved HERE
+  //   3. Parent's first data emission (signal / async)
+  //
+  // BUT when [data]="assets()" is bound to a signal, Angular may call this
+  // setter BEFORE ngAfterViewInit fires (race A). At that point this.paginator
+  // is still undefined. Assigning undefined to dataSource.paginator silently
+  // disables pagination entirely.
+  //
+  // The fix: always call _connectPaginator() from the setter. That helper
+  // checks if this.paginator exists before doing anything — if it doesn't, it
+  // returns early and ngAfterViewInit will call it again once the view is ready.
   private _data: any[] = [];
+ 
   @Input() set data(value: any[]) {
     this._data = value || [];
     this.dataSource.data = this._data;
-    if (this.paginator) this.dataSource.paginator = this.paginator;
-    if (this.sort)      this.dataSource.sort      = this.sort;
-    this.showPagination.set(this._data.length > (this.config?.pageSize ?? 10));
+    // Attempt paginator wiring — safe to call before view init (no-ops then)
+    this._connectPaginator();
     this.updateSelectionState();
+    this.cdr.markForCheck();
   }
-  get data() { return this._data; }
+  get data(): any[] { return this._data; }
  
-  @Output() actionClick    = new EventEmitter<{ action: string; item: any }>();
-  @Output() addClick       = new EventEmitter<void>();
-  @Output() refreshClick   = new EventEmitter<void>();
+  // ─── Outputs ──────────────────────────────────────────────────────────────
+  @Output() actionClick     = new EventEmitter<{ action: string; item: any }>();
+  @Output() addClick        = new EventEmitter<void>();
+  @Output() refreshClick    = new EventEmitter<void>();
   @Output() selectionChange = new EventEmitter<any[]>();
   @Output() selectionAction = new EventEmitter<SelectionActionEvent>();
-  @Output() rowClick       = new EventEmitter<{ action: string; item: any }>();
+  @Output() rowClick        = new EventEmitter<{ action: string; item: any }>();
  
+  // ─── Services ─────────────────────────────────────────────────────────────
+  private cdr            = inject(ChangeDetectorRef);
+  private destroyRef     = inject(DestroyRef);
   private countryService = inject(CountryService);
   private dialog         = inject(MatDialog);
   private globalService  = inject(GlobalService);
   private popupService   = inject(PopupWidgetService);
-  // ✅ Inject CompanyStorageService to read currency from localStorage
   private companyStorage = inject(CompanyStorageService);
  
+  // ─── Table state ──────────────────────────────────────────────────────────
   dataSource    = new MatTableDataSource<any>([]);
   selection     = new SelectionModel<any>(true, []);
   searchControl = new FormControl('');
+ 
+  // ─── UI signals ───────────────────────────────────────────────────────────
+  // IMPORTANT: showPagination only controls CSS visibility of the paginator
+  // wrapper div. The <mat-paginator> element itself must ALWAYS stay in the DOM
+  // (no *ngIf on it) so @ViewChild resolves correctly in ngAfterViewInit.
   showPagination = signal(false);
   visibleColumns = signal<ListColumn[]>([]);
   hasSelection   = signal(false);
   selectedCount  = signal(0);
  
-  // ✅ Currency code resolved ONCE from localStorage on init
-  // Falls back to 'USD' if nothing stored — safe for all pages
+  // ─── Persistence ──────────────────────────────────────────────────────────
+  private _colsKey          = '';
+  private _pgSzKey          = '';
+  // _resolvedPageSize is always a valid positive integer — never null/undefined
+  private _resolvedPageSize = 10;
+  get resolvedPageSize(): number {
+    return this._resolvedPageSize;
+  }
+ 
+  // Guard flag: subscribe to paginator.page only once even if
+  // _connectPaginator() is called from both setter AND ngAfterViewInit
+  private _paginatorWired = false;
+ 
+  // ─── Formatters (cached — no per-cell allocation) ─────────────────────────
   private _currencyCode = 'USD';
+  private _currencyFmt!: Intl.NumberFormat;
  
-  startActions   = computed(() => this.getActionsByPosition('start'));
-  endActions     = computed(() => this.getActionsByPosition('end'));
-  defaultActions = computed(() => this.getDefaultActions());
-  replaceActions = computed(() => this.getActionsByPosition('replace'));
+  // ─── Country caches (built once in ngOnInit) ──────────────────────────────
+  private _cntryName = new Map<string, string>();
+  private _cntryFlag = new Map<string, string>();
  
-  hasStartActions   = computed(() => this.startActions().length > 0);
-  hasEndActions     = computed(() => this.endActions().length > 0);
+  // ─── Displayed-columns signal ─────────────────────────────────────────────
+  // Rebuilt only when toggleColumn() or ngOnInit() calls _rebuildDisplayedCols()
+  // instead of being recomputed on every CD cycle via a plain method call.
+  private _displayedColsSig = signal<string[]>([]);
+ 
+  // ─── Computed action slices ───────────────────────────────────────────────
+  startActions   = computed(() => this._actionsByPos('start'));
+  endActions     = computed(() => this._actionsByPos('end'));
+  defaultActions = computed(() => this._defaultActions());
+  replaceActions = computed(() => this._actionsByPos('replace'));
   hasReplaceActions = computed(() => this.replaceActions().length > 0);
  
+  // ─── Scroll / height signals ──────────────────────────────────────────────
   shouldScroll = computed(() => {
-    const pageSize = this.paginator?.pageSize || this.config?.pageSize || 10;
-    const maxRows  = this.config?.maxVisibleRows || 5;
-    return pageSize > maxRows;
+    return this._resolvedPageSize > (this.config?.maxVisibleRows || 5);
   });
  
   tableMaxHeight = computed(() => {
-    const maxRows   = this.config?.maxVisibleRows || 5;
-    const pageSize  = this.paginator?.pageSize || this.config?.pageSize || 10;
-    const rowHeight = this.config?.compactMode ? 52 : 64;
-    const headerH   = 48;
-    if (pageSize <= maxRows) return 'none';
-    return `${(maxRows * rowHeight) + headerH}px`;
+    const maxRows = this.config?.maxVisibleRows || 5;
+    const rowH    = this.config?.compactMode ? 52 : 64;
+    if (this._resolvedPageSize <= maxRows) return 'none';
+    return `${(maxRows * rowH) + 48}px`;
   });
  
-  constructor(private cdr: ChangeDetectorRef) {}
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LIFECYCLE
+  // ═══════════════════════════════════════════════════════════════════════════
  
-  ngOnInit() {
-    // ✅ Resolve currency from localStorage once on init
+  ngOnInit(): void {
+    // 1. Currency formatter (module-level cache — shared across widget instances)
     this._resolveCurrency();
  
-    if (this.config?.columns) {
-      this.visibleColumns.set(this.config.columns.filter(col => col.visible !== false));
+    // 2. Per-instance storage keys derived from config title
+    this._colsKey = _colsKey(this.config?.title ?? 'default');
+    this._pgSzKey = _pgSzKey(this.config?.title ?? 'default');
+ 
+    // 3. Restore column visibility before first render
+    if (this.config?.columns?.length) {
+      const saved = _loadColVis(this._colsKey);
+      if (saved) _applyColVis(this.config.columns, saved);
+      this.visibleColumns.set(this.config.columns.filter(c => c.visible !== false));
     }
-    this.initializeComponent();
-    this.setupSearch();
-    this.setupSelectionTracking();
+ 
+    // 4. Resolve page size
+    const savedSz    = _loadPgSz(this._pgSzKey);
+    const cfgSz      = this.config?.pageSize ?? 10;
+    const validSizes = this.config?.pageSizeOptions ?? [5, 10, 25, 50, 100];
+    // Only accept savedSz if it is one of the valid sizes; otherwise use config default
+    this._resolvedPageSize = (savedSz && validSizes.includes(savedSz)) ? savedSz : cfgSz;
+ 
+    // 5. Displayed-columns signal
+    this._rebuildDisplayedCols();
+ 
+    // 6. Filter predicate
+    this._initFilterPredicate();
+ 
+    // 7. Country lookup caches — O(n) once, not per cell
+    this._buildCountryCaches();
+ 
+    // 8. Search with debounce
+    this.searchControl.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.dataSource.filter = v?.trim().toLowerCase() || '';
+        this.cdr.markForCheck();
+      });
+ 
+    // 9. Selection tracking
+    this.selection.changed
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.updateSelectionState();
+        this.selectionChange.emit(this.selection.selected);
+        this.cdr.markForCheck();
+      });
   }
  
-  ngAfterViewInit() {
-    if (this.sort)      this.dataSource.sort      = this.sort;
-    if (this.paginator) {
+  ngAfterViewInit(): void {
+    // Wire sort once — sort doesn't have the race condition paginator has
+    if (this.sort) {
+      this.dataSource.sort = this.sort;
+    }
+ 
+    // Wire paginator — at this point @ViewChild is guaranteed to have resolved
+    // Calling _connectPaginator() here handles the case where data arrived
+    // before the view was ready (Race A described in the setter comment above)
+    this._connectPaginator();
+ 
+    this.cdr.markForCheck();
+  }
+ 
+  ngOnDestroy(): void { /* takeUntilDestroyed handles all subscription cleanup */ }
+ 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // _connectPaginator — THE CORE PAGINATION FIX
+  //
+  // This is the single method responsible for wiring MatPaginator to
+  // MatTableDataSource. It is idempotent and safe to call multiple times.
+  //
+  // Root causes of the original "all rows shown, pagination broken" bug:
+  //
+  // BUG 1 — Race condition (most common):
+  //   [data]="assets()" feeds an async signal. The setter fires when assets()
+  //   emits, which can happen BEFORE ngAfterViewInit. At that moment
+  //   this.paginator === undefined. The old code did:
+  //     this.dataSource.paginator = this.paginator  // assigns undefined!
+  //   MatTableDataSource with paginator=undefined shows ALL rows unsliced.
+  //
+  // BUG 2 — *ngIf on <mat-paginator>:
+  //   The original template had:
+  //     <div *ngIf="showPagination() && !loading">
+  //       <mat-paginator ...></mat-paginator>
+  //     </div>
+  //   When loading=true the paginator element is removed from the DOM.
+  //   @ViewChild returns undefined. After loading becomes false the element
+  //   is added back but @ViewChild does NOT re-fire — it stays undefined.
+  //   Fix: NEVER put *ngIf on <mat-paginator>. Use [hidden] or CSS instead.
+  //
+  // BUG 3 — _resolvedPageSize was typed as `number | null`:
+  //   When null leaked into paginator.pageSize it rendered as NaN, silently
+  //   breaking the page-size selector.
+  // ═══════════════════════════════════════════════════════════════════════════
+ 
+  private _connectPaginator(): void {
+    // Guard: if paginator doesn't exist yet, bail out.
+    // ngAfterViewInit will call us again once the view is initialised.
+    if (!this.paginator) return;
+ 
+    // Apply persisted page size BEFORE assigning to dataSource so the
+    // paginator renders with the correct initial value on first paint.
+    if (this.paginator.pageSize !== this._resolvedPageSize) {
+      this.paginator.pageSize = this._resolvedPageSize;
+    }
+ 
+    // Wire the paginator to the data source (idempotent — safe to repeat)
+    if (this.dataSource.paginator !== this.paginator) {
       this.dataSource.paginator = this.paginator;
-      this.paginator.page.subscribe(() => { /* height recomputed via signal */ });
     }
-    this.cdr.detectChanges();
+ 
+    // Sync the showPagination signal
+    this.showPagination.set(this._data.length > 10);
+ 
+    // Subscribe to page events exactly once
+    if (!this._paginatorWired) {
+      this._paginatorWired = true;
+ 
+      this.paginator.page
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((evt: PageEvent) => {
+          // Persist page size whenever it changes
+          if (evt.pageSize !== this._resolvedPageSize) {
+            this._resolvedPageSize = evt.pageSize;
+            _savePgSz(this._pgSzKey, evt.pageSize);
+            this.showPagination.set(this._data.length > 10);
+          }
+          this.cdr.markForCheck();
+        });
+    }
   }
  
-  ngAfterViewChecked() {
-    if (this.dataSource && this.paginator && this.dataSource.paginator !== this.paginator) this.dataSource.paginator = this.paginator;
-    if (this.dataSource && this.sort      && this.dataSource.sort      !== this.sort)      this.dataSource.sort      = this.sort;
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INTERNAL HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
  
-  // ✅ Currency resolution — reads from localStorage via CompanyStorageService
-  // Safe: returns 'USD' if no company stored or currency is missing/invalid
   private _resolveCurrency(): void {
     try {
-      const company = this.companyStorage.get();
-      const code    = company?.currency?.trim();
+      const code = this.companyStorage.get()?.currency?.trim();
       if (code && code.length === 3) {
-        // Quick validity check — Intl will throw on invalid codes
+        // Validate that the code is recognised by Intl before using it
         new Intl.NumberFormat('en', { style: 'currency', currency: code }).format(0);
         this._currencyCode = code;
-      } else {
-        this._currencyCode = 'USD';
       }
-    } catch {
-      this._currencyCode = 'USD';
-    }
+    } catch { /* keep USD default */ }
+    this._currencyFmt = _getCurrencyFmt(this._currencyCode);
   }
  
-  // ─── Action helpers (unchanged) ──────────────────────────────────────────
-  private getActionsByPosition(position: ActionPosition): ListAction[] {
-    if (!this.config?.actions) return [];
-    return this.config.actions.filter(a => (a.position || 'end') === position).sort((a, b) => (a.order || 0) - (b.order || 0));
+  private _buildCountryCaches(): void {
+    if (!this.config?.columns?.some(c => c.type === 'country')) return;
+    try {
+      this.countryService.getAllCountries().forEach(c => {
+        const upper = c.code.toUpperCase();
+        this._cntryName.set(upper, c.name);
+        this._cntryFlag.set(upper, this.countryService.getFlagUrl(c.code));
+      });
+    } catch { /* service unavailable */ }
   }
  
-  private getDefaultActions(): ListAction[] {
-    if (!this.config?.actions) return [];
-    return this.config.actions.filter(a => !a.position || a.position === 'end').filter(a => !a.buttonType).sort((a, b) => (a.order || 0) - (b.order || 0));
-  }
- 
-  isActionVisible(action: ListAction, item: any): boolean {
-    if (action.hidden) return false;
-    if (action.showIf) return action.showIf(item);
-    return true;
-  }
- 
-  isActionDisabled(action: ListAction, item: any): boolean {
-    if (action.disabledIf) return action.disabledIf(item);
-    return false;
-  }
- 
-  getActionButtonClass(action: ListAction): string {
-    const baseClass  = 'action-btn';
-    const typeClass  = `btn-${action.buttonType || 'icon'}`;
-    const colorClass = action.color ? `btn-${action.color}` : '';
-    return `${baseClass} ${typeClass} ${colorClass}`.trim();
-  }
- 
-  onActionClick(action: string | ListAction, item: any, event?: Event): void {
-    event?.stopPropagation();
-    if (typeof action === 'object') {
-      const actionObj = action as ListAction;
-      if (actionObj.popup)          { this.handleActionWithPopup(actionObj, item); return; }
-      if (actionObj.confirmMessage) { this.handleActionWithConfirmation(actionObj, item); return; }
-      this.actionClick.emit({ action: actionObj.key, item });
-    } else {
-      this.actionClick.emit({ action: action as string, item });
-    }
-  }
- 
-  private handleActionWithPopup(action: ListAction, item: any): void {
-    if (!action.popup) return;
-    const popupConfig = action.popup;
-    const fields = typeof popupConfig.fields === 'function' ? popupConfig.fields() : popupConfig.fields;
-    this.popupService.openFormPopup(
-      { title: popupConfig.title, subtitle: popupConfig.subtitle, icon: popupConfig.icon || action.icon, fields, columns: popupConfig.columns || 2, maxWidth: popupConfig.maxWidth || '800px', submitButtonText: popupConfig.submitButtonText || 'Submit' },
-      item
-    ).subscribe(result => {
-      if (result && result.action === 'submit' && popupConfig.onSubmit) {
-        this.loading = true;
-        const submitResult = popupConfig.onSubmit(result.data, item);
-        if (submitResult && typeof submitResult.subscribe === 'function') {
-          submitResult.subscribe({
-            next: () => { this.loading = false; this.globalService.showSnackbar(`${action.label} completed successfully`, 'success'); this.refreshClick.emit(); },
-            error: (error: any) => { this.loading = false; this.globalService.showToastr(`Failed to ${action.label.toLowerCase()}`, 'error'); }
-          });
-        } else {
-          this.loading = false; this.globalService.showSnackbar(`${action.label} completed successfully`, 'success'); this.refreshClick.emit();
-        }
-      }
-    });
-  }
- 
-  private handleActionWithConfirmation(action: ListAction, item: any): void {
-    this.popupService.openGenericConfirmation(
-      action.confirmTitle || `Confirm ${action.label}`, action.confirmMessage!,
-      { confirmButtonText: action.label, confirmButtonIcon: action.icon, icon: action.icon, iconColor: action.color === 'warn' ? 'warn' : 'primary' }
-    ).subscribe(result => { if (result && result.action === 'confirm') this.actionClick.emit({ action: action.key, item }); });
-  }
- 
-  // ─── File helpers (unchanged) ─────────────────────────────────────────────
-  getFileExtension(filePath: string): string {
-    if (!filePath) return '';
-    const parts = filePath.split('.');
-    return parts[parts.length - 1].toLowerCase();
-  }
- 
-  getFileName(filePath: string): string {
-    if (!filePath) return '';
-    const parts = filePath.split('/');
-    return parts[parts.length - 1];
-  }
- 
-  getTruncatedFileName(filePath: string, maxLength: number = 20): string {
-    if (!filePath) return '';
-    const fileName  = this.getFileName(filePath);
-    const extension = this.getFileExtension(filePath);
-    if (fileName.length <= maxLength) return fileName;
-    const nameWithoutExt  = fileName.substring(0, fileName.lastIndexOf('.'));
-    const truncateLength  = maxLength - extension.length - 4;
-    if (truncateLength > 0) return `${nameWithoutExt.substring(0, truncateLength)}...${extension}`;
-    return `${fileName.substring(0, maxLength - 3)}...`;
-  }
- 
-  getFileTypeIcon(extension: string): string {
-    const ext = extension.toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext)) return 'image';
-    if (ext === 'pdf') return 'picture_as_pdf';
-    if (['doc', 'docx'].includes(ext)) return 'description';
-    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'table_chart';
-    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'folder_zip';
-    return 'insert_drive_file';
-  }
- 
-  isPreviewable(extension: string): boolean {
-    return ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(extension.toLowerCase());
-  }
- 
-  onFilePreview(filePath: string, event: Event): void {
-    event.stopPropagation();
-    this.dialog.open(FilePreviewComponent, {
-      data: { fileUrl: filePath, fileName: this.getFileName(filePath), fileType: this.getFileExtension(filePath) },
-      width: '90vw', maxWidth: '1200px', height: '90vh', panelClass: 'file-preview-dialog', autoFocus: false
-    });
-  }
- 
-  onFileDownload(filePath: string, fileName: string, event: Event): void {
-    event.stopPropagation();
-    this.popupService.openGenericConfirmation(
-      'Download File', `Do you want to download "${fileName}"?`,
-      { confirmButtonText: 'Download', confirmButtonIcon: 'download', icon: 'download', iconColor: 'primary' }
-    ).subscribe(result => { if (result && result.action === 'confirm') this.downloadFile(filePath, fileName); });
-  }
- 
-  private downloadFile(url: string, fileName: string): void {
-    const link = document.createElement('a');
-    link.href = url; link.download = fileName; link.target = '_blank';
-    document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    this.globalService.showSnackbar('Download started', 'success');
-  }
- 
-  // ─── Component init ───────────────────────────────────────────────────────
-  private initializeComponent() {
-    if (!this.config?.columns?.length) { console.warn('ListWidget: No columns configured'); return; }
-    this.dataSource.data = this.data;
-    this.dataSource.filterPredicate = (data: any, filter: string) => {
-      const searchTerm = filter.trim().toLowerCase();
-      if (!searchTerm) return true;
-      return this.config.columns.some(column => {
-        const value = data[column.key];
-        if (value == null) return false;
-        if (column.type === 'avatar') return data[column.nameField || column.key]?.toString().toLowerCase().includes(searchTerm);
-        if (column.type === 'country') return value?.toString().toLowerCase().includes(searchTerm) || this.getCountryName(value).toLowerCase().includes(searchTerm);
-        return value.toString().toLowerCase().includes(searchTerm);
+  private _initFilterPredicate(): void {
+    this.dataSource.filterPredicate = (row: any, filter: string) => {
+      const term = filter.trim().toLowerCase();
+      if (!term) return true;
+      return this.config.columns.some(col => {
+        const val = row[col.key];
+        if (val == null) return false;
+        if (col.type === 'avatar')  return row[col.nameField || col.key]?.toString().toLowerCase().includes(term);
+        if (col.type === 'country') return val.toString().toLowerCase().includes(term)
+          || (this._cntryName.get(val.toUpperCase()) ?? '').toLowerCase().includes(term);
+        return val.toString().toLowerCase().includes(term);
       });
     };
   }
  
-  private setupSearch() {
-    if (this.config?.showSearch) {
-      this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged())
-        .subscribe(value => { this.dataSource.filter = value || ''; });
-    }
+  private _rebuildDisplayedCols(): void {
+    const cols: string[] = this.config?.columns?.filter(c => c.visible !== false).map(c => c.key) ?? [];
+    if (this.config?.selectable)      cols.unshift('select');
+    if (this.config?.actions?.length) cols.push('actions');
+    this._displayedColsSig.set(cols);
   }
  
-  private setupSelectionTracking() {
-    this.selection.changed.subscribe(() => {
-      this.updateSelectionState();
-      this.selectionChange.emit(this.selection.selected);
-    });
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PUBLIC API
+  // ═══════════════════════════════════════════════════════════════════════════
+ 
+  /** Template shim — reads signal instead of recomputing every CD cycle */
+  displayedColumns(): string[] {
+    return this._displayedColsSig();
   }
  
-  private updateSelectionState() {
+  // ─── Column toggle ────────────────────────────────────────────────────────
+ 
+  toggleColumn(column: ListColumn): void {
+    column.visible = !column.visible;
+    this.visibleColumns.set(this.config.columns.filter(c => c.visible !== false));
+    this._rebuildDisplayedCols();
+    _saveColVis(this._colsKey, this.config.columns);
+    this.cdr.markForCheck();
+  }
+ 
+  // ─── Selection ────────────────────────────────────────────────────────────
+ 
+  updateSelectionState(): void {
     this.hasSelection.set(this.selection.selected.length > 0);
     this.selectedCount.set(this.selection.selected.length);
   }
  
-  displayedColumns(): string[] {
-    const cols = this.config?.columns?.filter(c => c.visible !== false).map(c => c.key) || [];
-    if (this.config?.selectable) cols.unshift('select');
-    if (this.config?.actions?.length) cols.push('actions');
-    return cols;
-  }
- 
   isAllSelected(): boolean {
-    return this.selection.selected.length === this.dataSource.filteredData.length && this.dataSource.filteredData.length > 0;
+    return this.selection.selected.length === this.dataSource.filteredData.length
+      && this.dataSource.filteredData.length > 0;
   }
  
   isIndeterminate(): boolean {
-    return this.selection.selected.length > 0 && this.selection.selected.length < this.dataSource.filteredData.length;
+    return this.selection.selected.length > 0
+      && this.selection.selected.length < this.dataSource.filteredData.length;
   }
  
-  toggleAllRows(): void { this.isAllSelected() ? this.selection.clear() : this.dataSource.filteredData.forEach(row => this.selection.select(row)); }
+  toggleAllRows(): void {
+    this.isAllSelected()
+      ? this.selection.clear()
+      : this.dataSource.filteredData.forEach(r => this.selection.select(r));
+  }
+ 
   toggleRow(row: any): void { this.selection.toggle(row); }
+  clearSelection(): void    { this.selection.clear(); }
+ 
+  // ─── Row / action clicks ──────────────────────────────────────────────────
  
   onRowClick(row: any): void {
     if (this.config?.rowClickAction && this.config?.selectable) {
@@ -509,9 +603,16 @@ export class ListWidgetComponent implements OnInit, AfterViewInit, AfterViewChec
     }
   }
  
-  toggleColumn(column: ListColumn): void {
-    column.visible = !column.visible;
-    this.visibleColumns.set(this.config.columns.filter(col => col.visible !== false));
+  onActionClick(action: string | ListAction, item: any, event?: Event): void {
+    event?.stopPropagation();
+    if (typeof action === 'object') {
+      const a = action as ListAction;
+      if (a.popup)          { this._handlePopupAction(a, item); return; }
+      if (a.confirmMessage) { this._handleConfirmAction(a, item); return; }
+      this.actionClick.emit({ action: a.key, item });
+    } else {
+      this.actionClick.emit({ action: action as string, item });
+    }
   }
  
   onAddClick():     void { this.addClick.emit(); }
@@ -525,172 +626,105 @@ export class ListWidgetComponent implements OnInit, AfterViewInit, AfterViewChec
  
   onExportSelected(): void {
     if (this.selection.selected.length > 0) {
-      this.exportDataToExcel(this.selection.selected);
+      this._toExcel(this.selection.selected);
       this.selectionAction.emit({ action: 'export', selectedItems: [...this.selection.selected] });
     }
   }
  
-  // ─── Export helpers (use resolved currency code) ─────────────────────────
-  private exportDataToExcel(dataToExport: any[]): void {
-    const exportRows = dataToExport.map(item => {
-      const row: any = {};
-      this.config.columns.filter(col => col.visible !== false && col.type !== 'file')
-        .forEach(col => { row[col.label] = this.getExportValue(item[col.key], col, item); });
-      return row;
-    });
-    const ws = XLSX.utils.json_to_sheet(exportRows);
-    ws['!cols'] = this.config.columns.filter(col => col.visible !== false && col.type !== 'file').map(col => ({ wch: Math.max(col.label.length + 4, 16) }));
+  exportToExcel():       void { this._toExcel(this.dataSource.filteredData); }
+  exportToPDF():         void { this._toPDF(this.dataSource.filteredData); }
+  exportSelectedToPDF(): void { if (this.selection.selected.length) this._toPDF(this.selection.selected); }
  
-    const totalValue = dataToExport.reduce((sum, item) => {
-      const currencyCol = this.config.columns.find(c => c.type === 'currency');
-      return currencyCol ? sum + (Number(item[currencyCol.key]) || 0) : sum;
-    }, 0);
+  // ─── Action helpers ───────────────────────────────────────────────────────
  
-    const summaryRows: any[] = [
-      { Metric: 'Report Title',   Value: this.config.title },
-      { Metric: 'Generated Date', Value: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) },
-      { Metric: 'Total Records',  Value: dataToExport.length }
-    ];
-    const currencyCol = this.config.columns.find(c => c.type === 'currency' && c.visible !== false);
-    if (currencyCol) summaryRows.push({ Metric: `Total ${currencyCol.label}`, Value: this._formatCurrencyForExport(totalValue) });
- 
-    const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
-    wsSummary['!cols'] = [{ wch: 24 }, { wch: 36 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, this.config.title.substring(0, 31));
-    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
-    const fileName = `${this.config?.exportFileName || this.config?.title?.replace(/\s+/g, '_') || 'export'}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+  private _actionsByPos(pos: ActionPosition): ListAction[] {
+    return (this.config?.actions ?? [])
+      .filter(a => (a.position || 'end') === pos)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
   }
  
-  exportToPDF():          void { this.exportDataToPDF(this.dataSource.filteredData); }
-  exportSelectedToPDF():  void { if (this.selection.selected.length > 0) this.exportDataToPDF(this.selection.selected); }
-  exportToExcel():        void { this.exportData(this.dataSource.filteredData); }
-  clearSelection():       void { this.selection.clear(); }
- 
-  private exportData(dataToExport: any[]): void {
-    const exportData = dataToExport.map(item => {
-      const exportItem: any = {};
-      this.config.columns.filter(col => col.visible !== false && col.type !== 'avatar')
-        .forEach(col => { exportItem[col.label] = this.getExportValue(item[col.key], col, item); });
-      return exportItem;
-    });
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook  = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-    const fileName = `${this.config?.exportFileName || this.config?.title?.replace(/\s+/g, '_') || 'export'}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+  private _defaultActions(): ListAction[] {
+    return (this.config?.actions ?? [])
+      .filter(a => (!a.position || a.position === 'end') && !a.buttonType)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
   }
  
-  private exportDataToPDF(dataToExport: any[]): void {
-    const visibleCols = this.config.columns.filter(col => col.visible !== false && !['file', 'avatar'].includes(col.type || ''));
-    const orientation = visibleCols.length > 5 ? 'landscape' : 'portrait';
-    const doc         = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
-    const pageWidth   = doc.internal.pageSize.getWidth();
-    const primaryColor: [number, number, number] = [103, 58, 183];
-    const lightPurple: [number, number, number]  = [237, 231, 246];
+  isActionVisible(action: ListAction, item: any): boolean {
+    if (action.hidden) return false;
+    return action.showIf ? action.showIf(item) : true;
+  }
  
-    doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, pageWidth, 28, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18); doc.setFont('helvetica', 'bold');
-    doc.text(this.config.title, 14, 12);
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, 20);
-    doc.text(`Total Records: ${dataToExport.length}`, pageWidth / 2, 20);
+  isActionDisabled(action: ListAction, item: any): boolean {
+    return action.disabledIf ? action.disabledIf(item) : false;
+  }
  
-    const currencyCol = this.config.columns.find(c => c.type === 'currency' && c.visible !== false);
-    let yPos = 34;
-    if (currencyCol) {
-      const totalVal  = dataToExport.reduce((sum, item) => sum + (Number(item[currencyCol.key]) || 0), 0);
-      doc.text(`Total ${currencyCol.label}: ${this._formatCurrencyForExport(totalVal)}`, pageWidth - 14, 20, { align: 'right' });
-      doc.setFillColor(...lightPurple);
-      doc.rect(0, yPos - 5, pageWidth, 14, 'F');
-      doc.setTextColor(...primaryColor);
-      doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-      doc.text(this._formatCurrencyForExport(totalVal), 14, yPos + 2);
-      doc.setTextColor(100, 100, 100); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
-      doc.text(currencyCol.label.toUpperCase(), 14, yPos + 7);
-      yPos += 18;
-    }
+  getActionButtonClass(action: ListAction): string {
+    return ['action-btn', `btn-${action.buttonType || 'icon'}`, action.color ? `btn-${action.color}` : '']
+      .filter(Boolean).join(' ');
+  }
  
-    autoTable(doc, {
-      head: [visibleCols.map(c => c.label)],
-      body: dataToExport.map(item => visibleCols.map(col => this.getExportValue(item[col.key], col, item))),
-      startY: yPos,
-      styles: { fontSize: 8, cellPadding: 4, lineColor: [220, 220, 220], lineWidth: 0.2, textColor: [50, 50, 50], overflow: 'ellipsize' },
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5, cellPadding: 5 },
-      alternateRowStyles: { fillColor: [250, 247, 255] },
-      columnStyles: this.buildPDFColumnStyles(visibleCols),
-      margin: { left: 14, right: 14 },
-      didDrawPage: (data) => {
-        const pageCount   = (doc as any).internal.getNumberOfPages();
-        const currentPage = data.pageNumber;
-        doc.setFontSize(8); doc.setTextColor(150, 150, 150); doc.setFont('helvetica', 'normal');
-        doc.text(`Page ${currentPage} of ${pageCount}  •  ${this.config.title}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
-        doc.setDrawColor(...primaryColor); doc.setLineWidth(0.5);
-        doc.line(14, doc.internal.pageSize.getHeight() - 12, pageWidth - 14, doc.internal.pageSize.getHeight() - 12);
+  private _handlePopupAction(action: ListAction, item: any): void {
+    if (!action.popup) return;
+    const cfg    = action.popup;
+    const fields = typeof cfg.fields === 'function' ? cfg.fields() : cfg.fields;
+    this.popupService.openFormPopup(
+      { title: cfg.title, subtitle: cfg.subtitle, icon: cfg.icon || action.icon, fields,
+        columns: cfg.columns || 2, maxWidth: cfg.maxWidth || '800px',
+        submitButtonText: cfg.submitButtonText || 'Submit' },
+      item
+    ).subscribe(result => {
+      if (result?.action === 'submit' && cfg.onSubmit) {
+        this.loading = true;
+        const res = cfg.onSubmit(result.data, item);
+        if (res && typeof res.subscribe === 'function') {
+          res.subscribe({
+            next:  () => { this.loading = false; this.globalService.showSnackbar(`${action.label} completed successfully`, 'success'); this.refreshClick.emit(); this.cdr.markForCheck(); },
+            error: () => { this.loading = false; this.globalService.showToastr(`Failed to ${action.label.toLowerCase()}`, 'error'); this.cdr.markForCheck(); }
+          });
+        } else {
+          this.loading = false;
+          this.globalService.showSnackbar(`${action.label} completed successfully`, 'success');
+          this.refreshClick.emit();
+          this.cdr.markForCheck();
+        }
       }
     });
- 
-    const fileName = `${this.config?.exportFileName || this.config?.title?.replace(/\s+/g, '_') || 'export'}_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
   }
  
-  private buildPDFColumnStyles(columns: ListColumn[]): { [key: number]: any } {
-    const styles: { [key: number]: any } = {};
-    columns.forEach((col, i) => {
-      if (col.type === 'currency' || col.type === 'number') styles[i] = { halign: 'right' };
-      else if (col.type === 'boolean') styles[i] = { halign: 'center' };
-      else if (col.type === 'date')    styles[i] = { halign: 'center', cellWidth: 28 };
+  private _handleConfirmAction(action: ListAction, item: any): void {
+    this.popupService.openGenericConfirmation(
+      action.confirmTitle || `Confirm ${action.label}`, action.confirmMessage!,
+      { confirmButtonText: action.label, confirmButtonIcon: action.icon, icon: action.icon,
+        iconColor: action.color === 'warn' ? 'warn' : 'primary' }
+    ).subscribe(result => {
+      if (result?.action === 'confirm') this.actionClick.emit({ action: action.key, item });
     });
-    return styles;
   }
  
-  // ✅ CURRENCY FORMAT HELPERS
-  // All currency formatting goes through here — reads _currencyCode resolved from localStorage.
-  // Safe: if invalid code, falls back to USD silently.
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CELL VALUE FORMATTING — zero per-cell allocation
+  // ═══════════════════════════════════════════════════════════════════════════
  
-  /**
-   * Formats a number as currency for display in the table cell.
-   * Uses the company currency from localStorage (set once on ngOnInit).
-   */
-  formatCellCurrency(value: number): string {
-    return this._formatCurrencyIntl(value);
-  }
- 
-  /**
-   * Formats a number as currency for export (Excel/PDF).
-   * Uses the company currency from localStorage.
-   */
-  private _formatCurrencyForExport(value: number): string {
-    return this._formatCurrencyIntl(value);
-  }
- 
-  /**
-   * Core Intl formatter. Uses this._currencyCode (resolved from localStorage).
-   * Safe fallback to USD on any error.
-   */
-  private _formatCurrencyIntl(value: number): string {
-    try {
-      return new Intl.NumberFormat('en', {
-        style:                 'currency',
-        currency:              this._currencyCode,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(value ?? 0);
-    } catch {
-      // Fallback to USD if the stored currency code is somehow invalid at runtime
-      return new Intl.NumberFormat('en', { style: 'currency', currency: 'USD' }).format(value ?? 0);
+  formatCellValue(value: any, column: ListColumn, _item?: any): string {
+    if (value == null) return '';
+    switch (column.type) {
+      case 'currency': return this._currencyFmt.format(Number(value) || 0);
+      case 'number':   return _numFmt.format(value);
+      case 'date':     return new Date(value).toLocaleDateString();
+      case 'boolean':  return value ? 'Yes' : 'No';
+      default:         return String(value);
     }
   }
  
-  // ─── Cell value formatting ────────────────────────────────────────────────
+  formatCellCurrency(value: number): string {
+    return this._currencyFmt.format(Number(value) || 0);
+  }
+ 
   getExportValue(value: any, column: ListColumn, item: any): string {
     if (value == null) return '';
     switch (column.type) {
-      case 'currency': return this._formatCurrencyForExport(value);
-      case 'number':   return new Intl.NumberFormat().format(value);
+      case 'currency': return this._currencyFmt.format(Number(value) || 0);
+      case 'number':   return _numFmt.format(value);
       case 'date':     return new Date(value).toLocaleDateString();
       case 'boolean':  return value ? 'Yes' : 'No';
       case 'country':  return this.getCountryName(value);
@@ -699,27 +733,13 @@ export class ListWidgetComponent implements OnInit, AfterViewInit, AfterViewChec
         if (column.showEmailVerification && column.emailVerificationKey) {
           return `${value} ${item[column.emailVerificationKey] ? '(Verified)' : '(Not Verified)'}`;
         }
-        return value;
-      default: return value.toString();
+        return String(value);
+      default: return String(value);
     }
   }
  
-  /**
-   * ✅ UPDATED: currency type now uses the company's currency from localStorage.
-   * All other types unchanged.
-   */
-  formatCellValue(value: any, column: ListColumn, item?: any): string {
-    if (value == null) return '';
-    switch (column.type) {
-      case 'currency': return this._formatCurrencyIntl(value);   // ← company currency
-      case 'number':   return new Intl.NumberFormat().format(value);
-      case 'date':     return new Date(value).toLocaleDateString();
-      case 'boolean':  return value ? 'Yes' : 'No';
-      default:         return value.toString();
-    }
-  }
+  // ─── Lookup helpers ───────────────────────────────────────────────────────
  
-  // ─── Avatar / display helpers ─────────────────────────────────────────────
   getAvatarUrl(item: any, column: ListColumn): string {
     return item[column.avatarField || 'avatar'] || '/assets/images/ProfilePic.png';
   }
@@ -728,25 +748,21 @@ export class ListWidgetComponent implements OnInit, AfterViewInit, AfterViewChec
     return item[column.nameField || column.key] || '';
   }
  
-  getCountryFlagUrl(country: string): string {
-    if (!country) return '';
-    const countries = this.countryService.getAllCountries();
-    const match = countries.find(c => c.code.toUpperCase() === country.toUpperCase() || c.name.toLowerCase() === country.toLowerCase());
-    return this.countryService.getFlagUrl(match ? match.code : country);
+  getCountryName(code: string): string {
+    if (!code) return '';
+    return this._cntryName.get(code.toUpperCase()) ?? code;
   }
  
-  getCountryName(countryCode: string): string {
-    if (!countryCode) return '';
-    const countries = this.countryService.getAllCountries();
-    const country   = countries.find(c => c.code.toUpperCase() === countryCode.toUpperCase());
-    return country ? country.name : countryCode;
+  getCountryFlagUrl(code: string): string {
+    if (!code) return '';
+    return this._cntryFlag.get(code.toUpperCase()) ?? '';
   }
  
   formatPhoneNumber(phone: string | number): string {
     if (!phone) return '';
-    const phoneStr = phone.toString();
-    if (phoneStr.length === 10) return `(${phoneStr.slice(0, 2)}) ${phoneStr.slice(3, 6)}-${phoneStr.slice(6)}`;
-    return phoneStr;
+    const s = phone.toString();
+    if (s.length === 10) return `(${s.slice(0, 2)}) ${s.slice(3, 6)}-${s.slice(6)}`;
+    return s;
   }
  
   getColumnTooltip(column: ListColumn, value: any, item?: any): string {
@@ -757,7 +773,8 @@ export class ListWidgetComponent implements OnInit, AfterViewInit, AfterViewChec
       case 'phone':   return `Call ${this.formatPhoneNumber(value)}`;
       case 'email':
         if (column.showEmailVerification && column.emailVerificationKey && item) {
-          return item[column.emailVerificationKey] ? `Send email to ${value} (Verified)` : `${value} (Not Verified)`;
+          return item[column.emailVerificationKey]
+            ? `Send email to ${value} (Verified)` : `${value} (Not Verified)`;
         }
         return `Send email to ${value}`;
       case 'address': return `Address: ${value}`;
@@ -788,10 +805,75 @@ export class ListWidgetComponent implements OnInit, AfterViewInit, AfterViewChec
     if (address) window.open(`https://maps.google.com/maps?q=${encodeURIComponent(address)}`, '_blank');
   }
  
-  trackByFn(index: number, item: any): any { return item.id || item.userProfileId || index; }
+  // ─── File helpers ─────────────────────────────────────────────────────────
+ 
+  getFileExtension(filePath: string): string {
+    if (!filePath) return '';
+    return filePath.split('.').pop()?.toLowerCase() ?? '';
+  }
+ 
+  getFileName(filePath: string): string {
+    if (!filePath) return '';
+    return filePath.split('/').pop() ?? '';
+  }
+ 
+  getTruncatedFileName(filePath: string, maxLength = 20): string {
+    if (!filePath) return '';
+    const name = this.getFileName(filePath);
+    if (name.length <= maxLength) return name;
+    const ext  = this.getFileExtension(filePath);
+    const base = name.substring(0, name.lastIndexOf('.'));
+    const tLen = maxLength - ext.length - 4;
+    return tLen > 0
+      ? `${base.substring(0, tLen)}...${ext}`
+      : `${name.substring(0, maxLength - 3)}...`;
+  }
+ 
+  getFileTypeIcon(ext: string): string {
+    const e = ext.toLowerCase();
+    if (['jpg','jpeg','png','gif','bmp','webp','svg'].includes(e)) return 'image';
+    if (e === 'pdf')                                                return 'picture_as_pdf';
+    if (['doc','docx'].includes(e))                                 return 'description';
+    if (['xls','xlsx','csv'].includes(e))                           return 'table_chart';
+    if (['zip','rar','7z','tar','gz'].includes(e))                  return 'folder_zip';
+    return 'insert_drive_file';
+  }
+ 
+  isPreviewable(ext: string): boolean {
+    return ['pdf','jpg','jpeg','png','gif','bmp','webp','svg'].includes(ext.toLowerCase());
+  }
+ 
+  onFilePreview(filePath: string, event: Event): void {
+    event.stopPropagation();
+    this.dialog.open(FilePreviewComponent, {
+      data: { fileUrl: filePath, fileName: this.getFileName(filePath), fileType: this.getFileExtension(filePath) },
+      width: '90vw', maxWidth: '1200px', height: '90vh',
+      panelClass: 'file-preview-dialog', autoFocus: false
+    });
+  }
+ 
+  onFileDownload(filePath: string, fileName: string, event: Event): void {
+    event.stopPropagation();
+    this.popupService.openGenericConfirmation(
+      'Download File', `Do you want to download "${fileName}"?`,
+      { confirmButtonText: 'Download', confirmButtonIcon: 'download', icon: 'download', iconColor: 'primary' }
+    ).subscribe(result => {
+      if (result?.action === 'confirm') this._downloadFile(filePath, fileName);
+    });
+  }
+ 
+  private _downloadFile(url: string, fileName: string): void {
+    const a = document.createElement('a');
+    a.href = url; a.download = fileName; a.target = '_blank';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    this.globalService.showSnackbar('Download started', 'success');
+  }
+ 
+  // ─── Column / icon helpers ────────────────────────────────────────────────
  
   shouldShowIcon(column: ListColumn): boolean {
-    return column.showIcon !== false && ['phone', 'email', 'address', 'country'].includes(column.type || '');
+    return column.showIcon !== false
+      && ['phone','email','address','country'].includes(column.type || '');
   }
  
   getColumnIcon(column: ListColumn): string {
@@ -802,5 +884,117 @@ export class ListWidgetComponent implements OnInit, AfterViewInit, AfterViewChec
       case 'country': return 'public';
       default:        return 'info';
     }
+  }
+ 
+  // ─── TrackBy ──────────────────────────────────────────────────────────────
+ 
+  trackByFn(_index: number, item: any): any {
+    return item?.id ?? item?.userProfileId ?? item?.assetId ?? _index;
+  }
+ 
+  trackByColKey(_index: number, col: ListColumn): string { return col.key; }
+ 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EXPORT
+  // ═══════════════════════════════════════════════════════════════════════════
+ 
+  private get _exportFileName(): string {
+    return this.config?.exportFileName ?? this.config?.title?.replace(/\s+/g, '_') ?? 'export';
+  }
+ 
+  private _toExcel(rows: any[]): void {
+    const visCols    = this.config.columns.filter(c => c.visible !== false && c.type !== 'file');
+    const exportRows = rows.map(item => {
+      const row: any = {};
+      visCols.forEach(col => { row[col.label] = this.getExportValue(item[col.key], col, item); });
+      return row;
+    });
+ 
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    ws['!cols'] = visCols.map(c => ({ wch: Math.max(c.label.length + 4, 16) }));
+ 
+    const currencyCol = this.config.columns.find(c => c.type === 'currency');
+    const totalVal    = currencyCol
+      ? rows.reduce((s, item) => s + (Number(item[currencyCol.key]) || 0), 0)
+      : 0;
+ 
+    const summaryRows: any[] = [
+      { Metric: 'Report Title',   Value: this.config.title },
+      { Metric: 'Generated Date', Value: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) },
+      { Metric: 'Total Records',  Value: rows.length }
+    ];
+    if (currencyCol) summaryRows.push({ Metric: `Total ${currencyCol.label}`, Value: this._currencyFmt.format(totalVal) });
+ 
+    const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
+    wsSummary['!cols'] = [{ wch: 24 }, { wch: 36 }];
+ 
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, this.config.title.substring(0, 31));
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+    XLSX.writeFile(wb, `${this._exportFileName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }
+ 
+  private _toPDF(rows: any[]): void {
+    const visCols = this.config.columns.filter(c => c.visible !== false && !['file','avatar'].includes(c.type || ''));
+    const orient  = visCols.length > 5 ? 'landscape' : 'portrait';
+    const doc     = new jsPDF({ orientation: orient, unit: 'mm', format: 'a4' });
+    const pw      = doc.internal.pageSize.getWidth();
+    const primary: [number,number,number]  = [103, 58, 183];
+    const ltPurple: [number,number,number] = [237, 231, 246];
+ 
+    doc.setFillColor(...primary);
+    doc.rect(0, 0, pw, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+    doc.text(this.config.title, 14, 12);
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, 20);
+    doc.text(`Total Records: ${rows.length}`, pw / 2, 20);
+ 
+    const currencyCol = this.config.columns.find(c => c.type === 'currency' && c.visible !== false);
+    let yPos = 34;
+    if (currencyCol) {
+      const tot    = rows.reduce((s, item) => s + (Number(item[currencyCol.key]) || 0), 0);
+      const fmtTot = this._currencyFmt.format(tot);
+      doc.text(`Total ${currencyCol.label}: ${fmtTot}`, pw - 14, 20, { align: 'right' });
+      doc.setFillColor(...ltPurple);
+      doc.rect(0, yPos - 5, pw, 14, 'F');
+      doc.setTextColor(...primary);
+      doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+      doc.text(fmtTot, 14, yPos + 2);
+      doc.setTextColor(100,100,100); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+      doc.text(currencyCol.label.toUpperCase(), 14, yPos + 7);
+      yPos += 18;
+    }
+ 
+    autoTable(doc, {
+      head: [visCols.map(c => c.label)],
+      body: rows.map(item => visCols.map(col => this.getExportValue(item[col.key], col, item))),
+      startY: yPos,
+      styles: { fontSize: 8, cellPadding: 4, lineColor: [220,220,220], lineWidth: 0.2, textColor: [50,50,50], overflow: 'ellipsize' },
+      headStyles: { fillColor: primary, textColor: [255,255,255], fontStyle: 'bold', fontSize: 8.5, cellPadding: 5 },
+      alternateRowStyles: { fillColor: [250,247,255] },
+      columnStyles: this._pdfColStyles(visCols),
+      margin: { left: 14, right: 14 },
+      didDrawPage: (data) => {
+        const pages = (doc as any).internal.getNumberOfPages();
+        doc.setFontSize(8); doc.setTextColor(150,150,150); doc.setFont('helvetica','normal');
+        doc.text(`Page ${data.pageNumber} of ${pages}  •  ${this.config.title}`, pw / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
+        doc.setDrawColor(...primary); doc.setLineWidth(0.5);
+        doc.line(14, doc.internal.pageSize.getHeight() - 12, pw - 14, doc.internal.pageSize.getHeight() - 12);
+      }
+    });
+ 
+    doc.save(`${this._exportFileName}_${new Date().toISOString().split('T')[0]}.pdf`);
+  }
+ 
+  private _pdfColStyles(cols: ListColumn[]): Record<number, any> {
+    const s: Record<number, any> = {};
+    cols.forEach((c, i) => {
+      if (c.type === 'currency' || c.type === 'number') s[i] = { halign: 'right' };
+      else if (c.type === 'boolean')                    s[i] = { halign: 'center' };
+      else if (c.type === 'date')                       s[i] = { halign: 'center', cellWidth: 28 };
+    });
+    return s;
   }
 }

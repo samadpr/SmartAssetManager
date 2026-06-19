@@ -1,14 +1,14 @@
 <app-page-header
   [title]="'Bulk Asset Upload'"
   [breadcrumbs]="[
-    { label: 'Assets', url: '/assets' },
+    { label: 'Assets', url: '/asset-management' },
     { label: 'Bulk Upload' }
   ]">
 </app-page-header>
-  
+
 <div class="bulk-upload-page">
- 
-  <!-- ═══ STEP INDICATOR ════════════════════════════════════════════════════ -->
+
+  <!-- ═══ STEP INDICATOR ══════════════════════════════════════════════════════ -->
   <div class="step-bar">
     <div class="step-item" [class.active]="currentStep() >= 1" [class.done]="currentStep() > 1">
       <div class="step-circle">
@@ -18,7 +18,7 @@
       <span class="step-label">Upload File</span>
     </div>
     <div class="step-connector" [class.done]="currentStep() > 1"></div>
- 
+
     <div class="step-item" [class.active]="currentStep() >= 2" [class.done]="currentStep() > 2">
       <div class="step-circle">
         <mat-icon *ngIf="currentStep() > 2">check</mat-icon>
@@ -27,7 +27,7 @@
       <span class="step-label">Review & Edit</span>
     </div>
     <div class="step-connector" [class.done]="currentStep() > 2"></div>
- 
+
     <div class="step-item" [class.active]="currentStep() >= 3" [class.done]="currentStep() > 3">
       <div class="step-circle">
         <mat-icon *ngIf="currentStep() > 3">check</mat-icon>
@@ -36,31 +36,30 @@
       <span class="step-label">Import</span>
     </div>
     <div class="step-connector" [class.done]="currentStep() > 3"></div>
- 
+
     <div class="step-item" [class.active]="currentStep() >= 4">
       <div class="step-circle"><span>4</span></div>
       <span class="step-label">Complete</span>
     </div>
   </div>
- 
-  <!-- ═══ STEP 1: UPLOAD ═══════════════════════════════════════════════════ -->
+
+  <!-- ═══ STEP 1: UPLOAD ══════════════════════════════════════════════════════ -->
   <div class="step-panel" *ngIf="currentStep() === 1" [@stepAnim]>
- 
     <div class="step-header">
       <mat-icon class="step-icon">upload_file</mat-icon>
       <div>
         <h2>Upload Your Asset File</h2>
-        <p>Use the official SAMS Excel template. Download it if you haven't already.</p>
+        <p>Use the official SAMS Excel template. Supports batch quantities with per-unit serial numbers.</p>
       </div>
     </div>
- 
-    <!-- Download template card -->
+
+    <!-- Template download card -->
     <div class="template-card">
       <div class="template-card-left">
         <div class="template-icon-wrap"><mat-icon>table_chart</mat-icon></div>
         <div>
-          <span class="template-title">SAMS Asset Upload Template</span>
-          <span class="template-desc">Excel file with all fields, dropdowns, and instructions</span>
+          <span class="template-title">SAMS Bulk Asset Template (Batch Mode)</span>
+          <span class="template-desc">Excel file with all fields, serial number guidance, dropdown references and instructions</span>
         </div>
       </div>
       <button mat-raised-button color="primary" class="template-download-btn"
@@ -73,7 +72,16 @@
         </div>
       </button>
     </div>
- 
+
+    <!-- Batch mode info -->
+    <div class="batch-info-card">
+      <mat-icon>info_outline</mat-icon>
+      <div class="bic-content">
+        <span class="bic-title">Batch Mode — How Serial Numbers Work</span>
+        <span class="bic-desc">For <strong>Qty = 1</strong>: enter one serial number. For <strong>Qty &gt; 1</strong>: enter comma-separated serial numbers (e.g. <code>SN-001, SN-002, SN-003</code>). Count must match quantity.</span>
+      </div>
+    </div>
+
     <!-- Drop Zone -->
     <div class="drop-zone"
          [class.drag-over]="isDragOver()"
@@ -82,9 +90,9 @@
          (dragleave)="onDragLeave()"
          (drop)="onDrop($event)"
          (click)="fileInput.click()">
- 
+
       <input #fileInput type="file" accept=".xlsx,.xls" (change)="onFileSelect($event)" style="display:none">
- 
+
       <div class="drop-content" *ngIf="!uploadedFile()">
         <div class="drop-icon-wrap">
           <mat-icon class="drop-icon">cloud_upload</mat-icon>
@@ -96,7 +104,7 @@
           Use only the official SAMS template for correct field mapping
         </div>
       </div>
- 
+
       <div class="file-selected" *ngIf="uploadedFile()">
         <div class="file-icon-wrap"><mat-icon>insert_drive_file</mat-icon></div>
         <div class="file-details">
@@ -108,17 +116,17 @@
         </button>
       </div>
     </div>
- 
+
     <div class="parse-error" *ngIf="parseError()">
       <mat-icon>error_outline</mat-icon>
       <span>{{ parseError() }}</span>
     </div>
- 
+
     <div class="parse-progress" *ngIf="parsing()">
       <mat-progress-bar mode="indeterminate" color="primary"></mat-progress-bar>
-      <span>Parsing file and loading dropdown data…</span>
+      <span>Parsing file and resolving dropdown values…</span>
     </div>
- 
+
     <div class="step-actions">
       <button mat-stroked-button (click)="cancel()">
         <mat-icon>arrow_back</mat-icon> Back to Assets
@@ -130,15 +138,15 @@
       </button>
     </div>
   </div>
- 
-  <!-- ═══ STEP 2: REVIEW & EDIT ═════════════════════════════════════════════ -->
+
+  <!-- ═══ STEP 2: REVIEW & EDIT ════════════════════════════════════════════════ -->
   <div class="step-panel review-panel" *ngIf="currentStep() === 2" [@stepAnim]>
- 
+
     <div class="step-header">
       <mat-icon class="step-icon">fact_check</mat-icon>
       <div>
-        <h2>Review & Edit Assets</h2>
-        <p>{{ parsedAssets().length }} assets loaded — fix any errors before importing.</p>
+        <h2>Review & Edit Batches</h2>
+        <p>{{ batchRows().length }} batch(es) loaded — {{ totalValidUnits() }} total units. Fix errors before importing.</p>
       </div>
       <div class="review-stats">
         <span class="stat-chip valid">
@@ -147,38 +155,28 @@
         <span class="stat-chip invalid" *ngIf="invalidCount() > 0">
           <mat-icon>error</mat-icon> {{ invalidCount() }} Errors
         </span>
+        <span class="stat-chip units">
+          <mat-icon>widgets</mat-icon> {{ totalValidUnits() }} Units
+        </span>
       </div>
     </div>
- 
-    <!-- ══ LIMIT EXCEEDED BANNER — shown when parsed count exceeds remaining quota ══ -->
+
+    <!-- Limit exceeded banner -->
     <div class="bulk-limit-banner" *ngIf="showLimitExceededBanner()" [@bannerSlide]>
- 
-      <!-- Left: icon + message -->
       <div class="blb-left">
-        <div class="blb-icon-wrap">
-          <mat-icon>production_quantity_limits</mat-icon>
-        </div>
+        <div class="blb-icon-wrap"><mat-icon>production_quantity_limits</mat-icon></div>
         <div class="blb-text">
           <span class="blb-title">Asset Limit Exceeded</span>
           <span class="blb-desc">
-            Your plan allows
-            <strong>{{ remainingQuota() }}</strong> more asset{{ remainingQuota() === 1 ? '' : 's' }},
-            but you have
-            <strong>{{ validCount() }}</strong> valid asset{{ validCount() === 1 ? '' : 's' }} in this file.
+            Your plan allows <strong>{{ remainingQuota() }}</strong> more unit(s),
+            but you have <strong>{{ totalValidUnits() }}</strong> valid units in this file.
             <span *ngIf="excessCount() > 0">
-              Remove <strong>{{ excessCount() }}</strong> asset{{ excessCount() === 1 ? '' : 's' }}
-              or upgrade your plan to import all of them.
-            </span>
-            <span *ngIf="remainingQuota() <= 0">
-              You have reached your asset limit. Upgrade your plan to continue importing.
+              Remove <strong>{{ excessCount() }}</strong> unit(s) or upgrade your plan.
             </span>
           </span>
         </div>
       </div>
- 
-      <!-- Right: quota pills + upgrade CTA -->
       <div class="blb-right">
-        <!-- Quota summary pills -->
         <div class="blb-quota-pills">
           <div class="blb-pill blb-pill-total">
             <span class="bqp-num">{{ assetLimit() }}</span>
@@ -197,20 +195,17 @@
             <span class="bqp-lbl">Over Limit</span>
           </div>
         </div>
- 
-        <!-- Upgrade CTA -->
         <button mat-raised-button class="blb-upgrade-btn" (click)="goToUpgrade()">
-          <mat-icon>rocket_launch</mat-icon>
-          Upgrade Plan
+          <mat-icon>rocket_launch</mat-icon> Upgrade Plan
         </button>
       </div>
     </div>
- 
-    <!-- ── Currency info banner ─────────────────────────────────────────── -->
+
+    <!-- Currency info bar -->
     <div class="currency-info-bar">
       <div class="cib-left">
         <mat-icon>payments</mat-icon>
-        <span class="cib-label">Active Currency:</span>
+        <span class="cib-label">Currency:</span>
         <span class="cib-code">{{ currencyCode() }}</span>
         <span class="cib-symbol">({{ currencySymbol() }})</span>
       </div>
@@ -222,8 +217,8 @@
         </span>
       </div>
     </div>
- 
-    <!-- Table -->
+
+    <!-- Review table -->
     <div class="review-table-wrap">
       <table class="review-table">
         <thead>
@@ -233,107 +228,143 @@
             <th class="th-name">Asset Name <span class="req">*</span></th>
             <th class="th-brand">Brand <span class="req">*</span></th>
             <th class="th-model">Model No <span class="req">*</span></th>
-            <th class="th-serial">Serial No <span class="req">*</span></th>
-            <th class="th-qty">Qty</th>
-            <th class="th-price">Unit Price ({{ currencyCode() }})</th>
+            <th class="th-qty">Qty <span class="req">*</span></th>
+            <th class="th-serials">Serial Numbers <span class="req">*</span></th>
+            <th class="th-price">Unit Price</th>
             <th class="th-category">Category</th>
-            <th class="th-sub-category">Sub Category</th>
-            <th class="th-supplier">Supplier</th>
-            <th class="th-status-col">Status</th>
             <th class="th-dept">Department</th>
-            <th class="th-depr">Depreciable</th>
-            <th class="th-assign">Assign To</th>
+            <th class="th-depr">Depr.</th>
+            <th class="th-assign">Assignment</th>
             <th class="th-files">Files</th>
             <th class="th-actions">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <ng-container *ngFor="let asset of parsedAssets(); let i = index; trackBy: trackByIndex">
+          <ng-container *ngFor="let batch of batchRows(); let i = index; trackBy: trackByIndex">
             <tr class="data-row"
-                [class.row-invalid]="!isAssetValid(asset)"
+                [class.row-invalid]="!isBatchValid(batch)"
                 [class.row-editing]="editingIndex() === i">
- 
+
               <td class="td-index">{{ i + 1 }}</td>
- 
+
               <td class="td-status">
-                <mat-icon class="status-ok"  *ngIf="isAssetValid(asset)"  matTooltip="Ready to import">check_circle</mat-icon>
-                <mat-icon class="status-err" *ngIf="!isAssetValid(asset)" matTooltip="Required fields missing">error</mat-icon>
+                <mat-icon class="status-ok" *ngIf="isBatchValid(batch)" matTooltip="Ready to import">check_circle</mat-icon>
+                <mat-icon class="status-err" *ngIf="!isBatchValid(batch)" matTooltip="Has errors">error</mat-icon>
               </td>
- 
+
               <td class="td-name">
-                <span class="cell-val" [class.missing]="!asset.name">{{ asset.name || '— missing —' }}</span>
+                <span class="cell-val" [class.missing]="!batch.name">{{ batch.name || '— missing —' }}</span>
               </td>
               <td class="td-brand">
-                <span class="cell-val" [class.missing]="!asset.assetBrand">{{ asset.assetBrand || '— missing —' }}</span>
+                <span class="cell-val" [class.missing]="!batch.assetBrand">{{ batch.assetBrand || '— missing —' }}</span>
               </td>
               <td class="td-model">
-                <span class="cell-val" [class.missing]="!asset.assetModelNo">{{ asset.assetModelNo || '— missing —' }}</span>
+                <span class="cell-val" [class.missing]="!batch.assetModelNo">{{ batch.assetModelNo || '— missing —' }}</span>
               </td>
-              <td class="td-serial">
-                <span class="cell-val" [class.missing]="!asset.assetSerialNo">{{ asset.assetSerialNo || '— missing —' }}</span>
+
+              <!-- Quantity & Serials -->
+              <td class="td-qty">
+                <div class="qty-badge">{{ batch.quantity }}</div>
               </td>
- 
-              <td class="td-qty">{{ asset.quantity || 1 }}</td>
- 
-              <td class="td-price">
-                <span class="amount-cell" [class.amount-zero]="!asset.unitPrice"
-                      [matTooltip]="asset.unitPrice ? (asset.quantity || 1) + ' × ' + formatAmount(asset.unitPrice) + ' = ' + formatAmount((asset.unitPrice || 0) * (asset.quantity || 1)) : ''">
-                  {{ formatAmount(asset.unitPrice) }}
-                </span>
-              </td>
- 
-              <td class="td-category">{{ asset.categoryDisplay || '—' }}</td>
-              <td class="td-sub-category">{{ asset.subCategoryDisplay || '—' }}</td>
-              <td class="td-supplier">{{ asset.supplierDisplay || '—' }}</td>
-              <td class="td-status-col">{{ asset.assetStatusDisplay || '—' }}</td>
-              <td class="td-dept">{{ asset.departmentDisplay || '—' }}</td>
- 
-              <td class="td-depr">
-                <span class="depr-badge" [class.yes]="asset.isDepreciable"
-                      [matTooltip]="asset.isDepreciable && asset.depreciableCost
-                        ? 'Cost: ' + formatAmount(asset.depreciableCost) + ' · Salvage: ' + formatAmount(asset.salvageValue)
-                        : ''">
-                  {{ asset.isDepreciable ? 'Yes' : 'No' }}
-                </span>
-              </td>
- 
-              <td class="td-assign">
-                <span class="assign-badge"
-                      [class.user]="asset.assignTo === AssignToType.User"
-                      [class.site]="asset.assignTo === AssignToType.Site">
-                  {{ asset.assignTo === AssignToType.User ? (asset.assignUserDisplay || 'User') :
-                     asset.assignTo === AssignToType.Site ? (asset.siteDisplay || 'Site') : 'Not Assigned' }}
-                </span>
-              </td>
- 
-              <td class="td-files">
-                <div class="files-summary">
-                  <span class="file-dot" [class.has-file]="asset._imageFile"    matTooltip="Image">IMG</span>
-                  <span class="file-dot" [class.has-file]="asset._deliveryNote" matTooltip="Delivery Note">DN</span>
-                  <span class="file-dot" [class.has-file]="asset._receipt"      matTooltip="Receipt">RCT</span>
-                  <span class="file-dot" [class.has-file]="asset._invoice"      matTooltip="Invoice">INV</span>
+
+              <td class="td-serials">
+                <div class="serials-cell">
+                  <!-- Serial count indicator -->
+                  <div class="serial-count-badge"
+                       [class.count-ok]="isSerialCountValid(batch)"
+                       [class.count-err]="hasInvalidSerials(batch)"
+                       [matTooltip]="batch.serialNumbers.length + ' of ' + batch.quantity + ' serials entered'">
+                    <mat-icon>{{ batch.serialNumbers.length === batch.quantity ? 'qr_code_2' : 'warning' }}</mat-icon>
+                    {{ batch.serialNumbers.length }}/{{ batch.quantity }}
+                  </div>
+                  <!-- Inline serial display (first 2) -->
+                  <div class="serial-chips">
+                    <span class="serial-chip" *ngFor="let sn of batch.serialNumbers.slice(0, 2)">{{ sn }}</span>
+                    <span class="serial-more" *ngIf="batch.serialNumbers.length > 2">
+                      +{{ batch.serialNumbers.length - 2 }} more
+                    </span>
+                  </div>
                 </div>
               </td>
- 
+
+              <td class="td-price">
+                <span class="amount-cell" [class.amount-zero]="!batch.unitPrice">
+                  {{ formatAmount(batch.unitPrice) }}
+                </span>
+              </td>
+
+              <td class="td-category">{{ batch.categoryDisplay || '—' }}</td>
+              <td class="td-dept">{{ batch.departmentDisplay || '—' }}</td>
+
+              <td class="td-depr">
+                <span class="depr-badge" [class.yes]="batch.isDepreciable">
+                  {{ batch.isDepreciable ? 'Yes' : 'No' }}
+                </span>
+              </td>
+
+              <td class="td-assign">
+                <div class="assign-summary">
+                  <mat-icon class="assign-icon">{{ assignIcon(batch.globalAssignTo) }}</mat-icon>
+                  <span>{{ batch.assignMode === 'per-unit' ? 'Per Unit' :
+                    (batch.globalAssignTo === 0 ? 'Not Assigned' :
+                    batch.globalAssignTo === 1 ? 'User' : 'Site') }}</span>
+                </div>
+              </td>
+
+              <td class="td-files">
+                <div class="files-summary">
+                  <span class="file-dot" [class.has-file]="batch._imageFile" matTooltip="Image">IMG</span>
+                  <span class="file-dot" [class.has-file]="batch._deliveryNote" matTooltip="Delivery Note">DN</span>
+                  <span class="file-dot" [class.has-file]="batch._receipt" matTooltip="Receipt">RCT</span>
+                  <span class="file-dot" [class.has-file]="batch._invoice" matTooltip="Invoice">INV</span>
+                </div>
+              </td>
+
               <td class="td-actions">
                 <button mat-icon-button color="primary" (click)="openEditDrawer(i)"
-                        matTooltip="Edit asset" class="act-btn">
+                        matTooltip="Edit batch" class="act-btn">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button color="warn" (click)="removeAsset(i)"
-                        matTooltip="Remove asset" class="act-btn">
+                <button mat-icon-button color="warn" (click)="removeBatch(i)"
+                        matTooltip="Remove batch" class="act-btn">
                   <mat-icon>delete</mat-icon>
                 </button>
               </td>
             </tr>
- 
-            <!-- Validation error pills -->
-            <tr class="error-row" *ngIf="!isAssetValid(asset)">
-              <td colspan="17">
+
+            <!-- Validation error row -->
+            <tr class="error-row" *ngIf="!isBatchValid(batch)">
+              <td colspan="14">
                 <div class="error-pills">
-                  <span class="error-pill" *ngFor="let err of getValidationErrors(asset)">
+                  <span class="error-pill" *ngFor="let err of getValidationErrors(batch)">
                     <mat-icon>warning</mat-icon> {{ err }}
                   </span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Inline serial editor (expanded) -->
+            <tr class="serial-expand-row" *ngIf="batch.quantity > 1 && hasSerialIssue(batch)">
+              <td colspan="14">
+                <div class="serial-inline-editor">
+                  <div class="sie-header">
+                    <mat-icon>qr_code_2</mat-icon>
+                    <span>Quick Serial Fix — {{ batch.name }} ({{ batch.quantity }} units)</span>
+                    <button mat-stroked-button class="autofill-btn" (click)="autoFillSerials(i)">
+                      <mat-icon>auto_fix_high</mat-icon> Auto-fill
+                    </button>
+                  </div>
+                  <div class="sie-serials">
+                    <div class="sie-serial-row" *ngFor="let sn of batch.serialNumbers; let j = index; trackBy: trackByIndex">
+                      <span class="sie-unit-label">Unit {{ j + 1 }}</span>
+                      <input class="sie-input" [value]="sn"
+                             [class.sie-input-empty]="!sn?.trim()"
+                             (input)="updateSerial(i, j, $any($event.target).value)"
+                             placeholder="Serial number...">
+                      <mat-icon class="sie-status-ok" *ngIf="sn?.trim()">check_circle</mat-icon>
+                      <mat-icon class="sie-status-err" *ngIf="!sn?.trim()">radio_button_unchecked</mat-icon>
+                    </div>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -341,7 +372,7 @@
         </tbody>
       </table>
     </div>
- 
+
     <div class="step-actions">
       <button mat-stroked-button (click)="currentStep.set(1)">
         <mat-icon>arrow_back</mat-icon> Back
@@ -350,23 +381,18 @@
         <button mat-stroked-button color="warn" (click)="clearAll()">
           <mat-icon>clear_all</mat-icon> Clear All
         </button>
- 
-        <!--
-          Import button — shows allowed count, disabled when:
-          • No valid assets exist, OR
-          • remainingQuota is 0 (fully at limit)
-        -->
         <button mat-raised-button color="primary"
                 [disabled]="importButtonDisabled()"
                 [matTooltip]="importButtonTooltip()"
                 (click)="proceedToImport()">
           <mat-icon>cloud_upload</mat-icon>
           <ng-container *ngIf="!showLimitExceededBanner()">
-            Import {{ validCount() }} Asset{{ validCount() === 1 ? '' : 's' }}
+            Import {{ validCount() }} Batch{{ validCount() === 1 ? '' : 'es' }}
+            ({{ totalValidUnits() }} Units)
           </ng-container>
           <ng-container *ngIf="showLimitExceededBanner()">
             <ng-container *ngIf="remainingQuota() > 0">
-              Import {{ allowedImportCount() }} of {{ validCount() }} Assets
+              Import {{ allowedImportCount() }} of {{ validCount() }} Batches
             </ng-container>
             <ng-container *ngIf="remainingQuota() <= 0">
               Limit Reached — Upgrade Plan
@@ -376,334 +402,418 @@
       </div>
     </div>
   </div>
- 
-  <!-- ═══ EDIT DRAWER ═══════════════════════════════════════════════════════ -->
+
+  <!-- ═══ EDIT DRAWER (Step 2) ════════════════════════════════════════════════ -->
   <div class="edit-drawer-backdrop" *ngIf="editingIndex() !== null" (click)="closeEditDrawer()"></div>
   <div class="edit-drawer" [class.open]="editingIndex() !== null">
     <ng-container *ngIf="editingIndex() !== null && editForm">
- 
+
       <div class="drawer-header">
         <div class="drawer-title">
           <mat-icon>edit</mat-icon>
-          <span>Edit Asset #{{ editingIndex()! + 1 }}</span>
+          <span>Edit Batch #{{ editingIndex()! + 1 }}</span>
+          <span class="drawer-batch-qty-badge">
+            <mat-icon>widgets</mat-icon>
+            {{ getCurrentEditBatch()?.quantity }} unit(s)
+          </span>
         </div>
-        <div class="drawer-currency-badge"
-             [matTooltip]="'All monetary values are in ' + currencyCode()">
+        <div class="drawer-currency-badge" [matTooltip]="'All monetary values in ' + currencyCode()">
           <mat-icon>payments</mat-icon>
           <span class="dcb-sym">{{ currencySymbol() }}</span>
           <span class="dcb-code">{{ currencyCode() }}</span>
         </div>
-        <button mat-icon-button (click)="closeEditDrawer()">
-          <mat-icon>close</mat-icon>
-        </button>
+        <button mat-icon-button (click)="closeEditDrawer()"><mat-icon>close</mat-icon></button>
       </div>
- 
-      <div class="drawer-body" [formGroup]="editForm">
- 
-        <div class="drawer-section-title">Basic Information</div>
- 
-        <mat-form-field appearance="outline" class="fw">
-          <mat-label>Asset Name <span class="req">*</span></mat-label>
-          <input matInput formControlName="name" placeholder="Enter asset name">
-          <mat-icon matPrefix>inventory_2</mat-icon>
-          <mat-error>Required</mat-error>
-        </mat-form-field>
- 
-        <div class="drawer-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Brand <span class="req">*</span></mat-label>
-            <input matInput formControlName="assetBrand" placeholder="Brand">
-            <mat-icon matPrefix>branding_watermark</mat-icon>
-            <mat-error>Required</mat-error>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Model Number <span class="req">*</span></mat-label>
-            <input matInput formControlName="assetModelNo" placeholder="Model No">
-            <mat-icon matPrefix>tag</mat-icon>
-            <mat-error>Required</mat-error>
-          </mat-form-field>
-        </div>
- 
-        <div class="drawer-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Serial Number <span class="req">*</span></mat-label>
-            <input matInput formControlName="assetSerialNo" placeholder="Serial No">
-            <mat-icon matPrefix>qr_code_2</mat-icon>
-            <mat-error>Required</mat-error>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Quantity</mat-label>
-            <input matInput type="number" formControlName="quantity" min="1">
-            <mat-icon matPrefix>numbers</mat-icon>
-          </mat-form-field>
-        </div>
- 
-        <div class="drawer-row">
-          <mat-form-field appearance="outline" [matTooltip]="'Amount in ' + currencyCode()">
-            <mat-label>Unit Price ({{ currencyCode() }})</mat-label>
-            <span matTextPrefix class="currency-prefix">{{ currencySymbol() }}&nbsp;</span>
-            <input matInput type="number" formControlName="unitPrice" min="0" placeholder="0.00">
-            <mat-hint>{{ currencyCode() }}</mat-hint>
-          </mat-form-field>
- 
-          <mat-form-field appearance="outline">
-            <mat-label>Warranty (Months)</mat-label>
-            <input matInput type="number" formControlName="warranetyInMonth" min="0">
-            <mat-icon matPrefix>verified_user</mat-icon>
-          </mat-form-field>
-        </div>
- 
-        <mat-form-field appearance="outline" class="fw">
-          <mat-label>Description</mat-label>
-          <textarea matInput formControlName="description" rows="2" placeholder="Optional description"></textarea>
-          <mat-icon matPrefix>description</mat-icon>
-        </mat-form-field>
- 
-        <div class="drawer-section-title">Classification</div>
- 
-        <div class="drawer-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Category</mat-label>
-            <mat-select formControlName="category">
-              <mat-option [value]="null">— None —</mat-option>
-              <mat-option *ngFor="let c of dropdowns().categories" [value]="c.value">{{ c.label }}</mat-option>
-            </mat-select>
-            <mat-icon matPrefix>category</mat-icon>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Sub Category</mat-label>
-            <mat-select formControlName="subCategory">
-              <mat-option [value]="null">— None —</mat-option>
-              <mat-option *ngFor="let sc of filteredSubCategories()" [value]="sc.value">{{ sc.label }}</mat-option>
-            </mat-select>
-            <mat-icon matPrefix>label</mat-icon>
-          </mat-form-field>
-        </div>
- 
-        <div class="drawer-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Supplier</mat-label>
-            <mat-select formControlName="supplier">
-              <mat-option [value]="null">— None —</mat-option>
-              <mat-option *ngFor="let s of dropdowns().suppliers" [value]="s.value">{{ s.label }}</mat-option>
-            </mat-select>
-            <mat-icon matPrefix>business</mat-icon>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Asset Status</mat-label>
-            <mat-select formControlName="assetStatus">
-              <mat-option [value]="null">— None —</mat-option>
-              <mat-option *ngFor="let s of dropdowns().assetStatus" [value]="s.value">{{ s.label }}</mat-option>
-            </mat-select>
-            <mat-icon matPrefix>fact_check</mat-icon>
-          </mat-form-field>
-        </div>
- 
-        <div class="drawer-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Department</mat-label>
-            <mat-select formControlName="department">
-              <mat-option [value]="null">— None —</mat-option>
-              <mat-option *ngFor="let d of dropdowns().departments" [value]="d.value">{{ d.label }}</mat-option>
-            </mat-select>
-            <mat-icon matPrefix>business_center</mat-icon>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Sub Department</mat-label>
-            <mat-select formControlName="subDepartment">
-              <mat-option [value]="null">— None —</mat-option>
-              <mat-option *ngFor="let sd of filteredSubDepartments()" [value]="sd.value">{{ sd.label }}</mat-option>
-            </mat-select>
-            <mat-icon matPrefix>account_tree</mat-icon>
-          </mat-form-field>
-        </div>
- 
-        <div class="drawer-section-title">Assignment Details</div>
- 
-        <mat-form-field appearance="outline" class="fw">
-          <mat-label>Assign To</mat-label>
-          <mat-select formControlName="assignTo">
-            <mat-option *ngFor="let opt of dropdowns().assignToOptions" [value]="opt.value">
-              {{ opt.label }}
-            </mat-option>
-          </mat-select>
-          <mat-icon matPrefix>assignment_ind</mat-icon>
-        </mat-form-field>
- 
-        <ng-container *ngIf="drawerSelectedAssignTo() === AssignToType.User">
-          <mat-form-field appearance="outline" class="fw">
-            <mat-label>Employee / User</mat-label>
-            <mat-select formControlName="assignUserId">
-              <mat-option [value]="null">— Select employee —</mat-option>
-              <mat-option *ngFor="let u of dropdowns().usersList" [value]="u.value">{{ u.label }}</mat-option>
-            </mat-select>
-            <mat-icon matPrefix>person</mat-icon>
-          </mat-form-field>
-        </ng-container>
- 
-        <ng-container *ngIf="drawerSelectedAssignTo() === AssignToType.Site">
-          <div class="drawer-row">
-            <mat-form-field appearance="outline">
-              <mat-label>Site / Branch</mat-label>
-              <mat-select formControlName="siteId">
-                <mat-option [value]="null">— Select site —</mat-option>
-                <mat-option *ngFor="let s of dropdowns().sites" [value]="s.value">{{ s.label }}</mat-option>
-              </mat-select>
-              <mat-icon matPrefix>location_city</mat-icon>
+
+      <!-- Tab navigation inside drawer -->
+      <mat-tab-group class="drawer-tabs" animationDuration="200ms">
+
+        <!-- ─── Tab 1: Basic Info ─── -->
+        <mat-tab label="Basic Info">
+          <div class="drawer-body" [formGroup]="editForm">
+
+            <div class="drawer-section-title">Basic Information</div>
+
+            <mat-form-field appearance="outline" class="fw">
+              <mat-label>Asset Name <span class="req">*</span></mat-label>
+              <input matInput formControlName="name" placeholder="Enter asset name">
+              <mat-icon matPrefix>inventory_2</mat-icon>
+              <mat-error>Required</mat-error>
             </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Area</mat-label>
-              <mat-select formControlName="areaId">
-                <mat-option [value]="null">— Select area —</mat-option>
-                <mat-option *ngFor="let a of filteredAreas()" [value]="a.value">{{ a.label }}</mat-option>
-              </mat-select>
-              <mat-icon matPrefix>map</mat-icon>
-            </mat-form-field>
-          </div>
-        </ng-container>
- 
-        <ng-container *ngIf="drawerSelectedAssignTo() === AssignToType.User || drawerSelectedAssignTo() === AssignToType.Site">
-          <div class="drawer-row">
-            <mat-form-field appearance="outline">
-              <mat-label>Transfer Date</mat-label>
-              <input matInput [matDatepicker]="dpTransfer" formControlName="transferDate">
-              <mat-datepicker-toggle matPrefix [for]="dpTransfer"></mat-datepicker-toggle>
-              <mat-datepicker #dpTransfer></mat-datepicker>
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Due Date</mat-label>
-              <input matInput [matDatepicker]="dpDue" formControlName="dueDate">
-              <mat-datepicker-toggle matPrefix [for]="dpDue"></mat-datepicker-toggle>
-              <mat-datepicker #dpDue></mat-datepicker>
-            </mat-form-field>
-          </div>
-        </ng-container>
- 
-        <div class="drawer-section-title">Depreciation</div>
- 
-        <mat-slide-toggle formControlName="isDepreciable" color="primary" class="depr-toggle">
-          This asset is depreciable
-        </mat-slide-toggle>
- 
-        <ng-container *ngIf="editForm.get('isDepreciable')?.value">
-          <div class="drawer-row mt-8">
-            <mat-form-field appearance="outline" [matTooltip]="'Amount in ' + currencyCode()">
-              <mat-label>Depreciable Cost ({{ currencyCode() }})</mat-label>
-              <span matTextPrefix class="currency-prefix">{{ currencySymbol() }}&nbsp;</span>
-              <input matInput type="number" formControlName="depreciableCost" placeholder="0.00">
-              <mat-hint>{{ currencyCode() }}</mat-hint>
-            </mat-form-field>
- 
-            <mat-form-field appearance="outline" [matTooltip]="'Amount in ' + currencyCode()">
-              <mat-label>Salvage Value ({{ currencyCode() }})</mat-label>
-              <span matTextPrefix class="currency-prefix">{{ currencySymbol() }}&nbsp;</span>
-              <input matInput type="number" formControlName="salvageValue" placeholder="0.00">
-              <mat-hint>{{ currencyCode() }}</mat-hint>
-            </mat-form-field>
-          </div>
- 
-          <div class="drawer-row">
-            <mat-form-field appearance="outline">
-              <mat-label>Period (Months)</mat-label>
-              <input matInput type="number" formControlName="depreciationInMonth">
-              <mat-icon matPrefix>schedule</mat-icon>
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Method</mat-label>
-              <mat-select formControlName="depreciationMethod">
-                <mat-option [value]="null">— None —</mat-option>
-                <mat-option *ngFor="let m of dropdowns().depreciationMethods" [value]="m.value">{{ m.label }}</mat-option>
-              </mat-select>
-              <mat-icon matPrefix>calculate</mat-icon>
-            </mat-form-field>
-          </div>
- 
-          <mat-form-field appearance="outline" class="fw">
-            <mat-label>Date Acquired</mat-label>
-            <input matInput [matDatepicker]="dp1" formControlName="dateAquired">
-            <mat-datepicker-toggle matPrefix [for]="dp1"></mat-datepicker-toggle>
-            <mat-datepicker #dp1></mat-datepicker>
-          </mat-form-field>
- 
-          <div class="depr-summary-card"
-               *ngIf="editForm.get('depreciableCost')?.value && editForm.get('salvageValue')?.value != null">
-            <div class="depr-sum-row">
-              <span class="dsr-label">Net Depreciable Amount</span>
-              <span class="dsr-value">
-                {{ formatAmountOrZero((editForm.get('depreciableCost')?.value ?? 0) - (editForm.get('salvageValue')?.value ?? 0)) }}
-              </span>
+
+            <div class="drawer-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Brand <span class="req">*</span></mat-label>
+                <input matInput formControlName="assetBrand">
+                <mat-icon matPrefix>branding_watermark</mat-icon>
+                <mat-error>Required</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Model Number <span class="req">*</span></mat-label>
+                <input matInput formControlName="assetModelNo">
+                <mat-icon matPrefix>tag</mat-icon>
+                <mat-error>Required</mat-error>
+              </mat-form-field>
             </div>
-            <div class="depr-sum-row" *ngIf="editForm.get('depreciationInMonth')?.value">
-              <span class="dsr-label">Annual Depreciation</span>
-              <span class="dsr-value accent">
-                {{ formatAmountOrZero(
-                    ((editForm.get('depreciableCost')?.value ?? 0) - (editForm.get('salvageValue')?.value ?? 0))
-                    / ((editForm.get('depreciationInMonth')?.value ?? 12) / 12)
-                  ) }}
-                <span class="dsr-sub">/ year</span>
-              </span>
+
+            <div class="drawer-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Quantity <span class="req">*</span></mat-label>
+                <input matInput type="number" formControlName="quantity" min="1" max="500">
+                <mat-icon matPrefix>numbers</mat-icon>
+                <mat-hint>Max 500</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" [matTooltip]="'Amount in ' + currencyCode()">
+                <mat-label>Unit Price</mat-label>
+                <span matTextPrefix class="currency-prefix">{{ currencySymbol() }}&nbsp;</span>
+                <input matInput type="number" formControlName="unitPrice" min="0" placeholder="0.00">
+              </mat-form-field>
             </div>
+
+            <!-- Serial Numbers textarea -->
+            <div class="serial-edit-block">
+              <div class="seb-header">
+                <mat-icon>qr_code_2</mat-icon>
+                <span class="seb-title">Serial Numbers <span class="req">*</span></span>
+                <span class="seb-hint">Comma-separated, one per unit (count must match quantity)</span>
+              </div>
+              <mat-form-field appearance="outline" class="fw">
+                <mat-label>Serial Numbers (comma-separated)</mat-label>
+                <textarea matInput formControlName="serialNumbersRaw" rows="3"
+                          placeholder="e.g. SN-001, SN-002, SN-003"></textarea>
+                <mat-hint>
+                  Entered: {{ getSerialCount() }}
+                  / {{ editForm.get('quantity')?.value || 1 }} required
+                </mat-hint>
+                <mat-error>Required</mat-error>
+              </mat-form-field>
+              <!-- Auto-fill serials button -->
+              <button mat-stroked-button type="button" class="autofill-serials-btn"
+                      (click)="autoFillSerials(editingIndex()!)">
+                <mat-icon>auto_fix_high</mat-icon>
+                Auto-fill Serials ({{ editForm.get('assetModelNo')?.value || 'SN' }}-001, 002…)
+              </button>
+            </div>
+
+            <mat-form-field appearance="outline" class="fw">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" rows="2"></textarea>
+              <mat-icon matPrefix>description</mat-icon>
+            </mat-form-field>
+
+            <div class="drawer-section-title">Classification</div>
+            <div class="drawer-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Category</mat-label>
+                <mat-select formControlName="category">
+                  <mat-option [value]="null">— None —</mat-option>
+                  <mat-option *ngFor="let c of dropdowns().categories" [value]="c.value">{{ c.label }}</mat-option>
+                </mat-select>
+                <mat-icon matPrefix>category</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Sub Category</mat-label>
+                <mat-select formControlName="subCategory">
+                  <mat-option [value]="null">— None —</mat-option>
+                  <mat-option *ngFor="let sc of filteredSubCategories()" [value]="sc.value">{{ sc.label }}</mat-option>
+                </mat-select>
+                <mat-icon matPrefix>label</mat-icon>
+              </mat-form-field>
+            </div>
+
+            <div class="drawer-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Supplier</mat-label>
+                <mat-select formControlName="supplier">
+                  <mat-option [value]="null">— None —</mat-option>
+                  <mat-option *ngFor="let s of dropdowns().suppliers" [value]="s.value">{{ s.label }}</mat-option>
+                </mat-select>
+                <mat-icon matPrefix>business</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Asset Status</mat-label>
+                <mat-select formControlName="assetStatus">
+                  <mat-option [value]="null">— None —</mat-option>
+                  <mat-option *ngFor="let s of dropdowns().assetStatus" [value]="s.value">{{ s.label }}</mat-option>
+                </mat-select>
+                <mat-icon matPrefix>fact_check</mat-icon>
+              </mat-form-field>
+            </div>
+
+            <div class="drawer-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Department</mat-label>
+                <mat-select formControlName="department">
+                  <mat-option [value]="null">— None —</mat-option>
+                  <mat-option *ngFor="let d of dropdowns().departments" [value]="d.value">{{ d.label }}</mat-option>
+                </mat-select>
+                <mat-icon matPrefix>business_center</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Sub Department</mat-label>
+                <mat-select formControlName="subDepartment">
+                  <mat-option [value]="null">— None —</mat-option>
+                  <mat-option *ngFor="let sd of filteredSubDepartments()" [value]="sd.value">{{ sd.label }}</mat-option>
+                </mat-select>
+                <mat-icon matPrefix>account_tree</mat-icon>
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="fw">
+              <mat-label>Warranty (Months)</mat-label>
+              <input matInput type="number" formControlName="warranetyInMonth" min="0">
+              <mat-icon matPrefix>verified_user</mat-icon>
+            </mat-form-field>
+
+            <div class="drawer-section-title">Depreciation</div>
+            <mat-slide-toggle formControlName="isDepreciable" color="primary" class="depr-toggle">
+              This batch is depreciable
+            </mat-slide-toggle>
+
+            <ng-container *ngIf="editForm.get('isDepreciable')?.value">
+              <div class="drawer-row mt-8">
+                <mat-form-field appearance="outline">
+                  <mat-label>Depreciable Cost</mat-label>
+                  <span matTextPrefix class="currency-prefix">{{ currencySymbol() }}&nbsp;</span>
+                  <input matInput type="number" formControlName="depreciableCost" placeholder="0.00">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Salvage Value</mat-label>
+                  <span matTextPrefix class="currency-prefix">{{ currencySymbol() }}&nbsp;</span>
+                  <input matInput type="number" formControlName="salvageValue" placeholder="0.00">
+                </mat-form-field>
+              </div>
+              <div class="drawer-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Period (Months)</mat-label>
+                  <input matInput type="number" formControlName="depreciationInMonth">
+                  <mat-icon matPrefix>schedule</mat-icon>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Method</mat-label>
+                  <mat-select formControlName="depreciationMethod">
+                    <mat-option [value]="null">— None —</mat-option>
+                    <mat-option *ngFor="let m of dropdowns().depreciationMethods" [value]="m.value">{{ m.label }}</mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix>calculate</mat-icon>
+                </mat-form-field>
+              </div>
+            </ng-container>
+
+            <div class="drawer-section-title">Dates</div>
+            <div class="drawer-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Purchase Date</mat-label>
+                <input matInput [matDatepicker]="dp1" formControlName="dateOfPurchase">
+                <mat-datepicker-toggle matPrefix [for]="dp1"></mat-datepicker-toggle>
+                <mat-datepicker #dp1></mat-datepicker>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Manufacturing Date</mat-label>
+                <input matInput [matDatepicker]="dp2" formControlName="dateOfManufacture">
+                <mat-datepicker-toggle matPrefix [for]="dp2"></mat-datepicker-toggle>
+                <mat-datepicker #dp2></mat-datepicker>
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="fw">
+              <mat-label>Note</mat-label>
+              <textarea matInput formControlName="note" rows="2"></textarea>
+              <mat-icon matPrefix>note</mat-icon>
+            </mat-form-field>
           </div>
-        </ng-container>
- 
-        <div class="drawer-section-title">Important Dates</div>
-        <div class="drawer-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Purchase Date</mat-label>
-            <input matInput [matDatepicker]="dp2" formControlName="dateOfPurchase">
-            <mat-datepicker-toggle matPrefix [for]="dp2"></mat-datepicker-toggle>
-            <mat-datepicker #dp2></mat-datepicker>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Manufacturing Date</mat-label>
-            <input matInput [matDatepicker]="dp3" formControlName="dateOfManufacture">
-            <mat-datepicker-toggle matPrefix [for]="dp3"></mat-datepicker-toggle>
-            <mat-datepicker #dp3></mat-datepicker>
-          </mat-form-field>
-        </div>
-        <mat-form-field appearance="outline" class="fw">
-          <mat-label>Year of Valuation</mat-label>
-          <input matInput [matDatepicker]="dp4" formControlName="yearOfValuation">
-          <mat-datepicker-toggle matPrefix [for]="dp4"></mat-datepicker-toggle>
-          <mat-datepicker #dp4></mat-datepicker>
-        </mat-form-field>
- 
-        <div class="drawer-section-title">Documents & Image</div>
-        <div class="file-upload-grid">
-          <div class="file-upload-slot" *ngFor="let slot of fileSlots">
-            <div class="slot-label">
-              <mat-icon>{{ slot.icon }}</mat-icon> {{ slot.label }}
+        </mat-tab>
+
+        <!-- ─── Tab 2: Assignment ─── -->
+        <mat-tab label="Assignment">
+          <div class="drawer-body" [formGroup]="editForm">
+
+            <div class="drawer-section-title">Assignment Mode</div>
+
+            <!-- Assignment mode toggle -->
+            <div class="assign-mode-cards">
+              <div class="assign-mode-card" [class.selected]="editForm.get('assignMode')?.value === 'global'"
+                   (click)="editForm.get('assignMode')!.setValue('global')">
+                <mat-icon>group</mat-icon>
+                <div>
+                  <div class="amc-title">Same for All Units</div>
+                  <div class="amc-desc">All {{ getCurrentEditBatch()?.quantity }} units get the same assignment</div>
+                </div>
+                <mat-icon class="amc-check" *ngIf="editForm.get('assignMode')?.value === 'global'">check_circle</mat-icon>
+              </div>
+              <div class="assign-mode-card" [class.selected]="editForm.get('assignMode')?.value === 'per-unit'"
+                   (click)="editForm.get('assignMode')!.setValue('per-unit')">
+                <mat-icon>tune</mat-icon>
+                <div>
+                  <div class="amc-title">Individual per Unit</div>
+                  <div class="amc-desc">Assign each unit to a different user or site</div>
+                </div>
+                <mat-icon class="amc-check" *ngIf="editForm.get('assignMode')?.value === 'per-unit'">check_circle</mat-icon>
+              </div>
             </div>
-            <div class="slot-preview"
-                 [class.has-file]="getCurrentEditAsset()?.[slot.key]"
-                 (click)="slotFileInput.click()">
-              <input #slotFileInput type="file" [accept]="slot.accept"
-                     (change)="onSlotFileChange($event, slot.key)" style="display:none">
-              <ng-container *ngIf="getCurrentEditAsset()?.[slot.key]; else noFile">
-                <mat-icon class="preview-icon">insert_drive_file</mat-icon>
-                <span class="preview-name">{{ getCurrentEditAsset()?.[slot.key]?.name }}</span>
-                <button mat-icon-button class="remove-slot-btn"
-                        (click)="removeSlotFile($event, slot.key)">
-                  <mat-icon>close</mat-icon>
-                </button>
+
+            <!-- GLOBAL ASSIGN -->
+            <ng-container *ngIf="editForm.get('assignMode')?.value === 'global'">
+              <div class="drawer-section-title" style="margin-top:16px">Global Assignment</div>
+
+              <div class="assign-type-group">
+                <div class="assign-type-card"
+                     *ngFor="let opt of dropdowns().assignToOptions"
+                     [class.selected]="editForm.get('globalAssignTo')?.value === opt.value"
+                     (click)="editForm.get('globalAssignTo')!.setValue(opt.value); drawerGlobalAssignTo.set(opt.value)">
+                  <mat-icon>{{ assignIcon(opt.value) }}</mat-icon>
+                  <span>{{ opt.label }}</span>
+                  <div class="assign-check" *ngIf="editForm.get('globalAssignTo')?.value === opt.value">
+                    <mat-icon>check_circle</mat-icon>
+                  </div>
+                </div>
+              </div>
+
+              <ng-container *ngIf="drawerGlobalAssignTo() === AssignToType.User">
+                <mat-form-field appearance="outline" class="fw" @slideDown>
+                  <mat-label>Select Employee</mat-label>
+                  <mat-select formControlName="globalAssignUserId">
+                    <mat-option [value]="null">— Select —</mat-option>
+                    <mat-option *ngFor="let u of dropdowns().usersList" [value]="u.value">{{ u.label }}</mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix>person</mat-icon>
+                </mat-form-field>
               </ng-container>
-              <ng-template #noFile>
-                <mat-icon class="slot-upload-icon">cloud_upload</mat-icon>
-                <span>Click to upload</span>
-              </ng-template>
+
+              <ng-container *ngIf="drawerGlobalAssignTo() === AssignToType.Site">
+                <div class="drawer-row" @slideDown>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Site / Branch</mat-label>
+                    <mat-select formControlName="globalSiteId">
+                      <mat-option [value]="null">— Select —</mat-option>
+                      <mat-option *ngFor="let s of dropdowns().sites" [value]="s.value">{{ s.label }}</mat-option>
+                    </mat-select>
+                    <mat-icon matPrefix>location_city</mat-icon>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Area</mat-label>
+                    <mat-select formControlName="globalAreaId">
+                      <mat-option [value]="null">— Select —</mat-option>
+                      <mat-option *ngFor="let a of filteredAreasGlobal()" [value]="a.value">{{ a.label }}</mat-option>
+                    </mat-select>
+                    <mat-icon matPrefix>map</mat-icon>
+                  </mat-form-field>
+                </div>
+              </ng-container>
+            </ng-container>
+
+            <!-- PER-UNIT ASSIGN -->
+            <ng-container *ngIf="editForm.get('assignMode')?.value === 'per-unit'">
+              <div class="drawer-section-title" style="margin-top:16px">Per-Unit Assignment</div>
+              <div class="per-unit-list" *ngIf="getCurrentEditBatch() as batch">
+                <div class="pua-card" *ngFor="let ua of batch.unitAssignments; let j = index; trackBy: trackByIndex">
+                  <div class="pua-header" (click)="editingUnitIndex.set(editingUnitIndex() === j ? -1 : j)">
+                    <span class="pua-unit-badge">
+                      <mat-icon>widgets</mat-icon> Unit {{ j + 1 }}
+                    </span>
+                    <span class="pua-serial-tag">{{ ua.serialNumber || 'No serial' }}</span>
+                    <span class="pua-summary" [class.pua-assigned]="ua.assignTo !== 0">
+                      <mat-icon>{{ assignIcon(ua.assignTo) }}</mat-icon>
+                      {{ getUnitAssignSummary(ua) }}
+                    </span>
+                    <mat-icon class="pua-expand">{{ editingUnitIndex() === j ? 'expand_less' : 'expand_more' }}</mat-icon>
+                  </div>
+
+                  <div class="pua-body" *ngIf="editingUnitIndex() === j" @slideDown>
+                    <!-- Assign type cards -->
+                    <div class="assign-type-group small">
+                      <div class="assign-type-card"
+                           *ngFor="let opt of dropdowns().assignToOptions"
+                           [class.selected]="ua.assignTo === opt.value"
+                           (click)="updateUnitAssignment(editingIndex()!, j, 'assignTo', opt.value)">
+                        <mat-icon>{{ assignIcon(opt.value) }}</mat-icon>
+                        <span>{{ opt.label }}</span>
+                        <div class="assign-check" *ngIf="ua.assignTo === opt.value">
+                          <mat-icon>check_circle</mat-icon>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ng-container *ngIf="ua.assignTo === AssignToType.User">
+                      <mat-form-field appearance="outline" class="fw" @slideDown>
+                        <mat-label>Select Employee</mat-label>
+                        <mat-select [value]="ua.assignUserId"
+                                    (selectionChange)="updateUnitAssignment(editingIndex()!, j, 'assignUserId', $event.value)">
+                          <mat-option [value]="null">— Select —</mat-option>
+                          <mat-option *ngFor="let u of dropdowns().usersList" [value]="u.value">{{ u.label }}</mat-option>
+                        </mat-select>
+                        <mat-icon matPrefix>person</mat-icon>
+                      </mat-form-field>
+                    </ng-container>
+
+                    <ng-container *ngIf="ua.assignTo === AssignToType.Site">
+                      <div class="drawer-row" @slideDown>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Site / Branch</mat-label>
+                          <mat-select [value]="ua.siteId"
+                                      (selectionChange)="updateUnitAssignment(editingIndex()!, j, 'siteId', $event.value)">
+                            <mat-option [value]="null">— Select —</mat-option>
+                            <mat-option *ngFor="let s of dropdowns().sites" [value]="s.value">{{ s.label }}</mat-option>
+                          </mat-select>
+                          <mat-icon matPrefix>location_city</mat-icon>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Area</mat-label>
+                          <mat-select [value]="ua.areaId"
+                                      (selectionChange)="updateUnitAssignment(editingIndex()!, j, 'areaId', $event.value)">
+                            <mat-option [value]="null">— Select —</mat-option>
+                            <mat-option *ngFor="let a of getFilteredAreasForUnit(ua)" [value]="a.value">{{ a.label }}</mat-option>
+                          </mat-select>
+                          <mat-icon matPrefix>map</mat-icon>
+                        </mat-form-field>
+                      </div>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+
+          </div>
+        </mat-tab>
+
+        <!-- ─── Tab 3: Documents ─── -->
+        <mat-tab label="Documents">
+          <div class="drawer-body">
+            <div class="drawer-section-title">Documents & Image</div>
+            <div class="doc-shared-note">
+              <mat-icon>info</mat-icon>
+              <span>Documents are shared across all units in this batch.</span>
+            </div>
+            <div class="file-upload-grid">
+              <div class="file-upload-slot" *ngFor="let slot of fileSlots">
+                <div class="slot-label">
+                  <mat-icon>{{ slot.icon }}</mat-icon> {{ slot.label }}
+                </div>
+                <div class="slot-preview"
+                     [class.has-file]="getCurrentEditBatch()?.[slot.key]"
+                     (click)="slotFileInput.click()">
+                  <input #slotFileInput type="file" [accept]="slot.accept"
+                         (change)="onSlotFileChange($event, slot.key)" style="display:none">
+                  <ng-container *ngIf="getCurrentEditBatch()?.[slot.key]; else noFile">
+                    <mat-icon class="preview-icon">insert_drive_file</mat-icon>
+                    <span class="preview-name">{{ getCurrentEditBatch()?.[slot.key]?.name }}</span>
+                    <button mat-icon-button class="remove-slot-btn"
+                            (click)="removeSlotFile($event, slot.key)">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </ng-container>
+                  <ng-template #noFile>
+                    <mat-icon class="slot-upload-icon">cloud_upload</mat-icon>
+                    <span>Click to upload</span>
+                  </ng-template>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
- 
-        <div class="drawer-section-title">Note</div>
-        <mat-form-field appearance="outline" class="fw">
-          <mat-label>Note</mat-label>
-          <textarea matInput formControlName="note" rows="2" placeholder="Any additional notes"></textarea>
-          <mat-icon matPrefix>note</mat-icon>
-        </mat-form-field>
- 
-      </div><!-- /drawer-body -->
- 
+        </mat-tab>
+
+      </mat-tab-group>
+
       <div class="drawer-footer">
         <button mat-stroked-button (click)="closeEditDrawer()">Cancel</button>
         <button mat-raised-button color="primary" (click)="saveEdit()">
@@ -712,24 +822,23 @@
       </div>
     </ng-container>
   </div>
- 
-  <!-- ═══ STEP 3: IMPORTING ════════════════════════════════════════════════ -->
+
+  <!-- ═══ STEP 3: IMPORTING ═══════════════════════════════════════════════════ -->
   <div class="step-panel import-panel" *ngIf="currentStep() === 3" [@stepAnim]>
- 
     <div class="step-header">
       <mat-icon class="step-icon">cloud_upload</mat-icon>
       <div>
-        <h2>Importing Assets</h2>
-        <p>Please wait while we upload your assets one by one…</p>
+        <h2>Importing Batches</h2>
+        <p>Please wait while we create each asset batch…</p>
       </div>
     </div>
- 
+
     <div class="import-progress-card">
       <div class="progress-numbers">
         <span class="prog-done">{{ importedCount() }}</span>
         <span class="prog-sep">/</span>
-        <span class="prog-total">{{ validAssets().length }}</span>
-        <span class="prog-label">assets imported</span>
+        <span class="prog-total">{{ validBatches().length }}</span>
+        <span class="prog-label">batches imported</span>
         <span class="prog-failed" *ngIf="failedCount() > 0">
           <mat-icon>error</mat-icon> {{ failedCount() }} failed
         </span>
@@ -737,62 +846,76 @@
       <mat-progress-bar mode="determinate" [value]="importProgress()" color="primary" class="import-bar"></mat-progress-bar>
       <div class="import-status-row">
         <span class="import-pct">{{ importProgress() | number:'1.0-0' }}%</span>
-        <span class="import-current" *ngIf="currentImporting()">
-          Uploading: <strong>{{ currentImporting() }}</strong>
-        </span>
+        <div class="import-current-info" *ngIf="currentImporting()">
+          <span class="import-current">Uploading: <strong>{{ currentImporting() }}</strong></span>
+          <span class="import-sub" *ngIf="currentImportingUnit()">{{ currentImportingUnit() }}</span>
+        </div>
       </div>
     </div>
- 
+
     <div class="import-list">
-      <div class="import-item" *ngFor="let item of importResults(); trackBy: trackByIndex"
+      <div class="import-item"
+           *ngFor="let item of importResults(); trackBy: trackByIndex"
            [class.item-success]="item.status === 'success'"
            [class.item-failed]="item.status === 'failed'"
            [class.item-pending]="item.status === 'pending'"
            [class.item-uploading]="item.status === 'uploading'">
- 
+
         <div class="item-icon-wrap">
           <mat-icon *ngIf="item.status === 'success'">check_circle</mat-icon>
           <mat-icon *ngIf="item.status === 'failed'">error</mat-icon>
           <mat-icon *ngIf="item.status === 'pending'">pending</mat-icon>
           <div class="item-spinner" *ngIf="item.status === 'uploading'"></div>
         </div>
- 
+
         <div class="item-info">
-          <span class="item-name">{{ item.asset.name }}</span>
+          <div class="item-name-row">
+            <span class="item-name">{{ item.batch.name }}</span>
+            <span class="item-qty-badge">
+              <mat-icon>widgets</mat-icon> {{ item.batch.quantity }} unit(s)
+            </span>
+          </div>
           <span class="item-sub">
-            {{ item.asset.assetBrand }} · {{ item.asset.assetModelNo }}
-            <span class="item-price" *ngIf="item.asset.unitPrice">
-              · {{ formatAmount(item.asset.unitPrice) }}
+            {{ item.batch.assetBrand }} · {{ item.batch.assetModelNo }}
+            <span class="item-price" *ngIf="item.batch.unitPrice">
+              · {{ formatAmount(item.batch.unitPrice) }}/unit
             </span>
           </span>
+          <!-- Serial numbers preview -->
+          <div class="item-serials" *ngIf="item.status === 'uploading' || item.status === 'success'">
+            <span class="is-tag" *ngFor="let sn of item.batch.serialNumbers.slice(0, 3)">{{ sn }}</span>
+            <span class="is-more" *ngIf="item.batch.serialNumbers.length > 3">
+              +{{ item.batch.serialNumbers.length - 3 }} more
+            </span>
+          </div>
           <span class="item-error" *ngIf="item.status === 'failed' && item.error">{{ item.error }}</span>
         </div>
- 
+
         <div class="item-actions" *ngIf="item.status === 'failed'">
-          <button mat-stroked-button color="warn" class="retry-btn" (click)="retryAsset(item)">
+          <button mat-stroked-button color="warn" class="retry-btn" (click)="retryBatch(item)">
             <mat-icon>refresh</mat-icon> Retry
           </button>
-          <button mat-icon-button (click)="editFailedAsset(item)" matTooltip="Edit and retry">
+          <button mat-icon-button (click)="editFailedBatch(item)" matTooltip="Edit and retry">
             <mat-icon>edit</mat-icon>
           </button>
         </div>
       </div>
     </div>
   </div>
- 
-  <!-- ═══ STEP 4: COMPLETE ════════════════════════════════════════════════ -->
+
+  <!-- ═══ STEP 4: COMPLETE ════════════════════════════════════════════════════ -->
   <div class="step-panel complete-panel" *ngIf="currentStep() === 4" [@stepAnim]>
     <div class="complete-hero">
       <div class="complete-icon-ring">
         <mat-icon class="complete-icon">inventory_2</mat-icon>
       </div>
       <h2>Import Complete!</h2>
- 
+
       <div class="complete-stats">
         <div class="c-stat success">
           <mat-icon>check_circle</mat-icon>
           <span class="c-num">{{ importedCount() }}</span>
-          <span class="c-lbl">Imported</span>
+          <span class="c-lbl">Batches Imported</span>
         </div>
         <div class="c-stat failed" *ngIf="failedCount() > 0">
           <mat-icon>error</mat-icon>
@@ -805,25 +928,24 @@
           <span class="c-lbl">Skipped</span>
         </div>
       </div>
- 
+
+      <!-- Failed items panel -->
       <mat-expansion-panel *ngIf="failedCount() > 0" class="failed-panel">
         <mat-expansion-panel-header>
           <mat-panel-title>
             <mat-icon>error_outline</mat-icon>
-            Failed Assets ({{ failedCount() }}) — Click to review & retry
+            Failed Batches ({{ failedCount() }}) — Click to review & retry
           </mat-panel-title>
         </mat-expansion-panel-header>
         <div class="failed-list">
           <div class="failed-item" *ngFor="let item of failedResults()">
             <div class="fi-info">
-              <span class="fi-name">{{ item.asset.name }}</span>
-              <span class="fi-price" *ngIf="item.asset.unitPrice">
-                {{ formatAmount(item.asset.unitPrice) }}
-              </span>
+              <span class="fi-name">{{ item.batch.name }}</span>
+              <span class="fi-qty">{{ item.batch.quantity }} unit(s)</span>
               <span class="fi-error">{{ item.error }}</span>
             </div>
             <div class="fi-actions">
-              <button mat-stroked-button color="primary" (click)="editAndRetryFailed(item)">
+              <button mat-stroked-button color="primary" (click)="editFailedBatch(item)">
                 <mat-icon>edit</mat-icon> Edit & Retry
               </button>
               <button mat-stroked-button (click)="skipFailed(item)">Skip</button>
@@ -831,7 +953,7 @@
           </div>
         </div>
       </mat-expansion-panel>
- 
+
       <div class="complete-actions">
         <button mat-raised-button color="primary" (click)="goToAssets()">
           <mat-icon>inventory_2</mat-icon> View Assets
@@ -842,5 +964,5 @@
       </div>
     </div>
   </div>
- 
+
 </div>

@@ -1,11 +1,8 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { PageHeaderComponent } from '../../../shared/widgets/page-header/page-header.component';
 import { ListConfig, ListWidgetComponent, SelectionActionEvent } from '../../../shared/widgets/common/list-widget/list-widget.component';
 import { UserProfileData, UserProfileDetails, UserProfileRequest } from '../../../core/models/interfaces/account/userProfile';
 import { UserProfileService } from '../../../core/services/users/user-profile.service';
-import { ToastrService } from 'ngx-toastr';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { GlobalService } from '../../../core/services/global/global.service';
 import { PopupWidgetService } from '../../../core/services/popup-widget/popup-widget.service';
 import { Validators } from '@angular/forms';
@@ -846,7 +843,7 @@ export class ManageUserComponent implements OnInit {
 
           this.loadUsers(); // Reload the list
         } else {
-          this.globalService.showToastr('Failed to create user', 'error');
+          this.globalService.showSnackbar(response.message || 'Failed to create user', 'error');
         }
         this.loading.set(false);
       },

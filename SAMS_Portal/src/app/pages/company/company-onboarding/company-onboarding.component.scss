@@ -52,8 +52,13 @@
 }
 
 @keyframes drift {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(30px, 20px) scale(1.08); }
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+
+  to {
+    transform: translate(30px, 20px) scale(1.08);
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -82,6 +87,13 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+
+  .brand-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
 
   .brand-icon {
     color: var(--mat-sys-primary);
@@ -208,7 +220,7 @@
   align-items: flex-start;
   justify-content: center;
   padding: 3rem 1.5rem 4rem;
-  overflow: hidden;           // clip the outgoing pane
+  overflow: hidden; // clip the outgoing pane
 
   @media (max-width: 768px) {
     padding: 2rem 1rem 3rem;
@@ -246,6 +258,7 @@
     opacity: 0;
     transform: translateX(48px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateX(0) scale(1);
@@ -257,6 +270,7 @@
     opacity: 0;
     transform: translateX(-48px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateX(0) scale(1);
@@ -347,7 +361,9 @@
     transform: translateY(-3px);
     box-shadow: 0 8px 24px color-mix(in srgb, var(--mat-sys-primary) 15%, transparent);
 
-    .tile-icon { color: var(--mat-sys-primary); }
+    .tile-icon {
+      color: var(--mat-sys-primary);
+    }
   }
 
   &.tile-selected {
@@ -355,8 +371,14 @@
     background: var(--mat-sys-primary-container);
     box-shadow: 0 6px 20px color-mix(in srgb, var(--mat-sys-primary) 22%, transparent);
 
-    .tile-icon { color: var(--mat-sys-primary); }
-    .tile-name { color: var(--mat-sys-on-primary-container); font-weight: 700; }
+    .tile-icon {
+      color: var(--mat-sys-primary);
+    }
+
+    .tile-name {
+      color: var(--mat-sys-on-primary-container);
+      font-weight: 700;
+    }
   }
 }
 
@@ -401,7 +423,11 @@
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 2;
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 
   &.visible {
     opacity: 1;
@@ -433,7 +459,9 @@
   }
 }
 
-.field-full { width: 100%; }
+.field-full {
+  width: 100%;
+}
 
 .field-half {
   flex: 1;
@@ -536,8 +564,15 @@
 }
 
 @keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .summary-chip {
@@ -549,7 +584,11 @@
   font-size: 0.8rem;
   font-weight: 600;
 
-  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
 
   &.asset-color {
     background: color-mix(in srgb, var(--mat-sys-primary) 14%, transparent);
@@ -626,7 +665,9 @@
     color: var(--mat-sys-primary);
     border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 25%, transparent);
 
-    strong { font-weight: 800; }
+    strong {
+      font-weight: 800;
+    }
   }
 
   &.manual {
@@ -663,7 +704,9 @@
     color: var(--mat-sys-on-secondary-container);
     line-height: 1.5;
 
-    strong { font-weight: 700; }
+    strong {
+      font-weight: 700;
+    }
   }
 }
 
@@ -693,7 +736,7 @@
   border-top: 1px solid var(--mat-sys-outline-variant);
 
   // Push next/submit to the right when only one action on left
-  & > :first-child:last-child {
+  &> :first-child:last-child {
     margin-left: auto;
   }
 
@@ -715,7 +758,12 @@
   color: var(--mat-sys-on-surface-variant);
   font-weight: 500;
   border-radius: 10px;
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 }
 
 .btn-skip {
@@ -743,7 +791,11 @@
     box-shadow: 0 6px 20px color-mix(in srgb, var(--mat-sys-primary) 35%, transparent);
   }
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 }
 
 .btn-submit {
@@ -765,7 +817,11 @@
     filter: brightness(1.05);
   }
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 
   mat-progress-spinner {
     display: inline-block;
@@ -813,6 +869,7 @@
 ::ng-deep {
   .mat-mdc-form-field {
     &.mat-form-field-appearance-outline {
+
       .mat-mdc-notched-outline__leading,
       .mat-mdc-notched-outline__notch,
       .mat-mdc-notched-outline__trailing {
@@ -824,5 +881,76 @@
   .capacity-input .mat-mdc-form-field-infix {
     padding-top: 12px !important;
     padding-bottom: 12px !important;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Verified Email Badge
+// ─────────────────────────────────────────────
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.35rem;
+  border-radius: 50px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 28%, transparent);
+  animation: fadeSlideUp 0.25s ease;
+
+  .verified-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+    color: var(--mat-sys-primary);
+  }
+
+  .verified-text {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--mat-sys-primary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+// Locks readonly verified field visually
+.field-verified {
+  .mat-mdc-form-field-flex {
+    background: color-mix(in srgb, var(--mat-sys-primary) 4%, var(--mat-sys-surface-container-low)) !important;
+    cursor: not-allowed;
+  }
+
+  input[readonly] {
+    cursor: not-allowed;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+// ─────────────────────────────────────────────
+// Modified Email Badge
+// ─────────────────────────────────────────────
+.modified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.35rem;
+  border-radius: 50px;
+  background: color-mix(in srgb, var(--mat-sys-secondary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-secondary) 28%, transparent);
+  animation: fadeSlideUp 0.25s ease;
+
+  .modified-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+    color: var(--mat-sys-secondary);
+  }
+
+  .modified-text {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--mat-sys-secondary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 }

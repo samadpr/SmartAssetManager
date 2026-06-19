@@ -5,10 +5,17 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { LayoutService } from '../../../core/services/layout/layout.service';
 import { filter } from 'rxjs/operators';
+import { AiChatComponent } from '../../../pages/ai-chat/ai-chat.component';
 
 @Component({
   selector: 'app-layoutbody',
-  imports: [HeaderComponent, SidebarComponent, RouterOutlet, MatSidenavModule],
+  imports: [
+    HeaderComponent, 
+    SidebarComponent, 
+    RouterOutlet, 
+    MatSidenavModule,
+    // AiChatComponent
+  ],
   templateUrl: './layoutbody.component.html',
   styleUrl: './layoutbody.component.scss'
 })

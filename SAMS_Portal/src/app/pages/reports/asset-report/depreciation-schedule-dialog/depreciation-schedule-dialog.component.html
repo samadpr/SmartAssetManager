@@ -1,171 +1,283 @@
-<div class="depreciation-dialog">
+<div class="dep-dialog">
 
-  <!-- Dialog Header -->
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <div class="dialog-header">
-    <div class="header-content">
-      <mat-icon class="header-icon">analytics</mat-icon>
-      <div class="header-text">
+    <div class="dh-content">
+      <div class="dh-icon-wrap">
+        <mat-icon>analytics</mat-icon>
+      </div>
+      <div class="dh-text">
         <h2 mat-dialog-title>Depreciation Schedule</h2>
-        <p class="asset-name">{{ asset.name }}</p>
+        <p class="dh-sub">
+          <span class="dh-name">{{ asset.name ?? asset._batchCode }}</span>
+          <span class="dh-sep" *ngIf="isBatch">·</span>
+          <span class="dh-batch-label" *ngIf="isBatch">
+            {{ unitCount }} depreciable unit(s) · Batch total shown
+          </span>
+        </p>
       </div>
     </div>
-    <button mat-icon-button (click)="close()" class="close-button">
+    <button mat-icon-button class="dh-close" (click)="close()">
       <mat-icon>close</mat-icon>
     </button>
   </div>
 
   <mat-divider></mat-divider>
 
-  <!-- Dialog Content -->
-  <mat-dialog-content>
+  <!-- ── Content ────────────────────────────────────────────────────────── -->
+  <mat-dialog-content class="dep-content">
 
-    <!-- Asset Details Card -->
-    <mat-card class="details-card">
+    <!-- ── BATCH MODE TOGGLE ───────────────────────────────────────────── -->
+    <div class="view-mode-bar" *ngIf="isBatch && perUnitSchedule.length">
+      <span class="vm-label">View schedule as:</span>
+      <mat-button-toggle-group [value]="viewMode()"
+                               (change)="onViewModeChange($event.value)"
+                               class="vm-toggle">
+        <mat-button-toggle value="batch">
+          <mat-icon>inventory_2</mat-icon>
+          Batch Total ({{ unitCount }} units)
+        </mat-button-toggle>
+        <mat-button-toggle value="perUnit">
+          <mat-icon>person_outline</mat-icon>
+          Per Unit
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+      <div class="vm-note">
+        <mat-icon>info_outline</mat-icon>
+        All units share the same parameters. Batch total = per-unit × {{ unitCount }}.
+      </div>
+    </div>
+
+    <!-- ── ASSET INFO CARD ─────────────────────────────────────────────── -->
+    <mat-card class="info-card">
       <mat-card-content>
-        <h3>Asset Information</h3>
+        <div class="ic-header">
+          <mat-icon>description</mat-icon>
+          <span>{{ isBatch && viewMode() === 'batch' ? 'Batch' : 'Unit' }} Information</span>
+          <span class="ic-rep-note" *ngIf="isBatch && viewMode() === 'perUnit'">
+            Representative unit: {{ asset._repUnitId }}
+          </span>
+        </div>
 
-        <div class="details-grid">
-          <div class="detail-item">
-            <span class="label">Asset ID:</span>
-            <span class="value">{{ asset.assetId }}</span>
+        <div class="ic-grid">
+          <div class="ic-cell" *ngIf="isBatch">
+            <span class="ic-lbl">Batch Code</span>
+            <span class="ic-val code">{{ asset._batchCode }}</span>
           </div>
-
-          <div class="detail-item">
-            <span class="label">Name:</span>
-            <span class="value">{{ asset.name }}</span>
+          <div class="ic-cell">
+            <span class="ic-lbl">Asset ID</span>
+            <span class="ic-val code">{{ asset.assetId }}</span>
           </div>
-
-          <div class="detail-item">
-            <span class="label">Category:</span>
-            <span class="value">{{ asset.categoryDisplay || '-' }}</span>
+          <div class="ic-cell">
+            <span class="ic-lbl">Category</span>
+            <span class="ic-val">{{ asset.categoryDisplay || '—' }}</span>
           </div>
-
-          <div class="detail-item">
-            <span class="label">Department:</span>
-            <span class="value">{{ asset.departmentDisplay || '-' }}</span>
+          <div class="ic-cell">
+            <span class="ic-lbl">Department</span>
+            <span class="ic-val">{{ asset.departmentDisplay || '—' }}</span>
           </div>
-
-          <div class="detail-item">
-            <span class="label">Date Acquired:</span>
-            <span class="value">{{ formatDate(asset.dateAquired) }}</span>
+          <div class="ic-cell">
+            <span class="ic-lbl">Date Acquired</span>
+            <span class="ic-val">{{ formatDate(asset.dateAquired) }}</span>
           </div>
-
-          <div class="detail-item">
-            <span class="label">Depreciation Method:</span>
-            <mat-chip class="method-chip">{{ getDepreciationMethodName() }}</mat-chip>
+          <div class="ic-cell">
+            <span class="ic-lbl">Depreciation Method</span>
+            <mat-chip class="ic-method-chip">{{ getDepreciationMethodName() }}</mat-chip>
+          </div>
+          <div class="ic-cell" *ngIf="isBatch && viewMode() === 'batch'">
+            <span class="ic-lbl">Units included</span>
+            <span class="ic-val"><strong>{{ unitCount }}</strong> depreciable units</span>
           </div>
         </div>
 
-        <mat-divider style="margin: 20px 0;"></mat-divider>
-
-        <div class="financial-grid">
-          <div class="financial-item">
-            <div class="financial-label">Depreciable Cost</div>
-            <div class="financial-value primary">{{ formatCurrencyCompact(asset.depreciableCost) }}</div>
-            <div class="financial-value-full">{{ formatCurrency(asset.depreciableCost) }}</div>
-          </div>
-
-          <div class="financial-item">
-            <div class="financial-label">Salvage Value</div>
-            <div class="financial-value success">{{ formatCurrencyCompact(asset.salvageValue) }}</div>
-            <div class="financial-value-full">{{ formatCurrency(asset.salvageValue) }}</div>
-          </div>
-
-          <div class="financial-item">
-            <div class="financial-label">Total Depreciation</div>
-            <div class="financial-value warning">
-              {{ formatCurrencyCompact((asset.depreciableCost || 0) - (asset.salvageValue || 0)) }}
-            </div>
-            <div class="financial-value-full">
-              {{ formatCurrency((asset.depreciableCost || 0) - (asset.salvageValue || 0)) }}
+        <!-- Financial summary chips -->
+        <div class="ic-fin-row">
+          <div class="ic-fin-chip ic-fin-cost">
+            <div class="ifc-label">{{ isBatch && viewMode() === 'batch' ? 'Batch' : 'Per Unit' }} Depreciable Cost</div>
+            <div class="ifc-val">{{ formatCurrency(activeDisplayCost) }}</div>
+            <div class="ifc-hint" *ngIf="isBatch && viewMode() === 'batch'">
+              {{ formatCurrencyCompact(asset._perUnitCost) }}/unit
             </div>
           </div>
-
-          <div class="financial-item" *ngIf="asset.depreciationInMonth">
-            <div class="financial-label">Depreciation Period</div>
-            <div class="financial-value info">{{ asset.depreciationInMonth }} months</div>
+          <div class="ic-fin-chip ic-fin-salvage">
+            <div class="ifc-label">Salvage Value</div>
+            <div class="ifc-val">{{ formatCurrency(activeDisplaySalvage) }}</div>
+          </div>
+          <div class="ic-fin-chip ic-fin-net">
+            <div class="ifc-label">Net Depreciable Amount</div>
+            <div class="ifc-val">{{ formatCurrency(activeDisplayCost - activeDisplaySalvage) }}</div>
+          </div>
+          <div class="ic-fin-chip ic-fin-period">
+            <div class="ifc-label">Period</div>
+            <div class="ifc-val">{{ asset.depreciationInMonth }} mo</div>
           </div>
         </div>
       </mat-card-content>
     </mat-card>
 
-    <!-- Depreciation Chart -->
-    <mat-card class="chart-card" *ngIf="asset.depreciationSchedule && asset.depreciationSchedule.length > 0">
+    <!-- ── PROGRESS BAR ────────────────────────────────────────────────── -->
+    <mat-card class="progress-card" *ngIf="activeSchedule().length">
       <mat-card-content>
-        <h3>Depreciation Over Time</h3>
-        <div class="chart-container">
-          <canvas
-            baseChart
-            [data]="lineChartData"
-            [options]="lineChartOptions"
-            [type]="'line'">
-          </canvas>
+        <div class="pc-row">
+          <span class="pc-label">Overall Depreciation Progress</span>
+          <span class="pc-pct">{{ depProgress().toFixed(1) }}%</span>
+          <span class="pc-totals">
+            Depreciated: <strong>{{ formatCurrencyCompact(totalDepreciation()) }}</strong>
+            · Remaining: <strong>{{ formatCurrencyCompact(lastBookValue()) }}</strong>
+          </span>
+        </div>
+        <div class="pc-track">
+          <div class="pc-fill" [style.width.%]="depProgress()"></div>
         </div>
       </mat-card-content>
     </mat-card>
 
-    <!-- Depreciation Schedule Table -->
-    <mat-card class="table-card" *ngIf="asset.depreciationSchedule && asset.depreciationSchedule.length > 0">
+    <!-- ── CHARTS ──────────────────────────────────────────────────────── -->
+    <div class="charts-row" *ngIf="activeSchedule().length">
+      <mat-card class="chart-card">
+        <mat-card-content>
+          <div class="cc-title">
+            <mat-icon style="color:var(--mat-sys-primary)">show_chart</mat-icon>
+            Book Value Trend
+          </div>
+          <div class="cc-body">
+            <canvas #lineCanvas></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="chart-card">
+        <mat-card-content>
+          <div class="cc-title">
+            <mat-icon style="color:var(--mat-sys-error)">bar_chart</mat-icon>
+            Annual Depreciation
+          </div>
+          <div class="cc-body">
+            <canvas #barCanvas></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="chart-card chart-card-sm">
+        <mat-card-content>
+          <div class="cc-title">
+            <mat-icon style="color:var(--mat-sys-tertiary)">donut_large</mat-icon>
+            Depreciated vs Remaining
+          </div>
+          <div class="cc-body">
+            <canvas #doughnutCanvas></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- ── SCHEDULE TABLE ─────────────────────────────────────────────── -->
+    <mat-card class="table-card" *ngIf="activeSchedule().length">
       <mat-card-content>
-        <h3>Depreciation Schedule</h3>
+        <div class="tc-header">
+          <mat-icon>table_chart</mat-icon>
+          <span>
+            {{ isBatch && viewMode() === 'batch' ? 'Batch Total' : 'Per Unit' }}
+            Year-wise Depreciation Schedule
+          </span>
+          <span class="tc-count">{{ activeSchedule().length }} years</span>
+          <span class="tc-note" *ngIf="isBatch && viewMode() === 'batch'">
+            ({{ unitCount }} units combined)
+          </span>
+        </div>
 
-        <div class="table-wrapper">
-          <table mat-table [dataSource]="dataSource" class="schedule-table">
+        <div class="table-scroll">
+          <table mat-table [dataSource]="activeDataSource" class="sched-table">
 
+            <!-- Year -->
             <ng-container matColumnDef="year">
               <th mat-header-cell *matHeaderCellDef>Year</th>
               <td mat-cell *matCellDef="let row">
-                <span class="year-badge">Year {{ row.year }}</span>
+                <span class="yr-badge">Year {{ row.year }}</span>
               </td>
             </ng-container>
 
+            <!-- Opening -->
             <ng-container matColumnDef="bookValueYearBegining">
-              <th mat-header-cell *matHeaderCellDef class="text-right">Book Value (Beginning)</th>
-              <td mat-cell *matCellDef="let row" class="text-right">
-                <span class="currency-value">{{ formatCurrency(row.bookValueYearBegining) }}</span>
+              <th mat-header-cell *matHeaderCellDef class="tr">Opening Book Value</th>
+              <td mat-cell *matCellDef="let row" class="tr">
+                <span class="mono-cell">{{ formatCurrency(row.bookValueYearBegining) }}</span>
               </td>
             </ng-container>
 
+            <!-- Depreciation -->
             <ng-container matColumnDef="depreciation">
-              <th mat-header-cell *matHeaderCellDef class="text-right">Depreciation</th>
-              <td mat-cell *matCellDef="let row" class="text-right">
-                <span class="currency-value depreciation">{{ formatCurrency(row.depreciation) }}</span>
+              <th mat-header-cell *matHeaderCellDef class="tr">Depreciation</th>
+              <td mat-cell *matCellDef="let row" class="tr">
+                <span class="dep-amt">
+                  <mat-icon>arrow_downward</mat-icon>
+                  {{ formatCurrency(row.depreciation) }}
+                </span>
+                <div class="pct-micro">
+                  <div class="pct-micro-track">
+                    <div class="pct-micro-fill"
+                         [style.width.%]="depreciationPercent(row)"></div>
+                  </div>
+                  <span>{{ depreciationPercent(row) }}%</span>
+                </div>
               </td>
             </ng-container>
 
+            <!-- Closing -->
             <ng-container matColumnDef="bookValueYearEnd">
-              <th mat-header-cell *matHeaderCellDef class="text-right">Book Value (End)</th>
-              <td mat-cell *matCellDef="let row" class="text-right">
-                <span class="currency-value">{{ formatCurrency(row.bookValueYearEnd) }}</span>
+              <th mat-header-cell *matHeaderCellDef class="tr">Closing Book Value</th>
+              <td mat-cell *matCellDef="let row" class="tr">
+                <span class="mono-cell closing">{{ formatCurrency(row.bookValueYearEnd) }}</span>
               </td>
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="sched-row"></tr>
 
           </table>
         </div>
+
+        <!-- Totals footer -->
+        <div class="table-footer">
+          <div class="tf-item">
+            <span class="tf-lbl">Total Depreciation</span>
+            <span class="tf-val tf-dep">{{ formatCurrency(totalDepreciation()) }}</span>
+          </div>
+          <div class="tf-sep"></div>
+          <div class="tf-item">
+            <span class="tf-lbl">Final Book Value</span>
+            <span class="tf-val tf-bv">{{ formatCurrency(lastBookValue()) }}</span>
+          </div>
+          <div class="tf-sep"></div>
+          <div class="tf-item">
+            <span class="tf-lbl">% Depreciated</span>
+            <span class="tf-val tf-pct">{{ depProgress().toFixed(1) }}%</span>
+          </div>
+        </div>
+
       </mat-card-content>
     </mat-card>
 
-    <!-- No Schedule Data -->
-    <mat-card class="no-data-card" *ngIf="!asset.depreciationSchedule || asset.depreciationSchedule.length === 0">
+    <!-- No data -->
+    <mat-card class="no-data-card" *ngIf="!activeSchedule().length">
       <mat-card-content>
-        <div class="no-data-message">
-          <mat-icon>info</mat-icon>
-          <p>No depreciation schedule available for this asset.</p>
+        <div class="nd-inner">
+          <mat-icon>info_outline</mat-icon>
+          <p>No depreciation schedule available.</p>
+          <small>Ensure Date Acquired and Depreciation Period are set on each unit.</small>
         </div>
       </mat-card-content>
     </mat-card>
 
   </mat-dialog-content>
 
-  <!-- Dialog Actions -->
-  <mat-dialog-actions>
-    <button mat-button (click)="close()">Close</button>
-    <button mat-raised-button color="accent" (click)="print()">
-      <mat-icon>print</mat-icon>
-      Print
+  <!-- ── Actions ────────────────────────────────────────────────────────── -->
+  <mat-divider></mat-divider>
+  <mat-dialog-actions class="dep-actions">
+    <button mat-button (click)="close()">
+      <mat-icon>close</mat-icon> Close
+    </button>
+    <span class="da-spacer"></span>
+    <button mat-stroked-button color="primary" (click)="print()">
+      <mat-icon>print</mat-icon> Print
     </button>
   </mat-dialog-actions>
 

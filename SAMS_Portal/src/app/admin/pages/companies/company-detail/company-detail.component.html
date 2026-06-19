@@ -15,7 +15,7 @@
     <div class="sk-block sk-short"></div>
   </div>
 </div>
-
+ 
 <!-- ══ ERROR ══ -->
 <div class="cd-error" *ngIf="!isLoading() && error()">
   <mat-icon>error_outline</mat-icon>
@@ -24,31 +24,29 @@
     <mat-icon>refresh</mat-icon> Retry
   </button>
 </div>
-
+ 
 <!-- ══ MAIN CONTENT ══ -->
 <div class="cd-page" *ngIf="!isLoading() && !error() && company()">
-
+ 
   <!-- ── TOP ACTION BAR ── -->
   <div class="cd-topbar">
     <button mat-icon-button class="back-btn" (click)="goBack()" matTooltip="Back to Companies">
       <mat-icon>arrow_back</mat-icon>
     </button>
-
     <div class="topbar-spacer"></div>
-
+ 
     <button mat-stroked-button class="tb-btn" (click)="contactAdmin()" matTooltip="Email Admin">
       <mat-icon>mail_outline</mat-icon>
       <span class="tb-btn-label">Email Admin</span>
     </button>
-
+ 
     <button mat-stroked-button class="tb-btn sub-btn"
             (click)="openSubscriptionDialog()"
             [matTooltip]="company()?.subscriptionId ? 'Edit Subscription' : 'Assign Subscription'">
       <mat-icon>{{ company()?.subscriptionId ? 'edit_note' : 'add_card' }}</mat-icon>
       <span class="tb-btn-label">{{ company()?.subscriptionId ? 'Edit Plan' : 'Add Plan' }}</span>
     </button>
-
-    <!-- Toggle button: disabled unless subscriptionStatus === 'active' -->
+ 
     <button mat-flat-button class="tb-btn toggle-btn"
             [class.btn-suspend]="isActive()"
             [class.btn-activate]="!isActive()"
@@ -59,15 +57,12 @@
       <span class="tb-btn-label">{{ isActive() ? 'Suspend' : 'Activate' }}</span>
     </button>
   </div>
-
+ 
   <!-- ══ SECTION 1 — COMPANY + ADMIN ══ -->
-  <div class="cd-section-title">
-    <mat-icon>business</mat-icon>
-    <span>Company Overview</span>
-  </div>
-
+  <div class="cd-section-title"><mat-icon>business</mat-icon><span>Company Overview</span></div>
+ 
   <div class="cd-row cd-row--6040">
-
+ 
     <!-- Company Info Card -->
     <mat-card class="cd-card info-card" appearance="outlined">
       <div class="info-card-head">
@@ -75,64 +70,57 @@
           <img *ngIf="company()?.logo" [src]="company()!.logo" [alt]="company()!.name" class="co-logo" />
           <div *ngIf="!company()?.logo" class="co-avatar">{{ getInitials(company()?.name) }}</div>
         </div>
-
         <div class="co-identity">
           <h2 class="co-name">{{ company()?.name }}</h2>
           <div class="co-org-id">
-            <mat-icon>fingerprint</mat-icon>
-            <span>{{ company()?.organizationId }}</span>
+            <mat-icon>fingerprint</mat-icon><span>{{ company()?.organizationId }}</span>
           </div>
           <div class="co-badges">
-            <!-- Subscription status badge — 4 variants -->
             <span class="co-badge" [ngClass]="subscriptionBadge().css">
-              <mat-icon>{{ subscriptionBadge().icon }}</mat-icon>
-              {{ subscriptionBadge().label }}
+              <mat-icon>{{ subscriptionBadge().icon }}</mat-icon>{{ subscriptionBadge().label }}
             </span>
-
-            <!-- Running / Suspended -->
             <span class="co-badge" [class.badge-running]="isActive()" [class.badge-suspended]="!isActive()">
               <mat-icon>{{ isActive() ? 'play_circle' : 'pause_circle' }}</mat-icon>
               {{ isActive() ? 'Running' : 'Suspended' }}
             </span>
+            <!-- Plan inactive warning badge -->
+            <span class="co-badge badge-plan-inactive"
+                  *ngIf="subscriptionStatus() === 'active' && !(subscription()?.isPlanActive)">
+              <mat-icon>block</mat-icon>Plan Inactive
+            </span>
           </div>
         </div>
       </div>
-
-      <!-- Subscription warning banners inside card -->
-      <div class="cd-info-banner cd-info-banner--expired"
-           *ngIf="subscriptionStatus() === 'expired'">
+ 
+      <!-- Info banners -->
+      <div class="cd-info-banner cd-info-banner--expired" *ngIf="subscriptionStatus() === 'expired'">
         <mat-icon>event_busy</mat-icon>
         <span>Subscription expired — renew plan to re-activate this company</span>
       </div>
-      <div class="cd-info-banner cd-info-banner--assigned"
-           *ngIf="subscriptionStatus() === 'plan-assigned'">
+      <div class="cd-info-banner cd-info-banner--assigned" *ngIf="subscriptionStatus() === 'plan-assigned'">
         <mat-icon>pending</mat-icon>
         <span>Plan assigned — subscription dates required before activating</span>
       </div>
-
+      <div class="cd-info-banner cd-info-banner--plan-inactive"
+           *ngIf="subscriptionStatus() === 'active' && !(subscription()?.isPlanActive)">
+        <mat-icon>block</mat-icon>
+        <span>Plan template is inactive — activate the plan before enabling this company</span>
+      </div>
+ 
       <mat-divider></mat-divider>
-
+ 
       <div class="info-grid">
         <div class="ig-item" *ngIf="company()?.email">
           <div class="ig-icon"><mat-icon>email</mat-icon></div>
-          <div class="ig-body">
-            <span class="ig-label">Email</span>
-            <span class="ig-value">{{ company()?.email }}</span>
-          </div>
+          <div class="ig-body"><span class="ig-label">Email</span><span class="ig-value">{{ company()?.email }}</span></div>
         </div>
         <div class="ig-item" *ngIf="company()?.phone">
           <div class="ig-icon"><mat-icon>phone</mat-icon></div>
-          <div class="ig-body">
-            <span class="ig-label">Phone</span>
-            <span class="ig-value">{{ company()?.phone }}</span>
-          </div>
+          <div class="ig-body"><span class="ig-label">Phone</span><span class="ig-value">{{ company()?.phone }}</span></div>
         </div>
         <div class="ig-item" *ngIf="company()?.fax">
           <div class="ig-icon"><mat-icon>fax</mat-icon></div>
-          <div class="ig-body">
-            <span class="ig-label">Fax</span>
-            <span class="ig-value">{{ company()?.fax }}</span>
-          </div>
+          <div class="ig-body"><span class="ig-label">Fax</span><span class="ig-value">{{ company()?.fax }}</span></div>
         </div>
         <div class="ig-item" *ngIf="company()?.website">
           <div class="ig-icon"><mat-icon>language</mat-icon></div>
@@ -143,50 +131,33 @@
         </div>
         <div class="ig-item" *ngIf="company()?.city || company()?.country">
           <div class="ig-icon"><mat-icon>location_on</mat-icon></div>
-          <div class="ig-body">
-            <span class="ig-label">Location</span>
-            <span class="ig-value">{{ location() }}</span>
-          </div>
+          <div class="ig-body"><span class="ig-label">Location</span><span class="ig-value">{{ location() }}</span></div>
         </div>
         <div class="ig-item" *ngIf="company()?.address">
           <div class="ig-icon"><mat-icon>maps_home_work</mat-icon></div>
-          <div class="ig-body">
-            <span class="ig-label">Address</span>
-            <span class="ig-value">{{ company()?.address }}</span>
-          </div>
+          <div class="ig-body"><span class="ig-label">Address</span><span class="ig-value">{{ company()?.address }}</span></div>
         </div>
         <div class="ig-item" *ngIf="company()?.currency">
           <div class="ig-icon"><mat-icon>payments</mat-icon></div>
-          <div class="ig-body">
-            <span class="ig-label">Currency</span>
-            <span class="ig-value">{{ company()?.currency }}</span>
-          </div>
+          <div class="ig-body"><span class="ig-label">Currency</span><span class="ig-value">{{ company()?.currency }}</span></div>
         </div>
         <div class="ig-item" *ngIf="company()?.industryName">
           <div class="ig-icon"><mat-icon>factory</mat-icon></div>
-          <div class="ig-body">
-            <span class="ig-label">Industry</span>
-            <span class="ig-value">{{ company()?.industryName }}</span>
-          </div>
+          <div class="ig-body"><span class="ig-label">Industry</span><span class="ig-value">{{ company()?.industryName }}</span></div>
         </div>
         <div class="ig-item">
           <div class="ig-icon"><mat-icon>calendar_today</mat-icon></div>
-          <div class="ig-body">
-            <span class="ig-label">Registered</span>
-            <span class="ig-value">{{ company()?.createdDate | date:'longDate' }}</span>
-          </div>
+          <div class="ig-body"><span class="ig-label">Registered</span><span class="ig-value">{{ company()?.createdDate | date:'longDate' }}</span></div>
         </div>
       </div>
     </mat-card>
-
+ 
     <!-- Admin User Card -->
     <mat-card class="cd-card admin-card" appearance="outlined" *ngIf="adminUser()">
       <div class="admin-head">
         <div class="admin-avatar-wrap">
-          <img *ngIf="adminUser()?.profilePicture" [src]="adminUser()!.profilePicture" class="admin-pic" [alt]="adminUser()?.firstName" />
-          <div *ngIf="!adminUser()?.profilePicture" class="admin-avatar">
-            {{ getUserInitials(adminUser()!) }}
-          </div>
+          <img *ngIf="adminUser()?.profilePicture" [src]="adminUser()!.profilePicture" class="admin-pic" />
+          <div *ngIf="!adminUser()?.profilePicture" class="admin-avatar">{{ getUserInitials(adminUser()!) }}</div>
           <div class="email-verify-dot"
                [class.verified]="adminUser()?.isEmailConfirmed"
                [class.unverified]="!adminUser()?.isEmailConfirmed"
@@ -201,14 +172,11 @@
             <span class="admin-desig" *ngIf="adminUser()?.designationName">{{ adminUser()?.designationName }}</span>
           </div>
           <div class="admin-email" *ngIf="adminUser()?.email">
-            <mat-icon>alternate_email</mat-icon>
-            <span>{{ adminUser()?.email }}</span>
+            <mat-icon>alternate_email</mat-icon><span>{{ adminUser()?.email }}</span>
           </div>
         </div>
       </div>
-
       <mat-divider></mat-divider>
-
       <div class="info-grid">
         <div class="ig-item" *ngIf="adminUser()?.phoneNumber">
           <div class="ig-icon"><mat-icon>smartphone</mat-icon></div>
@@ -218,17 +186,9 @@
           <div class="ig-icon"><mat-icon>account_tree</mat-icon></div>
           <div class="ig-body"><span class="ig-label">Department</span><span class="ig-value">{{ adminUser()?.departmentName }}</span></div>
         </div>
-        <div class="ig-item" *ngIf="adminUser()?.subDepartmentName">
-          <div class="ig-icon"><mat-icon>device_hub</mat-icon></div>
-          <div class="ig-body"><span class="ig-label">Sub-Department</span><span class="ig-value">{{ adminUser()?.subDepartmentName }}</span></div>
-        </div>
         <div class="ig-item" *ngIf="adminUser()?.siteName">
           <div class="ig-icon"><mat-icon>location_city</mat-icon></div>
           <div class="ig-body"><span class="ig-label">Site</span><span class="ig-value">{{ adminUser()?.siteName }}</span></div>
-        </div>
-        <div class="ig-item" *ngIf="adminUser()?.areaName">
-          <div class="ig-icon"><mat-icon>place</mat-icon></div>
-          <div class="ig-body"><span class="ig-label">Area</span><span class="ig-value">{{ adminUser()?.areaName }}</span></div>
         </div>
         <div class="ig-item" *ngIf="adminUser()?.joiningDate">
           <div class="ig-icon"><mat-icon>event</mat-icon></div>
@@ -249,50 +209,38 @@
         </div>
       </div>
     </mat-card>
-
-    <!-- No Admin Card -->
     <mat-card class="cd-card no-admin-card" appearance="outlined" *ngIf="!adminUser()">
       <div class="no-admin-state">
-        <mat-icon>person_off</mat-icon>
-        <h3>No Admin User Assigned</h3>
+        <mat-icon>person_off</mat-icon><h3>No Admin User Assigned</h3>
         <p>This company has no admin user profile linked yet.</p>
       </div>
     </mat-card>
-
-  </div><!-- /cd-row -->
-
-  <!-- ══ SECTION 2 — SUBSCRIPTION ══ -->
-  <div class="cd-section-title">
-    <mat-icon>workspace_premium</mat-icon>
-    <span>Subscription Plan</span>
   </div>
-
-  <!-- Has Subscription -->
+ 
+  <!-- ══ SECTION 2 — SUBSCRIPTION ══ -->
+  <div class="cd-section-title"><mat-icon>workspace_premium</mat-icon><span>Subscription Plan</span></div>
+ 
   <div class="sub-block" *ngIf="subscription()">
-    <mat-card class="cd-card sub-info-card" appearance="outlined"
-              [style.--sc1]="subscription()?.cardColor || '#7c3aed'"
-              [style.--sc2]="subscription()?.cardColorSecondary || '#a855f7'">
+    <mat-card class="cd-card sub-info-card" appearance="outlined">
       <div class="sub-stripe"></div>
       <div class="sub-card-body">
         <div class="sub-left">
           <div class="sub-plan-name-row">
             <h3 class="sub-plan-name">{{ subscription()?.planName }}</h3>
-            <span class="sub-type-tag" [class.custom-tag]="subscription()?.isPlanActive">
-              {{ subscription()?.isPlanActive ? 'Custom' : 'Standard' }}
-            </span>
-            <!-- Expiry status badge in subscription card -->
             <span class="sub-status-pill" [ngClass]="subscriptionBadge().css">
-              <mat-icon>{{ subscriptionBadge().icon }}</mat-icon>
-              {{ subscriptionBadge().label }}
+              <mat-icon>{{ subscriptionBadge().icon }}</mat-icon>{{ subscriptionBadge().label }}
+            </span>
+            <!-- isPlanActive indicator -->
+            <span class="sub-status-pill" [class.plan-pill-active]="subscription()?.isPlanActive" [class.plan-pill-inactive]="!subscription()?.isPlanActive">
+              <mat-icon>{{ subscription()?.isPlanActive ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+              Plan {{ subscription()?.isPlanActive ? 'Active' : 'Inactive' }}
             </span>
           </div>
-
           <div class="sub-price-row">
             <span class="sub-currency">AED</span>
             <span class="sub-amount">{{ subscription()?.planAmount | number }}</span>
             <span class="sub-per">/ {{ subscription()?.durationDays }} days</span>
           </div>
-
           <div class="sub-dates-row">
             <div class="sub-date-item">
               <mat-icon>event_available</mat-icon>
@@ -315,7 +263,6 @@
               </div>
             </div>
           </div>
-
           <div class="sub-progress-wrap" *ngIf="subscriptionStatus() !== 'expired'">
             <div class="sub-progress-labels">
               <span>Subscription Usage</span>
@@ -323,21 +270,14 @@
                 {{ subscription()?.daysRemaining }} days remaining
               </span>
             </div>
-            <mat-progress-bar
-              mode="determinate"
-              [value]="subscriptionUsedPct()"
-              [color]="subscriptionProgressColor()">
-            </mat-progress-bar>
+            <mat-progress-bar mode="determinate" [value]="subscriptionUsedPct()" [color]="subscriptionProgressColor()"></mat-progress-bar>
             <div class="sub-progress-pct">{{ subscriptionUsedPct() }}% used</div>
           </div>
-
-          <!-- Expired notice inside subscription card -->
           <div class="sub-expired-notice" *ngIf="subscriptionStatus() === 'expired'">
             <mat-icon>event_busy</mat-icon>
             <span>This subscription has expired. Edit the plan to set new dates and renew access.</span>
           </div>
         </div>
-
         <div class="sub-limits">
           <div class="sub-limit-item">
             <div class="sub-limit-icon"><mat-icon>inventory_2</mat-icon></div>
@@ -346,8 +286,7 @@
               <span class="sub-limit-lbl">Assets Used</span>
               <mat-progress-bar mode="determinate"
                 [value]="((stats()?.totalAssets ?? 0) / (subscription()?.assetLimit || 1)) * 100"
-                color="primary" class="sub-mini-bar">
-              </mat-progress-bar>
+                color="primary" class="sub-mini-bar"></mat-progress-bar>
             </div>
           </div>
           <div class="sub-limit-item">
@@ -357,8 +296,7 @@
               <span class="sub-limit-lbl">Total Users</span>
               <mat-progress-bar mode="determinate"
                 [value]="((stats()?.totalUsers ?? 0) / (subscription()?.totalUserLimit || 1)) * 100"
-                color="primary" class="sub-mini-bar">
-              </mat-progress-bar>
+                color="primary" class="sub-mini-bar"></mat-progress-bar>
             </div>
           </div>
           <div class="sub-limit-item">
@@ -368,8 +306,7 @@
               <span class="sub-limit-lbl">System Users</span>
               <mat-progress-bar mode="determinate"
                 [value]="((stats()?.systemUsers ?? 0) / (subscription()?.systemUserLimit || 1)) * 100"
-                color="accent" class="sub-mini-bar">
-              </mat-progress-bar>
+                color="accent" class="sub-mini-bar"></mat-progress-bar>
             </div>
           </div>
           <button mat-stroked-button class="edit-plan-btn" (click)="openSubscriptionDialog()">
@@ -379,8 +316,6 @@
       </div>
     </mat-card>
   </div>
-
-  <!-- No Subscription -->
   <div class="no-sub-block" *ngIf="!subscription()">
     <mat-card class="cd-card" appearance="outlined">
       <div class="no-sub-state">
@@ -393,19 +328,27 @@
       </div>
     </mat-card>
   </div>
-
+ 
   <!-- ══ SECTION 3 — KPI STATS ══ -->
-  <div class="cd-section-title">
-    <mat-icon>analytics</mat-icon>
-    <span>Company Statistics</span>
-  </div>
-
+  <div class="cd-section-title"><mat-icon>analytics</mat-icon><span>Company Statistics</span></div>
+ 
   <div class="kpi-grid" *ngIf="stats()">
     <mat-card class="kpi-card kpi-card--primary" appearance="outlined">
       <div class="kpi-icon"><mat-icon>inventory_2</mat-icon></div>
       <div class="kpi-value">{{ stats()?.totalAssets | number }}</div>
       <div class="kpi-label">Total Assets</div>
-      <div class="kpi-sub-row"><span class="ks-chip ks-info">Registered in system</span></div>
+      <div class="kpi-sub-row">
+        <span class="ks-chip ks-active">{{ stats()?.totalBatches }} Batches</span>
+        <span class="ks-chip ks-info">{{ stats()?.assignedAssets }} Assigned</span>
+      </div>
+    </mat-card>
+    <mat-card class="kpi-card kpi-card--warn" appearance="outlined">
+      <div class="kpi-icon"><mat-icon>link_off</mat-icon></div>
+      <div class="kpi-value">{{ stats()?.unassignedAssets | number }}</div>
+      <div class="kpi-label">Unassigned Assets</div>
+      <div class="kpi-sub-row">
+        <span class="ks-chip ks-damaged">{{ stats()?.disposedAssets }} Disposed</span>
+      </div>
     </mat-card>
     <mat-card class="kpi-card kpi-card--accent" appearance="outlined">
       <div class="kpi-icon"><mat-icon>group</mat-icon></div>
@@ -434,124 +377,315 @@
       <div class="kpi-label">Departments</div>
       <div class="kpi-sub-row"><span class="ks-chip ks-info">{{ stats()?.subDepartments }} Sub-Depts</span></div>
     </mat-card>
-    <mat-card class="kpi-card kpi-card--warn" appearance="outlined">
-      <div class="kpi-icon"><mat-icon>local_shipping</mat-icon></div>
-      <div class="kpi-value">{{ stats()?.suppliers | number }}</div>
-      <div class="kpi-label">Suppliers</div>
-      <div class="kpi-sub-row"><span class="ks-chip ks-info">{{ stats()?.assetCategories }} Categories</span></div>
-    </mat-card>
   </div>
-
+ 
   <!-- ══ SECTION 4 — CHARTS ══ -->
-  <div class="cd-section-title">
-    <mat-icon>bar_chart</mat-icon>
-    <span>Data Insights</span>
-  </div>
-
+  <div class="cd-section-title"><mat-icon>bar_chart</mat-icon><span>Data Insights</span></div>
+ 
   <div class="charts-row">
     <mat-card class="cd-card chart-card" appearance="outlined">
-      <div class="chart-head">
-        <mat-icon class="ci">people_alt</mat-icon>
-        <span class="ct">User Distribution</span>
-      </div>
+      <div class="chart-head"><mat-icon class="ci">people_alt</mat-icon><span class="ct">User Distribution</span></div>
       <div class="chart-wrap chart-wrap--donut">
         <canvas baseChart [data]="userSplitChart()" [options]="doughnutOpts" type="doughnut"></canvas>
       </div>
     </mat-card>
-    <mat-card class="cd-card chart-card chart-card--wide" appearance="outlined">
-      <div class="chart-head">
-        <mat-icon class="ci">layers</mat-icon>
-        <span class="ct">Module Overview</span>
+    <mat-card class="cd-card chart-card" appearance="outlined">
+      <div class="chart-head"><mat-icon class="ci">inventory_2</mat-icon><span class="ct">Asset Distribution</span></div>
+      <div class="chart-wrap chart-wrap--donut">
+        <canvas baseChart [data]="assetSplitChart()" [options]="doughnutOpts" type="doughnut"></canvas>
       </div>
+    </mat-card>
+    <mat-card class="cd-card chart-card chart-card--wide" appearance="outlined">
+      <div class="chart-head"><mat-icon class="ci">layers</mat-icon><span class="ct">Module Overview</span></div>
       <div class="chart-wrap chart-wrap--bar">
         <canvas baseChart [data]="masterCountChart()" [options]="barOpts" type="bar"></canvas>
       </div>
     </mat-card>
   </div>
-
-  <!-- ══ SECTION 5 — LOGIN USERS ══ -->
+ 
+  <!-- ══ SECTION 5 — TABBED DATA: Login Users / Login History / Audit Logs ══ -->
   <div class="cd-section-title">
-    <mat-icon>manage_accounts</mat-icon>
-    <span>Login Access Users</span>
-    <span class="section-badge">{{ loginUsers().length }}</span>
+    <mat-icon>manage_accounts</mat-icon><span>User Activity & Audit</span>
   </div>
-
-  <mat-card class="cd-card login-users-card" appearance="outlined">
-    <div class="login-empty" *ngIf="!loginUsers().length">
-      <mat-icon>no_accounts</mat-icon>
-      <h3>No Login Access Users</h3>
-      <p>No users have been granted login access for this company yet.</p>
-    </div>
-
-    <div class="login-users-grid" *ngIf="loginUsers().length">
-      <div class="lu-card" *ngFor="let user of loginUsers()">
-        <div class="lu-avatar-wrap">
-          <img *ngIf="user.profilePicture" [src]="user.profilePicture" [alt]="user.firstName" class="lu-pic" />
-          <div *ngIf="!user.profilePicture" class="lu-avatar"
-               [style.background]="userColor((user.firstName ?? '') + ' ' + (user.lastName ?? ''))">
-            {{ getInitials((user.firstName ?? '') + ' ' + (user.lastName ?? '')) }}
+ 
+  <mat-card class="cd-card tabs-card" appearance="outlined">
+    <mat-tab-group class="cd-tabs" animationDuration="200ms" color="primary">
+ 
+      <!-- ── TAB 1: Login Access Users ── -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>people_alt</mat-icon>
+          Login Users
+          <span class="tab-badge">{{ loginUsers().length }}</span>
+        </ng-template>
+ 
+        <div class="tab-content">
+          <!-- Empty -->
+          <div class="tab-empty" *ngIf="!loginUsers().length">
+            <mat-icon>no_accounts</mat-icon>
+            <h3>No Login Access Users</h3>
+            <p>No users have been granted login access for this company.</p>
           </div>
-          <span class="lu-status-dot"
-                [class.dot-online]="isCurrentlyLoggedIn(user)"
-                [class.dot-offline]="!isCurrentlyLoggedIn(user)"
-                [matTooltip]="isCurrentlyLoggedIn(user) ? 'Currently logged in' : 'Offline'">
-          </span>
-        </div>
-
-        <div class="lu-info">
-          <div class="lu-name">{{ user.firstName }} {{ user.lastName }}</div>
-          <div class="lu-email">{{ user.email }}</div>
-          <div class="lu-chips">
-            <span class="lu-chip lu-role"  *ngIf="user.roleName">{{ user.roleName }}</span>
-            <span class="lu-chip lu-desig" *ngIf="user.designationName">{{ user.designationName }}</span>
-          </div>
-          <div class="lu-meta" *ngIf="user.departmentName">
-            <mat-icon>account_tree</mat-icon>{{ user.departmentName }}
-          </div>
-        </div>
-
-        <div class="lu-session">
-          <div class="lu-session-row" [class.session-active]="isCurrentlyLoggedIn(user)">
-            <mat-icon>login</mat-icon>
-            <div class="lu-session-body">
-              <span class="lu-session-lbl">Last Login</span>
-              <span class="lu-session-val">{{ user.lastLoginDate ? (user.lastLoginDate | date:'dd MMM yyyy, HH:mm') : '—' }}</span>
+ 
+          <!-- User Cards Grid -->
+          <div class="lu-cards-grid" *ngIf="loginUsers().length">
+            <div class="lu-card-v" *ngFor="let user of loginUsers()">
+ 
+              <!-- Card Header -->
+              <div class="lu-card-head" [style.background]="userColor((user.firstName ?? '') + (user.lastName ?? '')) + '18'">
+                <div class="lu-avatar-v">
+                  <img *ngIf="user.profilePicture" [src]="user.profilePicture" [alt]="user.firstName" class="lu-pic-v" />
+                  <div *ngIf="!user.profilePicture" class="lu-av-fallback"
+                       [style.background]="userColor((user.firstName ?? '') + (user.lastName ?? ''))">
+                    {{ getInitials((user.firstName ?? '') + ' ' + (user.lastName ?? '')) }}
+                  </div>
+                  <!-- Online dot -->
+                  <span class="lu-dot" [class.dot-online]="isCurrentlyLoggedIn(user)" [class.dot-offline]="!isCurrentlyLoggedIn(user)"
+                        [matTooltip]="isCurrentlyLoggedIn(user) ? 'Currently logged in' : 'Offline'"></span>
+                </div>
+                <div class="lu-head-info">
+                  <div class="lu-name-v">{{ user.firstName }} {{ user.lastName }}</div>
+                  <div class="lu-role-v">{{ user.roleName || 'User' }}</div>
+                </div>
+                <!-- Status badges -->
+                <div class="lu-badges-v">
+                  <span class="lu-badge" [class.badge-active]="user.isActive" [class.badge-inactive]="!user.isActive">
+                    {{ user.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                  <span class="lu-badge lu-badge-email" [class.badge-verified]="user.isEmailConfirmed" [class.badge-unverified]="!user.isEmailConfirmed">
+                    <mat-icon>{{ user.isEmailConfirmed ? 'mark_email_read' : 'mark_email_unread' }}</mat-icon>
+                    {{ user.isEmailConfirmed ? 'Verified' : 'Unverified' }}
+                  </span>
+                </div>
+              </div>
+ 
+              <!-- Contact info -->
+              <div class="lu-card-body">
+                <div class="lu-detail-row" *ngIf="user.email">
+                  <mat-icon>alternate_email</mat-icon><span>{{ user.email }}</span>
+                </div>
+                <div class="lu-detail-row" *ngIf="user.phoneNumber">
+                  <mat-icon>smartphone</mat-icon><span>{{ user.phoneNumber }}</span>
+                </div>
+                <div class="lu-detail-row" *ngIf="user.designationName">
+                  <mat-icon>badge</mat-icon><span>{{ user.designationName }}</span>
+                </div>
+                <div class="lu-detail-row" *ngIf="user.departmentName">
+                  <mat-icon>account_tree</mat-icon><span>{{ user.departmentName }}</span>
+                </div>
+              </div>
+ 
+              <!-- Session stats -->
+              <div class="lu-card-sessions">
+                <div class="lu-session-stat">
+                  <mat-icon class="ss-icon ss-login">login</mat-icon>
+                  <div class="ss-body">
+                    <span class="ss-label">Last Login</span>
+                    <span class="ss-val">{{ user.lastLoginDate ? (user.lastLoginDate | date:'dd MMM yy, HH:mm') : '—' }}</span>
+                  </div>
+                </div>
+                <div class="lu-session-stat">
+                  <mat-icon class="ss-icon ss-logout">logout</mat-icon>
+                  <div class="ss-body">
+                    <span class="ss-label">Last Logout</span>
+                    <span class="ss-val">
+                      {{ user.lastLogoutDate ? (user.lastLogoutDate | date:'dd MMM yy, HH:mm') : (isCurrentlyLoggedIn(user) ? 'Active session' : '—') }}
+                    </span>
+                  </div>
+                </div>
+                <div class="lu-session-stat">
+                  <mat-icon class="ss-icon ss-count">repeat</mat-icon>
+                  <div class="ss-body">
+                    <span class="ss-label">Total Sessions</span>
+                    <span class="ss-val ss-count-val">{{ user.totalLoginCount }}</span>
+                  </div>
+                </div>
+              </div>
+ 
+              <!-- Footer -->
+              <div class="lu-card-foot">
+                <mat-icon>calendar_today</mat-icon>
+                Access since {{ user.createdDate | date:'mediumDate' }}
+              </div>
             </div>
           </div>
-          <div class="lu-session-row">
-            <mat-icon>logout</mat-icon>
-            <div class="lu-session-body">
-              <span class="lu-session-lbl">Last Logout</span>
-              <span class="lu-session-val">{{ user.lastLogoutDate ? (user.lastLogoutDate | date:'dd MMM yyyy, HH:mm') : (isCurrentlyLoggedIn(user) ? 'Active session' : '—') }}</span>
-            </div>
+        </div>
+      </mat-tab>
+ 
+      <!-- ── TAB 2: Login History ── -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>history</mat-icon>
+          Login History
+          <span class="tab-badge">{{ loginHistory().length }}</span>
+        </ng-template>
+ 
+        <div class="tab-content">
+          <div class="tab-empty" *ngIf="!loginHistory().length">
+            <mat-icon>history_toggle_off</mat-icon>
+            <h3>No Login History</h3>
+            <p>No login records found for this company's users.</p>
           </div>
-          <div class="lu-session-row">
-            <mat-icon>repeat</mat-icon>
-            <div class="lu-session-body">
-              <span class="lu-session-lbl">Total Logins</span>
-              <span class="lu-session-val lu-login-count">{{ user.totalLoginCount }}</span>
+ 
+          <div class="lh-timeline" *ngIf="loginHistory().length">
+            <div class="lh-entry" *ngFor="let entry of loginHistory()"
+                 [class.lh-entry--failed]="entry.actionStatus === 'Failed'"
+                 [class.lh-entry--active]="entry.action === 'Login' && entry.actionStatus !== 'Failed'">
+ 
+              <!-- Timeline dot + line -->
+              <div class="lh-line-col">
+                <div class="lh-dot" [ngClass]="historyStatusCss(entry)">
+                  <mat-icon>{{ historyIcon(entry) }}</mat-icon>
+                </div>
+                <div class="lh-line"></div>
+              </div>
+ 
+              <!-- Content -->
+              <div class="lh-content">
+                <div class="lh-header-row">
+                  <!-- User avatar + name -->
+                  <div class="lh-user">
+                    <div class="lh-user-av" [style.background]="userColor(entry.fullName ?? '')">
+                      {{ getInitials(entry.fullName) }}
+                    </div>
+                    <div class="lh-user-info">
+                      <span class="lh-user-name">{{ entry.fullName || entry.userEmail }}</span>
+                      <span class="lh-user-email">{{ entry.userEmail }}</span>
+                    </div>
+                  </div>
+                  <!-- Action badges -->
+                  <div class="lh-badges">
+                    <span class="lh-action-badge" [ngClass]="historyStatusCss(entry)">
+                      {{ entry.action || 'Activity' }}
+                    </span>
+                    <span class="lh-status-badge" [class.lh-ok]="entry.actionStatus === 'Success'" [class.lh-fail]="entry.actionStatus === 'Failed'">
+                      {{ entry.actionStatus || '—' }}
+                    </span>
+                  </div>
+                  <!-- Timestamp -->
+                  <div class="lh-time">
+                    <mat-icon>schedule</mat-icon>
+                    {{ entry.loginTime | date:'dd MMM yyyy, HH:mm' }}
+                  </div>
+                </div>
+ 
+                <!-- Details row -->
+                <div class="lh-details-row">
+                  <span *ngIf="entry.browser" class="lh-detail-chip">
+                    <mat-icon>web</mat-icon>{{ entry.browser }}
+                  </span>
+                  <span *ngIf="entry.operatingSystem" class="lh-detail-chip">
+                    <mat-icon>computer</mat-icon>{{ entry.operatingSystem }}
+                  </span>
+                  <span *ngIf="entry.device" class="lh-detail-chip">
+                    <mat-icon>devices</mat-icon>{{ entry.device }}
+                  </span>
+                  <span *ngIf="entry.publicIp" class="lh-detail-chip">
+                    <mat-icon>router</mat-icon>{{ entry.publicIp }}
+                  </span>
+                  <span *ngIf="entry.durationMinutes > 0" class="lh-detail-chip lh-duration">
+                    <mat-icon>timer</mat-icon>{{ formatDuration(entry.durationMinutes) }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
-        <div class="lu-right">
-          <span class="lu-status-badge" [class.active-badge]="user.isActive" [class.inactive-badge]="!user.isActive">
-            {{ user.isActive ? 'Active' : 'Inactive' }}
-          </span>
-          <span class="lu-online-badge" *ngIf="isCurrentlyLoggedIn(user)">
-            <mat-icon>circle</mat-icon> Online
-          </span>
-          <span class="lu-email-badge" [class.verified]="user.isEmailConfirmed" [class.unverified]="!user.isEmailConfirmed">
-            <mat-icon>{{ user.isEmailConfirmed ? 'mark_email_read' : 'mark_email_unread' }}</mat-icon>
-            {{ user.isEmailConfirmed ? 'Verified' : 'Unverified' }}
-          </span>
-          <div class="lu-joined">
-            <mat-icon>calendar_today</mat-icon>
-            Access since {{ user.createdDate | date:'mediumDate' }}
+      </mat-tab>
+ 
+      <!-- ── TAB 3: Audit Logs ── -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>receipt_long</mat-icon>
+          Audit Logs
+          <span class="tab-badge">{{ auditLogs().length }}</span>
+        </ng-template>
+ 
+        <div class="tab-content audit-tab">
+ 
+          <!-- Filter chips -->
+          <div class="audit-filters">
+            <button class="audit-filter-btn" [class.active]="auditFilterType() === 'all'" (click)="setAuditFilter('all')">
+              All <span>{{ auditLogs().length }}</span>
+            </button>
+            <button class="audit-filter-btn audit-created-btn" [class.active]="auditFilterType() === 'Create'" (click)="setAuditFilter('Create')">
+              <mat-icon>add_circle</mat-icon> Created
+              <span>{{ (auditLogs() | auditTypeFilter:'Create').length }}</span>
+            </button>
+            <button class="audit-filter-btn audit-updated-btn" [class.active]="auditFilterType() === 'Update'" (click)="setAuditFilter('Update')">
+              <mat-icon>edit</mat-icon> Updated
+              <span>{{ (auditLogs() | auditTypeFilter:'Update').length }}</span>
+            </button>
+            <button class="audit-filter-btn audit-deleted-btn" [class.active]="auditFilterType() === 'Delete'" (click)="setAuditFilter('Delete')">
+              <mat-icon>delete</mat-icon> Deleted
+              <span>{{ (auditLogs() | auditTypeFilter:'Delete').length }}</span>
+            </button>
+          </div>
+ 
+          <!-- Empty -->
+          <div class="tab-empty" *ngIf="!auditLogFiltered().length">
+            <mat-icon>receipt_long</mat-icon>
+            <h3>No Audit Logs Found</h3>
+            <p>No audit log entries match the current filter.</p>
+          </div>
+ 
+          <!-- Audit table -->
+          <div class="audit-table-wrap" *ngIf="auditLogFiltered().length">
+            <mat-expansion-panel class="audit-row" *ngFor="let log of auditLogPage()"
+                                 [class.audit-row--created]="log.type === 'Create'"
+                                 [class.audit-row--updated]="log.type === 'Update'"
+                                 [class.audit-row--deleted]="log.type === 'Delete'">
+              <mat-expansion-panel-header>
+                <mat-panel-title class="audit-panel-title">
+                  <span class="audit-type-badge" [ngClass]="auditTypeCss(log.type)">
+                    <mat-icon>{{ auditTypeIcon(log.type) }}</mat-icon>{{ log.type || '—' }}
+                  </span>
+                  <span class="audit-table-name">{{ log.tableName || '—' }}</span>
+                  <span class="audit-pk" *ngIf="log.primaryKey">#{{ log.primaryKey }}</span>
+                </mat-panel-title>
+                <mat-panel-description class="audit-panel-desc">
+                  <span class="audit-user">
+                    <mat-icon>person</mat-icon>{{ log.userName || log.userEmail || '—' }}
+                  </span>
+                  <span class="audit-time">
+                    <mat-icon>schedule</mat-icon>{{ log.dateTime | date:'dd MMM yyyy, HH:mm' }}
+                  </span>
+                  <span class="audit-cols" *ngIf="log.affectedColumns">
+                    {{ log.affectedColumns }}
+                  </span>
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+ 
+              <!-- Expanded: old / new values -->
+              <div class="audit-detail">
+                <div class="audit-detail-pane" *ngIf="log.oldValues">
+                  <div class="adp-label"><mat-icon>undo</mat-icon>Before</div>
+                  <pre class="adp-code adp-old">{{ parseJsonSafe(log.oldValues) }}</pre>
+                </div>
+                <div class="audit-detail-pane" *ngIf="log.newValues">
+                  <div class="adp-label"><mat-icon>redo</mat-icon>After</div>
+                  <pre class="adp-code adp-new">{{ parseJsonSafe(log.newValues) }}</pre>
+                </div>
+                <div class="adp-empty" *ngIf="!log.oldValues && !log.newValues">
+                  No value details recorded for this entry.
+                </div>
+              </div>
+            </mat-expansion-panel>
+ 
+            <!-- Paginator -->
+            <mat-paginator
+              [length]="auditLogFiltered().length"
+              [pageSize]="auditPageSize"
+              [pageSizeOptions]="[10, 20, 50]"
+              [pageIndex]="auditPageIndex"
+              (page)="onAuditPage($event)"
+              showFirstLastButtons>
+            </mat-paginator>
           </div>
         </div>
-      </div>
-    </div>
+      </mat-tab>
+ 
+    </mat-tab-group>
   </mat-card>
-
+ 
 </div><!-- /cd-page -->

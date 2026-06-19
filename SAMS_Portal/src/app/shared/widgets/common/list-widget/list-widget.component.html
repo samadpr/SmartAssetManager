@@ -381,7 +381,6 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns()" class="table-header"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns();"
           class="table-row data-row" 
-          [@rowAnimation]
           [class.selected]="selection.isSelected(row)"
           [class.clickable]="config.rowClickAction"
           (click)="onRowClick(row)">
@@ -399,7 +398,7 @@
   </div>
 
   <!-- Pagination -->
-  <div class="pagination-container" *ngIf="showPagination() && !loading">
+  <div class="pagination-container" [hidden]="!showPagination() || loading">
     <mat-paginator 
       [pageSize]="config.pageSize || 10"
       [pageSizeOptions]="config.pageSizeOptions || [5, 10, 25, 50]"

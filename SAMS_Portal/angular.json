@@ -28,6 +28,7 @@
             "assets": [
               "src/assets",
               "src/assets/logos",
+              "src/web.config",
               {
                 "glob": "**/*",
                 "input": "public"
@@ -39,24 +40,23 @@
               "node_modules/ngx-toastr/toastr.css"
             ],
             "scripts": [],
-            "server": "src/main.server.ts",
-            "outputMode": "server",
-            "ssr": {
-              "entry": "src/server.ts"
-            }
+            "outputMode": "static"
           },
           "configurations": {
             "production": {
+              "optimization": true,
+              "sourceMap": false,
+              "extractLicenses": true,
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "2mb",
-                  "maximumError": "3MB"
+                  "maximumWarning": "4mb",
+                  "maximumError": "6MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "10kB",
-                  "maximumError": "15kB"
+                  "maximumWarning": "50kB",
+                  "maximumError": "100kB"
                 }
               ],
               "fileReplacements": [

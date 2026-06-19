@@ -8,7 +8,9 @@ import {
   AfterViewInit,
   signal,
   computed,
-  PLATFORM_ID
+  PLATFORM_ID,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef
 } from '@angular/core';
 import { isPlatformBrowser, CommonModule, DatePipe, CurrencyPipe } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -25,9 +27,13 @@ import { Chart, registerables } from 'chart.js';
 import { AssetDepreciation, AssetDetail } from '../../../../core/models/interfaces/asset-manage/assets.interface';
 import { AssignToType, DepreciationMethod } from '../../../../core/enum/asset.enums';
 import { MatCardModule } from '@angular/material/card';
+import { animate, style, transition, trigger } from '@angular/animations';
+import { CompanyStorageService } from '../../../../core/services/localStorage/company/company-storage.service';
 
+// Register ALL Chart.js modules once
 Chart.register(...registerables);
-
+ 
+// ── Public interface so manage-assets can type-check the dialog data ──
 export interface AssetViewPopupData {
   asset: AssetDetail;
   onEdit?: () => void;
@@ -49,275 +55,387 @@ export interface AssetViewPopupData {
     MatCardModule
   ],
   templateUrl: './asset-view-popup.component.html',
-  styleUrl: './asset-view-popup.component.scss'
+  styleUrl: './asset-view-popup.component.scss',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [
+    trigger('tabAnim', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(10px)' }),
+        animate('200ms ease-out',
+          style({ opacity: 1, transform: 'translateY(0)' }))
+      ])
+    ])
+  ]
 })
 export class AssetViewPopupComponent implements OnInit, OnDestroy {
-
-  private dialogRef = inject(MatDialogRef<AssetViewPopupComponent>);
-  public data: AssetViewPopupData = inject(MAT_DIALOG_DATA);
-  private platformId = inject(PLATFORM_ID);
-
-  @ViewChild('lineChartCanvas') lineChartCanvas!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('barChartCanvas') barChartCanvas!: ElementRef<HTMLCanvasElement>;
+ 
+  // ── Injections ────────────────────────────────────────────────────
+  private dialogRef    = inject(MatDialogRef<AssetViewPopupComponent>);
+  public  dialogData: AssetViewPopupData = inject(MAT_DIALOG_DATA);
+  private platformId   = inject(PLATFORM_ID);
+  private cdr          = inject(ChangeDetectorRef);
+  private companyStorage = inject(CompanyStorageService);
+ 
+  // ── Chart canvas refs ─────────────────────────────────────────────
+  @ViewChild('lineChartCanvas')     lineChartCanvas!:     ElementRef<HTMLCanvasElement>;
+  @ViewChild('barChartCanvas')      barChartCanvas!:      ElementRef<HTMLCanvasElement>;
   @ViewChild('doughnutChartCanvas') doughnutChartCanvas!: ElementRef<HTMLCanvasElement>;
-
-  private lineChart: Chart | null = null;
-  private barChart: Chart | null = null;
+ 
+  private lineChart:     Chart | null = null;
+  private barChart:      Chart | null = null;
   private doughnutChart: Chart | null = null;
-
-  asset = signal<AssetDetail>({} as AssetDetail);
-
-  readonly depreciationColumns = [
-    'year',
-    'bookValueYearBegining',
-    'depreciation',
-    'bookValueYearEnd',
-    'depreciationPercent'
-  ];
-
-  // ─── Lifecycle ────────────────────────────────────────────────────
-  ngOnInit(): void { this.asset.set(this.data.asset); }
-  ngOnDestroy(): void { this.destroyCharts(); }
-
-  // ─── Getters ──────────────────────────────────────────────────────
-  get assetData(): AssetDetail { return this.asset(); }
-
+ 
+  // ── State ─────────────────────────────────────────────────────────
+  activeTab = 0;
+ 
+  /** Expose enum to template */
+  AssignToType = AssignToType;
+ 
+  // ── Lifecycle ─────────────────────────────────────────────────────
+  ngOnInit(): void {
+    // Ensure data is loaded; mark for check so OnPush picks up the input
+    this.cdr.markForCheck();
+  }
+ 
+  ngOnDestroy(): void {
+    this.destroyCharts();
+  }
+ 
+  // ── Tab change ────────────────────────────────────────────────────
+  onTabChange(index: number): void {
+    this.activeTab = index;
+    this.cdr.markForCheck();
+    if (index === 1 && isPlatformBrowser(this.platformId)) {
+      setTimeout(() => { this.initCharts(); this.cdr.markForCheck(); }, 80);
+    }
+  }
+ 
+  // ── Data accessor (safe null-guard) ───────────────────────────────
+  get assetData(): AssetDetail {
+    return this.dialogData?.asset ?? ({} as AssetDetail);
+  }
+ 
+  // ── Computed helpers ──────────────────────────────────────────────
   get hasDepreciation(): boolean {
-    return !!(this.assetData.isDepreciable && this.assetData.depreciationSchedule?.length);
+    return !!(
+      this.assetData?.isDepreciable &&
+      this.assetData?.depreciationSchedule?.length
+    );
   }
-
+ 
   get depreciationSchedule(): AssetDepreciation[] {
-    return this.assetData.depreciationSchedule ?? [];
+    return this.assetData?.depreciationSchedule ?? [];
   }
-
+ 
   get totalDepreciation(): number {
     return this.depreciationSchedule.reduce((s, d) => s + (d.depreciation ?? 0), 0);
   }
-
+ 
   get depreciationProgress(): number {
-    if (!this.assetData.depreciableCost) return 0;
-    return Math.min((this.totalDepreciation / this.assetData.depreciableCost) * 100, 100);
+    const cost = this.assetData?.depreciableCost;
+    if (!cost || cost <= 0) return 0;
+    return Math.min((this.totalDepreciation / cost) * 100, 100);
   }
-
+ 
+  get lastBookValue(): number {
+    const s = this.depreciationSchedule;
+    return s.length ? s[s.length - 1].bookValueYearEnd : 0;
+  }
+ 
+  get hasDocuments(): boolean {
+    return !!(
+      this.assetData?.imageUrl ||
+      this.assetData?.deliveryNote ||
+      this.assetData?.purchaseReceipt ||
+      this.assetData?.invoice
+    );
+  }
+ 
+  get documentCount(): number {
+    let n = 0;
+    if (this.assetData?.imageUrl)        n++;
+    if (this.assetData?.deliveryNote)    n++;
+    if (this.assetData?.purchaseReceipt) n++;
+    if (this.assetData?.invoice)         n++;
+    return n;
+  }
+ 
   get assignToLabel(): string {
-    switch (this.assetData.assignTo) {
+    switch (this.assetData?.assignTo) {
       case AssignToType.User: return 'User';
       case AssignToType.Site: return 'Site';
-      default: return 'Not Assigned';
+      default:                return 'Not Assigned';
     }
   }
-
+ 
   get depreciationMethodLabel(): string {
-    switch (this.assetData.depreciationMethod) {
-      case DepreciationMethod.StraightLine: return 'Straight Line';
-      case DepreciationMethod.DecliningBalance: return 'Declining Balance';
-      case DepreciationMethod.DoubleDecliningBalance: return 'Double Declining Balance';
+    switch (this.assetData?.depreciationMethod) {
+      case DepreciationMethod.StraightLine:            return 'Straight Line';
+      case DepreciationMethod.DecliningBalance:        return 'Declining Balance';
+      case DepreciationMethod.DoubleDecliningBalance:  return 'Double Declining Balance';
       case DepreciationMethod.OneFiftyDecliningBalance: return '150% Declining Balance';
-      case DepreciationMethod.SumOfYearsDigits: return 'Sum of Years Digits';
-      default: return 'None';
+      case DepreciationMethod.SumOfYearsDigits:        return 'Sum of Years Digits';
+      default:                                          return 'None';
     }
   }
-
-  // ─── Helpers ──────────────────────────────────────────────────────
-  getDepreciationPercent(item: AssetDepreciation): number {
-    if (!this.assetData.depreciableCost) return 0;
-    return parseFloat(((item.depreciation / this.assetData.depreciableCost) * 100).toFixed(1));
+ 
+  // ── Template helpers ──────────────────────────────────────────────
+  getAssignIcon(val: number | undefined): string {
+    const icons: Record<number, string> = {
+      [AssignToType.User]: 'person',
+      [AssignToType.Site]: 'location_city',
+      [AssignToType.NotAssigned]: 'do_not_disturb'
+    };
+    return val != null ? (icons[val] ?? 'help_outline') : 'help_outline';
   }
-
+ 
+  getDepreciationPercent(row: AssetDepreciation): number {
+    const cost = this.assetData?.depreciableCost;
+    if (!cost || cost <= 0) return 0;
+    return parseFloat(((row.depreciation / cost) * 100).toFixed(1));
+  }
+ 
+  /** Currency symbol from company storage — fallback to ₹ */
+  get currencySymbol(): string {
+    try {
+      const code = this.companyStorage.getCurrency()?.trim() || 'INR';
+      return (
+        new Intl.NumberFormat('en', { style: 'currency', currency: code })
+          .formatToParts(0)
+          .find(p => p.type === 'currency')?.value ?? '₹'
+      );
+    } catch { return '₹'; }
+  }
+ 
   formatCurrency(value: number | null | undefined): string {
     if (value == null) return '—';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency', currency: 'INR',
-      minimumFractionDigits: 2, maximumFractionDigits: 2
-    }).format(value);
+    try {
+      const code = this.companyStorage.getCurrency()?.trim() || 'INR';
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency', currency: code,
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+      }).format(value);
+    } catch {
+      return `₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+    }
   }
-
+ 
   formatDate(value: string | Date | null | undefined): string {
     if (!value) return '—';
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return '—';
-    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    try {
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric'
+      });
+    } catch { return '—'; }
   }
-
+ 
   openFile(url: string | undefined): void {
     if (url) window.open(url, '_blank');
   }
-
+ 
+  // ── Dialog actions ────────────────────────────────────────────────
   onEdit(): void {
-    this.dialogRef.close({ action: 'edit' });
-    this.data.onEdit?.();
+    this.dialogRef.close(true);
+    this.dialogData?.onEdit?.();
   }
-
+ 
   onClose(): void {
     this.dialogRef.close({ action: 'close' });
   }
-
-  // ─── Tab change ───────────────────────────────────────────────────
-  onTabChange(index: number): void {
-    if (index === 1 && isPlatformBrowser(this.platformId)) {
-      setTimeout(() => this.initCharts(), 160);
-    }
-  }
-
-  // ─── Chart helpers ────────────────────────────────────────────────
+ 
+  // ── Chart helpers ─────────────────────────────────────────────────
+ 
   /**
-   * Read a computed CSS custom-property value from :root.
-   * Angular Material M3 exposes colours as bare sRGB triplets: "R G B"
-   * so we wrap them in rgba().
+   * Read a CSS custom property from :root.
+   * Angular Material M3 tokens can be bare "R G B" triplets or hex strings.
    */
-  private cssColor(varName: string, alpha = 1): string {
-    if (!isPlatformBrowser(this.platformId)) return `rgba(99,102,241,${alpha})`;
-    const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-    // M3 tokens come as "63 81 181" → convert to rgba
+  private cssVar(name: string, alpha = 1): string {
+    if (!isPlatformBrowser(this.platformId)) {
+      return `rgba(103,80,164,${alpha})`; // M3 default purple fallback
+    }
+    const raw = getComputedStyle(document.documentElement)
+      .getPropertyValue(name)
+      .trim();
+ 
+    // "63 81 181" style
     if (raw && /^\d/.test(raw)) return `rgba(${raw},${alpha})`;
-    // fallback if token returns a hex/named colour directly
-    return raw || `rgba(99,102,241,${alpha})`;
+    // "#xxxxxx" or named colour — wrap in rgba via a canvas trick is complex;
+    // just return as-is with a simpler opacity trick
+    if (raw) return alpha < 1 ? `color-mix(in srgb, ${raw} ${alpha * 100}%, transparent)` : raw;
+ 
+    return `rgba(103,80,164,${alpha})`;
   }
-
-  // ─── Chart init ───────────────────────────────────────────────────
+ 
   private initCharts(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     if (!this.depreciationSchedule.length) return;
+ 
     this.destroyCharts();
-
+ 
     const schedule = this.depreciationSchedule;
-    const labels = schedule.map(d => `Year ${d.year}`);
-    const n = schedule.length;
-
-    // Colours pulled from the live theme — auto dark/light
-    const primary = this.cssColor('--mat-sys-primary');
-    const secondary = this.cssColor('--mat-sys-secondary');
-    const error = this.cssColor('--mat-sys-error');
-    const tertiary = this.cssColor('--mat-sys-tertiary');
-    const onSurface = this.cssColor('--mat-sys-on-surface', 0.6);
-    const gridLine = this.cssColor('--mat-sys-outline-variant', 0.4);
-    const primaryFg = this.cssColor('--mat-sys-primary', 0.12);
-    const secondaryFg = this.cssColor('--mat-sys-secondary', 0.12);
-
-    const axisY = (beginAtZero: boolean) => ({
+    const labels   = schedule.map(d => `Yr ${d.year}`);
+    const n        = schedule.length;
+ 
+    // ── Theme colours ──────────────────────────────────────────────
+    const primary      = this.cssVar('--mat-sys-primary');
+    const secondary    = this.cssVar('--mat-sys-secondary');
+    const error        = this.cssVar('--mat-sys-error');
+    const tertiary     = this.cssVar('--mat-sys-tertiary');
+    const onSurface06  = this.cssVar('--mat-sys-on-surface', 0.6);
+    const gridColor    = this.cssVar('--mat-sys-outline-variant', 0.35);
+    const primaryBg    = this.cssVar('--mat-sys-primary', 0.12);
+    const secondaryBg  = this.cssVar('--mat-sys-secondary', 0.10);
+ 
+    // ── Shared config factories ────────────────────────────────────
+    const yAxis = (beginAtZero: boolean) => ({
       beginAtZero,
-      grid: { color: gridLine },
+      grid: { color: gridColor },
       ticks: {
-        color: onSurface,
-        callback: (v: any) => `₹${Number(v).toLocaleString('en-IN')}`
+        color: onSurface06,
+        callback: (v: any) =>
+          `${this.currencySymbol}${Number(v).toLocaleString('en-IN')}`
       }
     });
-    const axisX = (showGrid = true) => ({
-      grid: { display: showGrid, color: gridLine },
-      ticks: { color: onSurface }
+    const xAxis = () => ({
+      grid: { display: false },
+      ticks: { color: onSurface06, maxRotation: 45 }
     });
-    const legend = { color: onSurface, font: { size: 12 } };
-
-    const inrTooltip = (ctx: any) =>
-      ` ₹${(ctx.parsed?.y ?? ctx.parsed ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-
-    // ── Line chart ────────────────────────────────────────────────
-    const lineCtx = this.lineChartCanvas?.nativeElement.getContext('2d');
-    if (lineCtx) {
-      this.lineChart = new Chart(lineCtx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Book Value (Beginning)',
-              data: schedule.map(d => d.bookValueYearBegining),
-              borderColor: primary, backgroundColor: primaryFg,
-              borderWidth: 2.5, tension: 0.4, fill: true,
-              pointBackgroundColor: primary, pointRadius: 5, pointHoverRadius: 7
+    const legendLabels = { color: onSurface06, font: { size: 11 } };
+ 
+    const tooltipLabel = (ctx: any) => {
+      const val = ctx.parsed?.y ?? ctx.parsed ?? 0;
+      return ` ${this.formatCurrency(val)}`;
+    };
+ 
+    // ── 1. LINE CHART — Book Value Trend ──────────────────────────
+    const lineEl = this.lineChartCanvas?.nativeElement;
+    if (lineEl) {
+      const ctx = lineEl.getContext('2d');
+      if (ctx) {
+        this.lineChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Beginning Value',
+                data: schedule.map(d => d.bookValueYearBegining),
+                borderColor: primary,
+                backgroundColor: primaryBg,
+                borderWidth: 2.5,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: primary,
+                pointRadius: 4,
+                pointHoverRadius: 7
+              },
+              {
+                label: 'Ending Value',
+                data: schedule.map(d => d.bookValueYearEnd),
+                borderColor: secondary,
+                backgroundColor: secondaryBg,
+                borderWidth: 2.5,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: secondary,
+                pointRadius: 4,
+                pointHoverRadius: 7
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top', labels: legendLabels },
+              tooltip: { callbacks: { label: tooltipLabel } }
             },
-            {
-              label: 'Book Value (Ending)',
-              data: schedule.map(d => d.bookValueYearEnd),
-              borderColor: secondary, backgroundColor: secondaryFg,
-              borderWidth: 2.5, tension: 0.4, fill: true,
-              pointBackgroundColor: secondary, pointRadius: 5, pointHoverRadius: 7
-            }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'top', labels: legend },
-            tooltip: { callbacks: { label: inrTooltip } }
-          },
-          scales: { x: axisX(), y: axisY(false) }
-        }
-      });
+            scales: { x: xAxis(), y: yAxis(false) }
+          }
+        });
+      }
     }
-
-    // ── Bar chart ─────────────────────────────────────────────────
-    const barCtx = this.barChartCanvas?.nativeElement.getContext('2d');
-    if (barCtx) {
-      this.barChart = new Chart(barCtx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Annual Depreciation',
-            data: schedule.map(d => d.depreciation),
-            backgroundColor: schedule.map((_, i) =>
-              this.cssColor('--mat-sys-primary', 0.40 + (i / n) * 0.60)
-            ),
-            borderColor: primary, borderWidth: 1.5,
-            borderRadius: 6
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: inrTooltip } }
+ 
+    // ── 2. BAR CHART — Annual Depreciation ───────────────────────
+    const barEl = this.barChartCanvas?.nativeElement;
+    if (barEl) {
+      const ctx = barEl.getContext('2d');
+      if (ctx) {
+        this.barChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Annual Depreciation',
+              data: schedule.map(d => d.depreciation),
+              backgroundColor: schedule.map((_, i) =>
+                this.cssVar('--mat-sys-primary', 0.35 + (i / Math.max(n - 1, 1)) * 0.65)
+              ),
+              borderColor: primary,
+              borderWidth: 1.5,
+              borderRadius: 5
+            }]
           },
-          scales: { x: axisX(false), y: axisY(true) }
-        }
-      });
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: tooltipLabel } }
+            },
+            scales: { x: xAxis(), y: yAxis(true) }
+          }
+        });
+      }
     }
-
-    // ── Doughnut chart ────────────────────────────────────────────
-    const doughnutCtx = this.doughnutChartCanvas?.nativeElement.getContext('2d');
-    if (doughnutCtx) {
-      const last = schedule[schedule.length - 1];
-      const remaining = last?.bookValueYearEnd ?? 0;
-
-      this.doughnutChart = new Chart(doughnutCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Total Depreciated', 'Remaining Value'],
-          datasets: [{
-            data: [this.totalDepreciation, remaining],
-            backgroundColor: [error, tertiary],
-            borderColor: 'transparent',
-            borderWidth: 0,
-            hoverOffset: 10
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          cutout: '68%',
-          plugins: {
-            legend: { position: 'bottom', labels: { ...legend, padding: 18 } },
-            tooltip: {
-              callbacks: {
-                label: (ctx) =>
-                  ` ₹${ctx.parsed.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+ 
+    // ── 3. DOUGHNUT CHART — Depreciated vs Remaining ─────────────
+    const doughEl = this.doughnutChartCanvas?.nativeElement;
+    if (doughEl) {
+      const ctx = doughEl.getContext('2d');
+      if (ctx) {
+        const remaining = this.lastBookValue;
+        this.doughnutChart = new Chart<'doughnut'>(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Total Depreciated', 'Remaining Value'],
+            datasets: [{
+              data: [this.totalDepreciation, remaining],
+              backgroundColor: [error, tertiary],
+              borderColor: 'transparent',
+              borderWidth: 0,
+              hoverOffset: 10
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { ...legendLabels, padding: 16, boxWidth: 12 }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) =>
+                    ` ${this.formatCurrency(ctx.parsed as number)}`
+                }
               }
             }
           }
-        }
-      });
+        });
+      }
     }
   }
-
+ 
   private destroyCharts(): void {
     this.lineChart?.destroy();
     this.barChart?.destroy();
     this.doughnutChart?.destroy();
     this.lineChart = this.barChart = this.doughnutChart = null;
-  }
-  get lastBookValue(): number | undefined {
-    const schedule = this.depreciationSchedule;
-    if (!schedule.length) return undefined;
-    return schedule[schedule.length - 1].bookValueYearEnd;
   }
 
 }

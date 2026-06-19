@@ -1,326 +1,437 @@
-.depreciation-dialog {
+// depreciation-schedule-dialog.component.scss
+// Angular 19 · Material purple theme · SAMS
+@use '@angular/material' as mat;
+
+// ════════════════════════════════════════════════════════════════════════════
+// DIALOG SHELL
+// ════════════════════════════════════════════════════════════════════════════
+
+.dep-dialog {
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
+  max-height: 92vh;
+  min-width: 600px;
+}
 
-  .dialog-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+// ── Header ─────────────────────────────────────────────────────────────────
 
-    .header-content {
-      display: flex;
-      align-items: center;
-      gap: 16px;
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  background: linear-gradient(135deg, var(--mat-sys-primary) 0%, #4527a0 100%);
+  color: white;
+  flex-shrink: 0;
+}
 
-      .header-icon {
-        font-size: 40px;
-        width: 40px;
-        height: 40px;
-      }
+.dh-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
 
-      .header-text {
-        h2 {
-          margin: 0;
-          font-size: 1.5rem;
-          font-weight: 600;
-        }
+.dh-icon-wrap {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.25);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  mat-icon { font-size: 24px; width: 24px; height: 24px; color: white; }
+}
 
-        .asset-name {
-          margin: 4px 0 0 0;
-          font-size: 0.875rem;
-          opacity: 0.9;
-        }
-      }
+.dh-text {
+  h2 {
+    margin: 0;
+    font-size: 1.2rem; font-weight: 700; color: white;
+    // Override Material dialog title padding
+    padding: 0 !important;
+  }
+  .dh-sub {
+    margin: 3px 0 0;
+    font-size: 11.5px; color: rgba(255,255,255,.8);
+    display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+    .dh-name     { font-weight: 600; }
+    .dh-sep      { opacity: .5; }
+    .dh-batch-label { font-weight: 500; background: rgba(255,255,255,.15); padding: 1px 8px; border-radius: 20px; }
+  }
+}
+
+.dh-close {
+  color: rgba(255,255,255,.9) !important; flex-shrink: 0;
+  &:hover { background: rgba(255,255,255,.15) !important; }
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}
+
+// ── Content ────────────────────────────────────────────────────────────────
+
+.dep-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 22px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mat-sys-outline-variant) transparent;
+  &::-webkit-scrollbar { width: 5px; }
+  &::-webkit-scrollbar-thumb { background: var(--mat-sys-outline-variant); border-radius: 5px; }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// VIEW MODE BAR (batch / per-unit toggle)
+// ════════════════════════════════════════════════════════════════════════════
+
+.view-mode-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 6%, var(--mat-sys-surface-container));
+  border: 1.5px solid color-mix(in srgb, var(--mat-sys-primary) 20%, var(--mat-sys-outline-variant));
+  border-radius: 10px;
+
+  .vm-label {
+    font-size: 12px; font-weight: 700; color: var(--mat-sys-on-surface-variant); white-space: nowrap;
+  }
+
+  .vm-toggle {
+    ::ng-deep .mat-button-toggle {
+      font-size: 12px !important;
+      height: 32px !important;
     }
-
-    .close-button {
-      color: white;
+    ::ng-deep .mat-button-toggle-label-content {
+      display: flex; align-items: center; gap: 5px; padding: 0 12px;
+      mat-icon { font-size: 15px; width: 15px; height: 15px; }
+    }
+    ::ng-deep .mat-button-toggle-checked {
+      background: var(--mat-sys-primary) !important;
+      color: var(--mat-sys-on-primary) !important;
     }
   }
 
-  mat-dialog-content {
-    padding: 24px;
-    overflow-y: auto;
-    flex: 1;
+  .vm-note {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10.5px; color: var(--mat-sys-on-surface-variant);
+    margin-left: auto;
+    mat-icon { font-size: 13px; width: 13px; height: 13px; color: var(--mat-sys-primary); }
+  }
+}
 
-    h3 {
-      margin: 0 0 16px 0;
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: var(--mat-sys-on-surface);
-    }
+// ════════════════════════════════════════════════════════════════════════════
+// ASSET INFO CARD
+// ════════════════════════════════════════════════════════════════════════════
 
-    // Details Card
-    .details-card {
-      margin-bottom: 24px;
-      border-radius: 12px;
+.info-card {
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
 
-      .details-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 16px;
-        margin-bottom: 20px;
+  @include mat.card-overrides((elevated-container-elevation: 0));
 
-        .detail-item {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
+  mat-card-content { padding: 16px !important; }
+}
 
-          .label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--mat-sys-on-surface-variant);
-          }
+.ic-header {
+  display: flex; align-items: center; gap: 7px;
+  margin-bottom: 14px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--mat-sys-primary);
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  .ic-rep-note {
+    font-size: 10px; font-weight: 500; text-transform: none; letter-spacing: 0;
+    color: var(--mat-sys-on-surface-variant); margin-left: auto;
+    background: var(--mat-sys-surface-container-highest);
+    padding: 1px 8px; border-radius: 8px;
+  }
+}
 
-          .value {
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--mat-sys-on-surface);
-          }
+.ic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
 
-          .method-chip {
-            background: var(--mat-sys-primary-container);
-            color: var(--mat-sys-on-primary-container);
-            font-weight: 600;
-            width: fit-content;
-          }
-        }
-      }
+.ic-cell {
+  display: flex; flex-direction: column; gap: 3px;
+  .ic-lbl {
+    font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+  .ic-val {
+    font-size: 12.5px; font-weight: 500; color: var(--mat-sys-on-surface);
+    &.code { font-family: 'Courier New', monospace; font-weight: 700; color: var(--mat-sys-primary); }
+  }
+  .ic-method-chip {
+    background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent) !important;
+    color: var(--mat-sys-primary) !important;
+    font-weight: 700 !important; font-size: 11px !important;
+    height: 24px !important; width: fit-content;
+  }
+}
 
-      .financial-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
+// Financial chips row
+.ic-fin-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
 
-        .financial-item {
-          background: var(--mat-sys-surface-container-highest);
-          padding: 16px;
-          border-radius: 8px;
-          text-align: center;
+.ic-fin-chip {
+  border-radius: 10px; padding: 10px 13px;
+  .ifc-label { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: rgba(255,255,255,.8); margin-bottom: 4px; }
+  .ifc-val   { font-size: 1.05rem; font-weight: 800; color: white; font-family: 'Roboto Mono', monospace; white-space: nowrap; }
+  .ifc-hint  { font-size: 9px; color: rgba(255,255,255,.7); margin-top: 2px; }
 
-          .financial-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--mat-sys-on-surface-variant);
-            margin-bottom: 8px;
-          }
+  &.ic-fin-cost    { background: linear-gradient(135deg, var(--mat-sys-primary), #4527a0); }
+  &.ic-fin-salvage { background: linear-gradient(135deg, #10b981, #059669); }
+  &.ic-fin-net     { background: linear-gradient(135deg, #ef4444, #c62828); }
+  &.ic-fin-period  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+}
 
-          // Compact display value (large, prominent)
-          .financial-value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            font-family: 'Roboto Mono', monospace;
-            line-height: 1.2;
-            word-break: break-word;
+// ════════════════════════════════════════════════════════════════════════════
+// PROGRESS CARD
+// ════════════════════════════════════════════════════════════════════════════
 
-            &.primary  { color: #673ab7; }
-            &.success  { color: #4caf50; }
-            &.warning  { color: #ff9800; }
-            &.info     { color: #2196f3; }
-          }
+.progress-card {
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--mat-sys-error) 4%, var(--mat-sys-surface));
+  border: 1px solid color-mix(in srgb, var(--mat-sys-error) 20%, var(--mat-sys-outline-variant));
 
-          // Full precision shown below in smaller text
-          .financial-value-full {
-            font-size: 0.75rem;
-            color: var(--mat-sys-on-surface-variant);
-            font-family: 'Roboto Mono', monospace;
-            margin-top: 4px;
-            opacity: 0.8;
-          }
-        }
-      }
-    }
+  @include mat.card-overrides((elevated-container-elevation: 0));
+  mat-card-content { padding: 14px 16px !important; }
+}
 
-    // Chart Card
-    .chart-card {
-      margin-bottom: 24px;
-      border-radius: 12px;
+.pc-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
+  .pc-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--mat-sys-on-surface-variant); }
+  .pc-pct   { font-size: 1.2rem; font-weight: 800; color: var(--mat-sys-error); margin-left: auto; }
+  .pc-totals {
+    width: 100%; font-size: 10.5px; color: var(--mat-sys-on-surface-variant);
+    strong { color: var(--mat-sys-on-surface); font-weight: 700; }
+  }
+}
 
-      .chart-container {
-        position: relative;
-        height: 300px;
-        width: 100%;
-      }
-    }
+.pc-track {
+  height: 9px; background: var(--mat-sys-error-container);
+  border-radius: 5px; overflow: hidden;
+  .pc-fill {
+    height: 100%; border-radius: 5px; min-width: 2px;
+    background: linear-gradient(90deg, var(--mat-sys-error), #ff7043);
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+  }
+}
 
-    // Table Card
-    .table-card {
-      border-radius: 12px;
+// ════════════════════════════════════════════════════════════════════════════
+// CHARTS ROW
+// ════════════════════════════════════════════════════════════════════════════
 
-      .table-wrapper {
-        overflow-x: auto;
-        border-radius: 8px;
+.charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
 
-        .schedule-table {
-          width: 100%;
-          background: var(--mat-sys-surface);
+.chart-card {
+  border-radius: 11px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface);
 
-          th {
-            background: var(--mat-sys-surface-container-highest);
-            color: var(--mat-sys-on-surface);
-            font-weight: 700;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 16px 20px;
-            border-bottom: 2px solid var(--mat-sys-outline-variant);
+  @include mat.card-overrides((elevated-container-elevation: 0));
+  mat-card-content { padding: 12px !important; }
 
-            &.text-right {
-              text-align: right;
-            }
-          }
+  &.chart-card-sm .cc-body { aspect-ratio: 1 / 1; }
+}
 
-          td {
-            padding: 16px 20px;
-            color: var(--mat-sys-on-surface);
-            font-size: 0.9375rem;
-            border-bottom: 1px solid var(--mat-sys-outline-variant);
+.cc-title {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700; color: var(--mat-sys-on-surface);
+  margin-bottom: 10px;
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+}
 
-            &.text-right {
-              text-align: right;
-            }
-          }
+.cc-body {
+  aspect-ratio: 16 / 9;
+  position: relative;
+  canvas {
+    position: absolute; inset: 0;
+    width: 100% !important; height: 100% !important;
+  }
+}
 
-          .table-row {
-            transition: background-color 0.2s ease;
+// ════════════════════════════════════════════════════════════════════════════
+// SCHEDULE TABLE CARD
+// ════════════════════════════════════════════════════════════════════════════
 
-            &:hover {
-              background: var(--mat-sys-surface-container);
-            }
-          }
+.table-card {
+  border-radius: 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface);
+  overflow: hidden;
 
-          .year-badge {
-            display: inline-block;
-            background: var(--mat-sys-tertiary-container);
-            color: var(--mat-sys-on-tertiary-container);
-            padding: 6px 16px;
-            border-radius: 16px;
-            font-weight: 700;
-            font-size: 0.875rem;
-          }
+  @include mat.card-overrides((elevated-container-elevation: 0));
+  mat-card-content { padding: 0 !important; }
+}
 
-          .currency-value {
-            font-family: 'Roboto Mono', monospace;
-            font-weight: 600;
-            color: var(--mat-sys-on-surface);
+.tc-header {
+  display: flex; align-items: center; gap: 7px;
+  padding: 11px 16px;
+  background: var(--mat-sys-surface-container);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  font-size: 11px; font-weight: 700; color: var(--mat-sys-primary);
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  .tc-count { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--mat-sys-on-surface-variant); text-transform: none; letter-spacing: 0; }
+  .tc-note  { font-size: 10px; font-weight: 500; color: var(--mat-sys-on-surface-variant); text-transform: none; letter-spacing: 0; margin-left: 2px; }
+}
 
-            &.depreciation {
-              color: #f44336;
-            }
-          }
-        }
-      }
-    }
+.table-scroll {
+  max-height: 340px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--mat-sys-outline-variant) transparent;
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb { background: var(--mat-sys-outline-variant); border-radius: 4px; }
+}
 
-    // No Data Card
-    .no-data-card {
-      border-radius: 12px;
-      background: var(--mat-sys-surface-container);
+// Table itself
+.sched-table {
+  width: 100%; border-collapse: collapse;
 
-      .no-data-message {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 16px;
-        padding: 40px 20px;
-        color: var(--mat-sys-on-surface-variant);
-
-        mat-icon {
-          font-size: 64px;
-          width: 64px;
-          height: 64px;
-          opacity: 0.3;
-        }
-
-        p {
-          margin: 0;
-          font-size: 1.125rem;
-          font-weight: 500;
-        }
-      }
-    }
+  ::ng-deep th.mat-mdc-header-cell {
+    background: var(--mat-sys-surface-container-highest) !important;
+    font-size: 9.5px !important; font-weight: 800 !important; text-transform: uppercase !important;
+    letter-spacing: .5px !important; color: var(--mat-sys-on-surface-variant) !important;
+    border-bottom: 2px solid var(--mat-sys-outline-variant) !important;
+    padding: 10px 14px !important;
   }
 
-  mat-dialog-actions {
-    padding: 16px 24px;
-    border-top: 1px solid var(--mat-sys-outline-variant);
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+  ::ng-deep td.mat-mdc-cell {
+    font-size: 12px !important; padding: 10px 14px !important;
+    border-bottom: 1px solid var(--mat-sys-outline-variant) !important;
+    vertical-align: middle !important;
+  }
 
-    button {
-      mat-icon {
-        margin-right: 8px;
-      }
+  ::ng-deep .sched-row:hover td { background: var(--mat-sys-surface-container) !important; }
+  ::ng-deep .sched-row:last-child td { border-bottom: none !important; }
+}
+
+.tr { text-align: right !important; }
+
+.yr-badge {
+  display: inline-block;
+  background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container);
+  border-radius: 9px; padding: 2px 9px; font-size: 10.5px; font-weight: 700;
+}
+
+.mono-cell {
+  font-family: 'Courier New', monospace; font-size: 11.5px;
+  &.closing { font-weight: 700; color: var(--mat-sys-tertiary); }
+}
+
+.dep-amt {
+  display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px;
+  color: var(--mat-sys-error); font-family: 'Courier New', monospace; font-weight: 600;
+  mat-icon { font-size: 11px !important; width: 11px !important; height: 11px !important; }
+}
+
+.pct-micro {
+  display: flex; align-items: center; gap: 4px; margin-top: 4px; justify-content: flex-end;
+  font-size: 9px; color: var(--mat-sys-on-surface-variant);
+  .pct-micro-track {
+    width: 50px; height: 3px; background: var(--mat-sys-surface-container-highest);
+    border-radius: 2px; overflow: hidden;
+    .pct-micro-fill {
+      height: 100%; background: var(--mat-sys-primary); border-radius: 2px; min-width: 1px;
     }
   }
 }
 
-// Responsive Design
-@media (max-width: 768px) {
-  .depreciation-dialog {
-    .dialog-header {
-      .header-content {
-        .header-icon {
-          font-size: 32px;
-          width: 32px;
-          height: 32px;
-        }
+// Totals footer
+.table-footer {
+  display: flex; align-items: center; flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--mat-sys-surface-container-highest);
+  border-top: 2px solid var(--mat-sys-outline-variant);
+  gap: 0;
+}
 
-        .header-text h2 {
-          font-size: 1.25rem;
-        }
-      }
-    }
-
-    mat-dialog-content {
-      padding: 16px;
-
-      .details-card .details-grid,
-      .details-card .financial-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .chart-card .chart-container {
-        height: 250px;
-      }
-
-      .financial-item {
-        .financial-value {
-          font-size: 1.15rem;
-        }
-      }
-    }
+.tf-item {
+  display: flex; flex-direction: column; gap: 2px; padding: 0 16px;
+  &:first-child { padding-left: 0; }
+  .tf-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--mat-sys-on-surface-variant); }
+  .tf-val { font-size: 1rem; font-weight: 800; font-family: 'Roboto Mono', monospace;
+    &.tf-dep { color: var(--mat-sys-error); }
+    &.tf-bv  { color: var(--mat-sys-tertiary); }
+    &.tf-pct { color: var(--mat-sys-primary); }
   }
 }
 
-// Print Styles
+.tf-sep { width: 1px; height: 34px; background: var(--mat-sys-outline-variant); flex-shrink: 0; }
+
+// ── No data ────────────────────────────────────────────────────────────────
+
+.no-data-card {
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  @include mat.card-overrides((elevated-container-elevation: 0));
+  mat-card-content { padding: 40px !important; }
+}
+
+.nd-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center; color: var(--mat-sys-on-surface-variant); opacity: .55;
+  mat-icon { font-size: 36px; width: 36px; height: 36px; }
+  p     { margin: 0; font-size: 14px; font-weight: 600; }
+  small { font-size: 11.5px; }
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+
+.dep-actions {
+  display: flex; align-items: center;
+  padding: 12px 22px !important;
+  flex-shrink: 0;
+
+  .da-spacer { flex: 1; }
+
+  button {
+    border-radius: 8px !important; font-size: 12.5px !important;
+    mat-icon { font-size: 16px; width: 16px; height: 16px; margin-right: 5px; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// RESPONSIVE
+// ════════════════════════════════════════════════════════════════════════════
+
+@media (max-width: 900px) {
+  .charts-row { grid-template-columns: 1fr 1fr; }
+  .chart-card.chart-card-sm { grid-column: 1 / -1; max-width: 280px; margin: 0 auto; width: 100%; }
+  .dep-dialog { min-width: 0; }
+}
+
+@media (max-width: 640px) {
+  .charts-row { grid-template-columns: 1fr; }
+  .chart-card.chart-card-sm { max-width: 100%; grid-column: auto; }
+  .ic-grid { grid-template-columns: 1fr 1fr; }
+  .ic-fin-row { grid-template-columns: 1fr 1fr; }
+  .dialog-header { padding: 14px 16px; }
+  .dep-content { padding: 14px 16px !important; }
+  .vm-note { display: none; }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PRINT
+// ════════════════════════════════════════════════════════════════════════════
+
 @media print {
-  .depreciation-dialog {
-    .dialog-header .close-button,
-    mat-dialog-actions {
-      display: none !important;
-    }
-
-    .chart-card {
-      page-break-inside: avoid;
-    }
-
-    .table-card {
-      page-break-inside: auto;
-
-      table tr {
-        page-break-inside: avoid;
-        page-break-after: auto;
-      }
-    }
-  }
+  .dh-close, .dep-actions, .view-mode-bar { display: none !important; }
+  .dep-content { overflow: visible !important; max-height: none !important; }
+  .charts-row  { page-break-inside: avoid; }
+  .table-card  { page-break-inside: auto; }
+  .sched-table ::ng-deep tr { page-break-inside: avoid; page-break-after: auto; }
 }

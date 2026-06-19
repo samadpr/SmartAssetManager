@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProfileService } from '../../../../core/services/account/profile/profile.service';
+import { FileUrlHelper } from '../../../../core/helper/get-file-url';
 
 interface DialogData {
   currentPicture: string;
@@ -77,7 +78,7 @@ export class ProfilePictureUploadComponent {
     this.profileService.uploadProfilePicture(this.selectedFile).subscribe({
     next: (response) => {
       this.isUploading.set(false);
-      this.dialogRef.close(response.url); // return uploaded image URL
+      this.dialogRef.close(FileUrlHelper.getFullUrl(response.url)); // return uploaded image URL
     },
     error: (err) => {
       this.isUploading.set(false);

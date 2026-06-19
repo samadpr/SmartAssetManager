@@ -8,7 +8,8 @@
   <!-- Top Bar -->
   <div class="top-bar">
     <div class="brand">
-      <mat-icon class="brand-icon">domain</mat-icon>
+      <!-- <mat-icon class="brand-icon">domain</mat-icon> -->
+       <img src="/assets/images/logos/infoasset_logo-1.png" alt="INFOASSET" class="brand-logo" />
       <span class="brand-name">INFOASSET</span>
     </div>
     <div class="step-chips">
@@ -94,10 +95,25 @@
           </div>
 
           <div class="field-row two-col">
-            <mat-form-field appearance="outline" class="field-half">
+            <mat-form-field appearance="outline" class="field-half"
+              [class.field-verified]="isEmailVerified()">
               <mat-label>Company Email</mat-label>
-              <input matInput type="email" formControlName="email" placeholder="hello@company.com">
-              <mat-icon matSuffix>alternate_email</mat-icon>
+              <input matInput type="email" formControlName="email"
+                placeholder="hello@company.com"
+                (input)="onEmailInput()">
+                @if (isEmailVerified()) {
+                  <span matSuffix class="verified-badge">
+                    <mat-icon class="verified-icon">verified</mat-icon>
+                    <span class="verified-text">Verified</span>
+                  </span>
+                } @else if (isEmailModified()) {
+                  <span matSuffix class="modified-badge">
+                    <mat-icon class="modified-icon">edit</mat-icon>
+                    <span class="modified-text">Modified</span>
+                  </span>
+                } @else {
+                  <mat-icon matSuffix>alternate_email</mat-icon>
+                }
               <mat-error *ngIf="basicInfoForm.get('email')?.hasError('required')">Email is required</mat-error>
               <mat-error *ngIf="basicInfoForm.get('email')?.hasError('email')">Invalid email address</mat-error>
             </mat-form-field>

@@ -32,11 +32,9 @@ export class CompanyService {
 
   // 🔹 Update Company With Subscription
   updateCompanyWithSubscription(request: CompanyRequest): Observable<ApiResponse<null>> {
-    const formData = this.toFormData(request);
-
     return this.http.put<ApiResponse<null>>(
       `${this.baseUrl}/update-company-with-subscription`,
-      formData
+      request
     );
   }
 

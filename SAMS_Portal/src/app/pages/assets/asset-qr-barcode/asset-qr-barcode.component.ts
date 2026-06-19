@@ -29,12 +29,19 @@ import { AssetQrBarcodeService } from '../../../core/services/asset/asset-qr-bar
 import { AssetQrBarcode } from '../../../core/models/interfaces/asset-manage/asset-qr-barcode.interface';
 import { FileUrlHelper } from '../../../core/helper/get-file-url';
 import { AssetCategory } from '../../../core/models/interfaces/asset-category/asset-category.interface';
-import { Department } from '../../../core/models/interfaces/department.interface';
+import { Department, SubDepartmentDto } from '../../../core/models/interfaces/department.interface';
 import { AssetSite } from '../../../core/models/interfaces/sites-or-branchs/asset-site.interface';
 import { AssetStatusDto } from '../../../core/models/interfaces/asset-manage/asset-status.interface';
 import { forkJoin } from 'rxjs';
 import { CommonService } from '../../../core/services/common/common.service';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { AssetSubCategory } from '../../../core/models/interfaces/asset-category/asset-sub-category.interface';
+import { AssetArea } from '../../../core/models/interfaces/sites-or-branchs/asset-area.interface';
+
+// ── LocalStorage key ─────────────────────────────────────────
+const PAGINATION_KEY = 'sams_asset_qr_barcode_pagination';
+
+interface PaginationState { pageSize: number; pageIndex: number; }
 
 @Component({
   selector: 'app-asset-qr-barcode',
@@ -71,93 +78,108 @@ export class AssetQrBarcodeComponent implements OnInit {
   private globalService = inject(GlobalService);
   private dialog = inject(MatDialog);
 
-  // ─── Loading ────────────────────────────────────────────────
+  // ── UI state ─────────────────────────────────────────────────
+  filtersExpanded = false;
+
+  // ── Loading ──────────────────────────────────────────────────
   isLoading = signal(true);
   isLoadingFilters = signal(false);
 
-  // ─── Data ───────────────────────────────────────────────────
-  allAssets      = signal<AssetQrBarcode[]>([]);
+  // ── Data ─────────────────────────────────────────────────────
+  allAssets = signal<AssetQrBarcode[]>([]);
   filteredAssets = signal<AssetQrBarcode[]>([]);
-  displayedAssets= signal<AssetQrBarcode[]>([]);
+  displayedAssets = signal<AssetQrBarcode[]>([]);
 
-  // ─── Pagination ─────────────────────────────────────────────
-  pageSize  = signal(10);
-  pageIndex = signal(0);
+  // ── Pagination (persisted) ───────────────────────────────────
+  private _saved = this._loadPagination();
+  pageSize = signal(this._saved.pageSize);
+  pageIndex = signal(this._saved.pageIndex);
   totalItems = computed(() => this.filteredAssets().length);
 
-  // ─── Filters (form controls) ────────────────────────────────
-  searchControl     = new FormControl('');
-  categoryControl   = new FormControl<number | ''>('');
+  // ── Filter controls ──────────────────────────────────────────
+  searchControl = new FormControl('');
+  categoryControl = new FormControl<number | ''>('');
+  subCategoryControl = new FormControl<number | ''>('');
   departmentControl = new FormControl<number | ''>('');
-  siteControl       = new FormControl<number | ''>('');
-  statusControl     = new FormControl<number | ''>('');
+  subDepartmentControl = new FormControl<number | ''>('');
+  siteControl = new FormControl<number | ''>('');
+  areaControl = new FormControl<number | ''>('');   // ← NEW
+  statusControl = new FormControl<number | ''>('');
 
-  // ─── Filter option lists ────────────────────────────────────
-  categories  = signal<AssetCategory[]>([]);
+  // ── Filter option lists ───────────────────────────────────────
+  categories = signal<AssetCategory[]>([]);
+  subCategories = signal<AssetSubCategory[]>([]);
   departments = signal<Department[]>([]);
-  sites       = signal<AssetSite[]>([]);
-  statuses    = signal<AssetStatusDto[]>([]);
+  subDepartments = signal<SubDepartmentDto[]>([]);
+  sites = signal<AssetSite[]>([]);
+  areas = signal<AssetArea[]>([]);                  // ← NEW
+  statuses = signal<AssetStatusDto[]>([]);
 
-  // ─── Selection ──────────────────────────────────────────────
-  // SelectionModel is NOT reactive on its own.
-  // We mirror selection into a Signal so templates and computed()
-  // re-evaluate whenever rows are selected / deselected.
-  private _selection = new SelectionModel<AssetQrBarcode>(true, []);
-  // Expose read-only SelectionModel for template [checked] bindings
-  get selection(): SelectionModel<AssetQrBarcode> { return this._selection; }
+  // ── Selection ────────────────────────────────────────────────
+  private _sel = new SelectionModel<AssetQrBarcode>(true, []);
+  get selection() { return this._sel; }
+  private _selSig = signal<AssetQrBarcode[]>([]);
+  private syncSel() { this._selSig.set([...this._sel.selected]); }
 
-  // Signal mirror – always in sync with _selection
-  private _selectedSignal = signal<AssetQrBarcode[]>([]);
-
-  private syncSelection(): void {
-    // Writing a new array reference forces Angular signals to re-evaluate
-    this._selectedSignal.set([...this._selection.selected]);
-  }
-
-  // ─── Reactive helpers (use these in templates & computed) ───
-  selectedCount  = computed(() => this._selectedSignal().length);
-  filteredCount  = computed(() => this.filteredAssets().length);
-  totalAssets    = computed(() => this.allAssets().length);
-
-  // ─── Stats: active-filter count ─────────────────────────────
-  activeFilterCount = computed(() =>
-    (this.filteredAssets().length !== this.allAssets().length ? 1 : 0)
-  );
+  // ── Computed ─────────────────────────────────────────────────
+  selectedCount = computed(() => this._selSig().length);
+  filteredCount = computed(() => this.filteredAssets().length);
+  totalAssets = computed(() => this.allAssets().length);
 
   get hasActiveFilters(): boolean {
     return !!(
-      this.searchControl.value       ||
-      this.categoryControl.value     ||
-      this.departmentControl.value   ||
-      this.siteControl.value         ||
+      this.searchControl.value ||
+      this.categoryControl.value ||
+      this.subCategoryControl.value ||
+      this.departmentControl.value ||
+      this.subDepartmentControl.value ||
+      this.siteControl.value ||
+      this.areaControl.value ||   // ← NEW
       this.statusControl.value
     );
   }
 
-  displayedColumns: string[] = ['select','asset','category','location','codes','status','actions'];
+  get activeAdvancedFilterCount(): number {
+    return [
+      this.categoryControl.value,
+      this.subCategoryControl.value,
+      this.departmentControl.value,
+      this.subDepartmentControl.value,
+      this.siteControl.value,
+      this.areaControl.value,             // ← NEW
+      this.statusControl.value,
+    ].filter(Boolean).length;
+  }
 
-  // ─── Init ────────────────────────────────────────────────────
+  displayedColumns = ['select', 'asset', 'category', 'location', 'codes', 'status', 'actions'];
+
+  // ── Lifecycle ────────────────────────────────────────────────
   ngOnInit(): void {
     this.loadFilterOptions();
     this.loadAssets();
-    this.setupSearch();
-    this.setupFilterListeners();
+    this.setupListeners();
   }
 
-  // ─── Load filter dropdowns ───────────────────────────────────
+  // ── Data loading ─────────────────────────────────────────────
   loadFilterOptions(): void {
     this.isLoadingFilters.set(true);
     forkJoin({
-      categories:  this.commonService.getCategoriesByOrg(),
+      categories: this.commonService.getCategoriesByOrg(),
+      subCategories: this.commonService.getSubCategoriesByOrg(),
       departments: this.commonService.getDepartmentsByOrg(),
-      sites:       this.commonService.getSitesByOrg(),
-      statuses:    this.commonService.getStatusByOrg(),
+      subDepartments: this.commonService.getSubDepartmentsByOrg(),
+      sites: this.commonService.getSitesByOrg(),
+      areas: this.commonService.getAreasByOrg(),     // ← NEW
+      statuses: this.commonService.getStatusByOrg(),
     }).subscribe({
-      next: (r) => {
-        this.categories.set(r.categories.data   || []);
+      next: r => {
+        this.categories.set(r.categories.data || []);
+        this.subCategories.set(r.subCategories.data || []);
         this.departments.set(r.departments.data || []);
-        this.sites.set(r.sites.data             || []);
-        this.statuses.set(r.statuses.data       || []);
+        this.subDepartments.set(r.subDepartments.data || []);
+        this.sites.set(r.sites.data || []);
+        this.areas.set(r.areas.data || []); // ← NEW
+        this.statuses.set(r.statuses.data || []);
         this.isLoadingFilters.set(false);
       },
       error: () => {
@@ -167,22 +189,16 @@ export class AssetQrBarcodeComponent implements OnInit {
     });
   }
 
-  // ─── Load / refresh assets ───────────────────────────────────
-  // KEY FIX: after fresh data arrives, call applyFilters() so any
-  // currently-active search/filter values are immediately applied,
-  // instead of blindly showing ALL assets.
   loadAssets(): void {
     this.isLoading.set(true);
     this.assetQrBarcodeService.getAssetQrBarcodesByOrg().subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          const mapped = response.data.map((a) => ({
+      next: res => {
+        if (res.success && res.data) {
+          const mapped = res.data.map(a => ({
             ...a,
             imageUrl: a.imageUrl ? FileUrlHelper.getFullUrl(a.imageUrl) : undefined,
           }));
           this.allAssets.set(mapped);
-
-          // Re-apply active filters instead of resetting to all data
           this.applyFilters();
         }
         this.isLoading.set(false);
@@ -194,55 +210,62 @@ export class AssetQrBarcodeComponent implements OnInit {
     });
   }
 
-  // ─── Search debounce ─────────────────────────────────────────
-  setupSearch(): void {
+  // ── Listeners ────────────────────────────────────────────────
+  setupListeners(): void {
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged())
       .subscribe(() => this.applyFilters());
+
+    [
+      this.categoryControl,
+      this.subCategoryControl,
+      this.departmentControl,
+      this.subDepartmentControl,
+      this.siteControl,
+      this.areaControl,    // ← NEW
+      this.statusControl,
+    ].forEach(c => c.valueChanges.subscribe(() => this.applyFilters()));
   }
 
-  // ─── Dropdown filter listeners ───────────────────────────────
-  setupFilterListeners(): void {
-    [this.categoryControl, this.departmentControl, this.siteControl, this.statusControl]
-      .forEach((c) => c.valueChanges.subscribe(() => this.applyFilters()));
-  }
-
-  // ─── Core filter logic ───────────────────────────────────────
+  // ── Filtering ────────────────────────────────────────────────
   applyFilters(): void {
-    const search   = (this.searchControl.value     || '').toLowerCase().trim();
-    const cat      = this.categoryControl.value;
-    const dept     = this.departmentControl.value;
-    const site     = this.siteControl.value;
-    const status   = this.statusControl.value;
+    const q = (this.searchControl.value || '').toLowerCase().trim();
+    const cat = this.categoryControl.value;
+    const subCat = this.subCategoryControl.value;
+    const dept = this.departmentControl.value;
+    const subDept = this.subDepartmentControl.value;
+    const site = this.siteControl.value;
+    const area = this.areaControl.value;    // ← NEW
+    const status = this.statusControl.value;
 
-    const filtered = this.allAssets().filter((a) => {
-      const matchSearch =
-        !search ||
-        a.name.toLowerCase().includes(search)                   ||
-        a.assetId.toLowerCase().includes(search)                ||
-        (a.assetBrand        || '').toLowerCase().includes(search) ||
-        (a.assetSerialNo     || '').toLowerCase().includes(search) ||
-        (a.categoryDisplay   || '').toLowerCase().includes(search) ||
-        (a.departmentDisplay || '').toLowerCase().includes(search);
+    const result = this.allAssets().filter(a => {
+      const matchQ = !q ||
+        a.name.toLowerCase().includes(q) ||
+        a.assetId.toLowerCase().includes(q) ||
+        (a.assetBrand || '').toLowerCase().includes(q) ||
+        (a.assetSerialNo || '').toLowerCase().includes(q) ||
+        (a.categoryDisplay || '').toLowerCase().includes(q) ||
+        (a.departmentDisplay || '').toLowerCase().includes(q);
 
-      return (
-        matchSearch &&
-        (!cat    || a.category   === cat)    &&
-        (!dept   || a.department === dept)   &&
-        (!site   || a.siteId     === site)   &&
-        (!status || a.assetStatus=== status)
-      );
+      return matchQ
+        && (!cat || a.category === cat)
+        && (!subCat || a.subCategory === subCat)
+        && (!dept || a.department === dept)
+        && (!subDept || (a as any).subDepartment === subDept)
+        && (!site || a.siteId === site)
+        && (!area || a.areaId === area)   // ← NEW
+        && (!status || a.assetStatus === status);
     });
 
-    this.filteredAssets.set(filtered);
+    this.filteredAssets.set(result);
     this.pageIndex.set(0);
-    // Clear selection and sync signal when filter changes
-    this._selection.clear();
-    this.syncSelection();
-    this.updateDisplayedAssets();
+    this._sel.clear();
+    this.syncSel();
+    this._savePagination();
+    this.updatePage();
   }
 
-  updateDisplayedAssets(): void {
+  updatePage(): void {
     const start = this.pageIndex() * this.pageSize();
     this.displayedAssets.set(this.filteredAssets().slice(start, start + this.pageSize()));
   }
@@ -250,112 +273,121 @@ export class AssetQrBarcodeComponent implements OnInit {
   onPageChange(e: PageEvent): void {
     this.pageIndex.set(e.pageIndex);
     this.pageSize.set(e.pageSize);
-    this.updateDisplayedAssets();
+    this._savePagination();
+    this.updatePage();
   }
 
   clearFilters(): void {
-    // Emit no-op to avoid double applyFilters trigger from each control
-    this.searchControl.setValue('',     { emitEvent: false });
-    this.categoryControl.setValue('',   { emitEvent: false });
+    this.searchControl.setValue('', { emitEvent: false });
+    this.categoryControl.setValue('', { emitEvent: false });
+    this.subCategoryControl.setValue('', { emitEvent: false });
     this.departmentControl.setValue('', { emitEvent: false });
-    this.siteControl.setValue('',       { emitEvent: false });
-    this.statusControl.setValue('',     { emitEvent: false });
-    this.applyFilters(); // single call
+    this.subDepartmentControl.setValue('', { emitEvent: false });
+    this.siteControl.setValue('', { emitEvent: false });
+    this.areaControl.setValue('', { emitEvent: false }); // ← NEW
+    this.statusControl.setValue('', { emitEvent: false });
+    this.filtersExpanded = false;
+    this.applyFilters();
   }
 
-  // ─── Selection helpers ───────────────────────────────────────
+  // ── Selection ────────────────────────────────────────────────
   isAllPageSelected(): boolean {
-    const displayed = this.displayedAssets();
-    return displayed.length > 0 && displayed.every((r) => this._selection.isSelected(r));
+    const d = this.displayedAssets();
+    return d.length > 0 && d.every(r => this._sel.isSelected(r));
   }
 
   isPageIndeterminate(): boolean {
-    const displayed = this.displayedAssets();
-    const selectedOnPage = displayed.filter((r) => this._selection.isSelected(r)).length;
-    return selectedOnPage > 0 && selectedOnPage < displayed.length;
+    const d = this.displayedAssets();
+    const n = d.filter(r => this._sel.isSelected(r)).length;
+    return n > 0 && n < d.length;
   }
 
   toggleAllPage(): void {
     if (this.isAllPageSelected()) {
-      this.displayedAssets().forEach((r) => this._selection.deselect(r));
+      this.displayedAssets().forEach(r => this._sel.deselect(r));
     } else {
-      this.displayedAssets().forEach((r) => this._selection.select(r));
+      this.displayedAssets().forEach(r => this._sel.select(r));
     }
-    this.syncSelection();
+    this.syncSel();
   }
 
   toggleRow(row: AssetQrBarcode): void {
-    this._selection.toggle(row);
-    this.syncSelection();
+    this._sel.toggle(row);
+    this.syncSel();
   }
 
   selectAllFiltered(): void {
-    this.filteredAssets().forEach((r) => this._selection.select(r));
-    this.syncSelection();
+    this.filteredAssets().forEach(r => this._sel.select(r));
+    this.syncSel();
   }
 
   clearSelection(): void {
-    this._selection.clear();
-    this.syncSelection();
+    this._sel.clear();
+    this.syncSel();
   }
 
-  // ─── Smart Print ─────────────────────────────────────────────
-  // If rows are selected → print those rows.
-  // If nothing selected  → print all filtered assets.
+  // ── Print / Preview ──────────────────────────────────────────
   openPrintDialog(type: 'qr' | 'barcode' | 'both'): void {
-    const hasSelection = this.selectedCount() > 0;
-    const assets = hasSelection
-      ? [...this._selection.selected]
-      : [...this.filteredAssets()];
-
-    if (!assets.length) {
-      this.globalService.showToastr('No assets available to print', 'error');
-      return;
-    }
-
+    const hasSel = this.selectedCount() > 0;
+    const assets = hasSel ? [...this._sel.selected] : [...this.filteredAssets()];
+    if (!assets.length) { this.globalService.showToastr('No assets to print', 'error'); return; }
     this.dialog.open(PrintDialogComponent, {
-      data: {
-        assets,
-        type,
-        mode: hasSelection ? 'bulk' : 'all',
-      },
+      data: { assets, type, mode: hasSel ? 'bulk' : 'all' },
       panelClass: 'print-dialog-panel',
-      maxWidth: '900px',
-      width: '95vw',
+      maxWidth: '900px', width: '95vw',
     });
   }
 
-  // ─── Row-level single asset print ───────────────────────────
   printSingle(asset: AssetQrBarcode, type: 'qr' | 'barcode' | 'both'): void {
     this.dialog.open(PrintDialogComponent, {
       data: { assets: [asset], type, mode: 'single' },
       panelClass: 'print-dialog-panel',
-      maxWidth: '900px',
-      width: '95vw',
+      maxWidth: '900px', width: '95vw',
     });
   }
 
-  // ─── Preview ────────────────────────────────────────────────
   openPreview(asset: AssetQrBarcode, type: 'qr' | 'barcode'): void {
     this.dialog.open(QrBarcodePreviewDialogComponent, {
       data: { asset, type },
       panelClass: 'qr-preview-dialog-panel',
-      maxWidth: '480px',
-      width: '90vw',
+      maxWidth: '480px', width: '90vw',
     });
   }
 
-  // ─── Status badge ────────────────────────────────────────────
+  // ── Status badge ─────────────────────────────────────────────
   getStatusBadgeClass(status: string): string {
     const map: Record<string, string> = {
-      'New':              'status-new',
-      'InUse':            'status-in-use',
-      'Available':        'status-available',
-      'Damaged':          'status-damaged',
+      'New': 'status-new',
+      'InUse': 'status-in-use',
+      'Available': 'status-available',
+      'Damaged': 'status-damaged',
       'UnderMaintenance': 'status-maintenance',
-      'Returned':         'status-returned',
-      'Expired':          'status-expired',
+      'Returned': 'status-returned',
+      'Expired': 'status-expired',
     };
     return map[status] ?? 'status-default';
+  }
+
+  // ── LocalStorage helpers ─────────────────────────────────────
+  private _loadPagination(): PaginationState {
+    try {
+      const raw = localStorage.getItem(PAGINATION_KEY);
+      if (raw) {
+        const p = JSON.parse(raw) as PaginationState;
+        const valid = [5, 10, 25, 50, 100];
+        return {
+          pageSize: valid.includes(p.pageSize) ? p.pageSize : 10,
+          pageIndex: Number.isInteger(p.pageIndex) && p.pageIndex >= 0 ? p.pageIndex : 0,
+        };
+      }
+    } catch { /* ignore */ }
+    return { pageSize: 10, pageIndex: 0 };
+  }
+
+  private _savePagination(): void {
+    try {
+      localStorage.setItem(PAGINATION_KEY,
+        JSON.stringify({ pageSize: this.pageSize(), pageIndex: this.pageIndex() }));
+    } catch { /* ignore */ }
   }
 }

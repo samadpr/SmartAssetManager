@@ -13,7 +13,10 @@ export class FilesUploadService {
 
   uploadProfilePicture(file: File): Observable<{ url: string }> {
     const formData = new FormData();
-    formData.append('file', file);
+
+    // ✅ MUST MATCH DTO PROPERTY NAME
+    formData.append('File', file);
+
     return this.http.post<{ url: string }>(
       `${this.baseUrl}/account/upload-profile-picture`,
       formData

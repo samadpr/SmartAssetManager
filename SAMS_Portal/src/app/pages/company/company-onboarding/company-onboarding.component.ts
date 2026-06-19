@@ -20,6 +20,7 @@ import { CountryService } from '../../../core/services/account/country/country.s
 import { CompanyRequest } from '../../../core/models/interfaces/company/company.interface';
 import { DeviceInfoService } from '../../../core/services/account/device/device-info.service';
 import { AccountService } from '../../../core/services/account/account.service';
+import { UserProfileStorageService } from '../../../core/services/localStorage/userProfile/user-profile-storage.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,12 @@ export class CompanyOnboardingComponent implements OnInit {
   industries = signal<Industry[]>([]);
   countries = signal<any[]>([]);
   currencyDetectionStatus = signal<CurrencyDetectionStatus>('idle');
+
+  // ─── NEW: tracks whether email was pre-filled from stored profile ──
+  // isEmailFromProfile = false;
+  profileEmail = signal<string | null>(null);
+  isEmailVerified = signal(false);
+  isEmailModified = signal(false);
 
   // ─── State ────────────────────────────────────────────────────
   companyId: number | null = null;
@@ -182,11 +189,13 @@ export class CompanyOnboardingComponent implements OnInit {
     private companyService: CompanyService,
     private countryService: CountryService,
     private deviceInfoService: DeviceInfoService,
-    private accountService: AccountService
+    private accountService: AccountService,
+    private userProfileStorageService: UserProfileStorageService
   ) { }
 
   ngOnInit(): void {
     this.initializeForms();
+    this.prefillEmailFromProfile();
     this.loadIndustries();
     this.loadCountries();
     this.loadCompanyData();
@@ -231,6 +240,38 @@ export class CompanyOnboardingComponent implements OnInit {
     });
   }
 
+  private prefillEmailFromProfile(): void {
+    const profile = this.userProfileStorageService.get();
+    if (profile?.email) {
+      this.profileEmail.set(profile.email);
+      // Don't set verified here yet — wait for loadCompanyData() to decide
+      // Only pre-fill if no company data loaded yet
+      this.basicInfoForm.patchValue({ email: profile.email });
+      this.isEmailVerified.set(true);
+      this.isEmailModified.set(false);
+    }
+  }
+
+  // ─── Add this new method ──────────────────────────────────────
+  onEmailInput(): void {
+    const currentValue = this.basicInfoForm.get('email')?.value ?? '';
+    const stored = this.profileEmail();
+
+    if (!currentValue) {
+      this.isEmailVerified.set(false);
+      this.isEmailModified.set(false);
+      return;
+    }
+
+    if (stored && currentValue === stored) {
+      this.isEmailVerified.set(true);
+      this.isEmailModified.set(false);
+    } else {
+      this.isEmailVerified.set(false);
+      this.isEmailModified.set(true);
+    }
+  }
+
   // ─── Data Loaders ─────────────────────────────────────────────
   loadIndustries(): void {
     this.isLoading.set(true);
@@ -261,17 +302,45 @@ export class CompanyOnboardingComponent implements OnInit {
           this.companyId = company.id;
 
           this.industryForm.patchValue({ industriesId: company.industriesId });
+
+          // Always patch name and phone
           this.basicInfoForm.patchValue({
             name: company.name,
-            email: company.email,
             phone: company.phone
           });
+
+          // Handle email carefully
+          const stored = this.profileEmail();
+          const companyEmail = company.email;
+
+          if (companyEmail) {
+            // Patch the email value into the field
+            this.basicInfoForm.patchValue({ email: companyEmail });
+
+            // Now decide badge state
+            if (stored && companyEmail === stored) {
+              // Company email matches profile email → verified
+              this.isEmailVerified.set(true);
+              this.isEmailModified.set(false);
+            } else {
+              // Company email differs from profile email → modified
+              this.isEmailVerified.set(false);
+              this.isEmailModified.set(true);
+            }
+          } else if (stored) {
+            // No company email saved yet, keep profile email in field
+            this.basicInfoForm.patchValue({ email: stored });
+            this.isEmailVerified.set(true);
+            this.isEmailModified.set(false);
+          }
+
           this.addressForm.patchValue({
             address: company.address,
             city: company.city,
             country: company.country,
             currency: company.currency
           });
+
           this.websiteForm.patchValue({ website: company.website });
 
           // If company already has a currency, show as detected
