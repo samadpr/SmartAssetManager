@@ -18,6 +18,11 @@ export class FileUrlHelper {
       return relativePath;
     }
 
+    // ✅ Case 2: Already contains container name → don't add again
+    if (relativePath.includes('infoasset-sams-files')) {
+      return `${environment.assetBaseUrl.split('/infoasset-sams-files')[0]}/${relativePath}`;
+    }
+
     // Remove leading slash if exists
     const cleanPath = relativePath.startsWith('/')
       ? relativePath.substring(1)

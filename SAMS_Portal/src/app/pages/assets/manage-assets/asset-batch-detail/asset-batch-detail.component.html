@@ -1,0 +1,907 @@
+<app-page-header
+  [title]="batch()?.assetName ?? 'Asset Detail'"
+  [breadcrumbs]="[{ label: 'Assets', url: '/asset-management' }, { label: batch()?.batchCode ?? 'Detail' }]">
+</app-page-header>
+
+<div class="detail-page">
+
+  <!-- ══════════════════════ LOADING ══════════════════════ -->
+  <ng-container *ngIf="loading()">
+    <div class="sk-header"></div>
+    <div class="sk-tabs"></div>
+    <div class="sk-body">
+      <div class="sk-card" *ngFor="let i of [1,2,3,4]"></div>
+    </div>
+  </ng-container>
+
+  <!-- ══════════════════════ MAIN CONTENT ══════════════════════ -->
+  <ng-container *ngIf="!loading() && batch()">
+
+    <!-- ──────────────── COMPACT HEADER CARD ──────────────── -->
+    <div class="bhc" [@fadeUp]>
+
+      <!-- Left: image -->
+      <div class="bhc-img-wrap">
+        <img *ngIf="batch()!.imageUrl" [src]="batch()!.imageUrl"
+             [alt]="batch()!.assetName" class="bhc-img"
+             (error)="$any($event.target).style.display='none'" />
+        <div *ngIf="!batch()!.imageUrl" class="bhc-img-ph">
+          <mat-icon>inventory_2</mat-icon>
+        </div>
+      </div>
+
+      <!-- Centre: identity + KPIs -->
+      <div class="bhc-center">
+        <div class="bhc-chips">
+          <span class="bhc-chip bhc-chip--code">
+            <mat-icon>tag</mat-icon>{{ batch()!.batchCode }}
+          </span>
+          <span class="bhc-chip bhc-chip--status"
+                *ngIf="batch()!.assetStatusDisplay"
+                [style.background]="statusColor(batch()!.assetStatusDisplay) + '25'"
+                [style.color]="statusColor(batch()!.assetStatusDisplay)"
+                [style.borderColor]="statusColor(batch()!.assetStatusDisplay) + '60'">
+            <span class="sdot" [style.background]="statusColor(batch()!.assetStatusDisplay)"></span>
+            {{ batch()!.assetStatusDisplay }}
+          </span>
+          <span class="bhc-chip" *ngIf="batch()!.categoryDisplay">{{ batch()!.categoryDisplay }}</span>
+          <span class="bhc-chip bhc-chip--sub" *ngIf="batch()!.subCategoryDisplay">{{ batch()!.subCategoryDisplay }}</span>
+        </div>
+
+        <h1 class="bhc-title">{{ batch()!.assetName }}</h1>
+        <p class="bhc-desc" *ngIf="batch()!.description">{{ batch()!.description }}</p>
+
+        <div class="bhc-kpis">
+          <div class="bhc-kpi">
+            <span class="bk-val">{{ batch()!.activeQuantity }}</span>
+            <span class="bk-lbl">Active</span>
+          </div>
+          <span class="bk-sep"></span>
+          <div class="bhc-kpi">
+            <span class="bk-val">{{ batch()!.originalQuantity }}</span>
+            <span class="bk-lbl">Total</span>
+          </div>
+          <span class="bk-sep"></span>
+          <div class="bhc-kpi">
+            <span class="bk-val bk-green">{{ assignedUnits().length }}</span>
+            <span class="bk-lbl">Assigned</span>
+          </div>
+          <span class="bk-sep"></span>
+          <div class="bhc-kpi">
+            <span class="bk-val bk-muted">{{ unassignedUnits().length }}</span>
+            <span class="bk-lbl">Unassigned</span>
+          </div>
+          <span class="bk-sep"></span>
+          <div class="bhc-kpi">
+            <span class="bk-val bk-red">{{ disposedUnits().length }}</span>
+            <span class="bk-lbl">Disposed</span>
+          </div>
+        </div>
+
+        <div class="bhc-util">
+          <div class="bu-track">
+            <div class="bu-fill"
+                 [style.width.%]="utilizationPct(batch())"
+                 [style.background]="statusColor(batch()!.assetStatusDisplay)">
+            </div>
+          </div>
+          <span class="bu-label">{{ utilizationPct(batch()) }}% active</span>
+        </div>
+      </div>
+
+      <!-- Right: action buttons -->
+      <div class="bhc-actions">
+
+        <!-- ── Add Units button with limit-aware state ── -->
+        <button mat-raised-button color="primary"
+                (click)="tryOpenAddUnitsPanel()"
+                [class.btn-limit-reached]="isLimitReached()"
+                class="bhc-btn"
+                [matTooltip]="isLimitReached() ? 'Asset limit reached — upgrade your plan' : 'Add new units to this batch'">
+          <mat-icon>{{ isLimitReached() ? 'lock' : 'add_circle_outline' }}</mat-icon>
+          {{ isLimitReached() ? 'Limit Reached' : 'Add Units' }}
+        </button>
+
+        <button mat-stroked-button (click)="openTransfer()"
+                [disabled]="selectedCount() === 0" class="bhc-btn">
+          <mat-icon>swap_horiz</mat-icon>
+          Transfer<span *ngIf="selectedCount() > 0"> ({{ selectedCount() }})</span>
+        </button>
+
+        <button mat-stroked-button class="bhc-btn bhc-dispose"
+                (click)="openDispose()" [disabled]="selectedCount() === 0">
+          <mat-icon>delete_forever</mat-icon>
+          Dispose<span *ngIf="selectedCount() > 0"> ({{ selectedCount() }})</span>
+        </button>
+
+        <button mat-stroked-button class="bhc-btn bhc-remove"
+                (click)="removeSelectedUnits()" [disabled]="selectedCount() === 0">
+          <mat-icon>remove_circle_outline</mat-icon>
+          Remove<span *ngIf="selectedCount() > 0"> ({{ selectedCount() }})</span>
+        </button>
+
+        <div class="bhc-icon-row">
+          <button mat-icon-button (click)="refresh()" matTooltip="Refresh">
+            <mat-icon>refresh</mat-icon>
+          </button>
+          <button mat-icon-button (click)="goBack()" matTooltip="Back">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────── ASSET LIMIT REACHED BANNER ──────────────── -->
+    <div class="limit-reached-banner" *ngIf="isLimitReached()" [@fadeUp]>
+      <div class="lrb-icon"><mat-icon>lock</mat-icon></div>
+      <div class="lrb-body">
+        <span class="lrb-title">Asset Limit Reached</span>
+        <span class="lrb-desc">
+          Your plan allows <strong>{{ assetLimit() }}</strong> total asset units.
+          You have reached this limit. Upgrade your plan to add more units.
+        </span>
+      </div>
+      <div class="lrb-actions">
+        <button mat-raised-button class="lrb-upgrade-btn">
+          <mat-icon>rocket_launch</mat-icon> Upgrade Plan
+        </button>
+      </div>
+    </div>
+
+    <!-- ──────────────── ADD UNITS PANEL ──────────────── -->
+    <div class="aup" *ngIf="showAddUnitsPanel() && !isLimitReached()" [@fadeUp]>
+      <div class="aup-head">
+        <mat-icon>add_circle</mat-icon>
+        <span>Add New Units</span>
+        <button mat-icon-button (click)="showAddUnitsPanel.set(false)" class="aup-close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="aup-body">
+        <p class="aup-hint">Enter serial numbers separated by commas. Each serial creates one new unit.</p>
+        <mat-form-field appearance="outline" class="aup-field">
+          <mat-label>Serial Numbers</mat-label>
+          <textarea matInput rows="2" placeholder="SN-001, SN-002, SN-003"
+                    [value]="newSerials()"
+                    (input)="newSerials.set($any($event.target).value)"></textarea>
+          <mat-hint>Comma-separated</mat-hint>
+        </mat-form-field>
+        <div class="aup-foot">
+          <span class="aup-cnt" *ngIf="newSerials().trim()">{{ parsedSerialCount() }} unit(s)</span>
+          <button mat-raised-button color="primary" (click)="addUnits()"
+                  [disabled]="actionLoading() || !newSerials().trim()">
+            <mat-icon>add</mat-icon>{{ actionLoading() ? 'Adding…' : 'Add Units' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────── TAB BAR ──────────────── -->
+    <div class="tab-bar">
+      <button class="tab-btn" [class.active]="activeTab() === 0" (click)="onTabChange(0)">
+        <mat-icon>view_list</mat-icon><span>Units</span>
+        <span class="tab-cnt">{{ units().length }}</span>
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 1" (click)="onTabChange(1)">
+        <mat-icon>info_outline</mat-icon><span>Overview</span>
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 2"
+              [class.tab-disabled]="!depreciableUnits().length"
+              [disabled]="!depreciableUnits().length"
+              (click)="depreciableUnits().length && onTabChange(2)">
+        <mat-icon>trending_down</mat-icon><span>Depreciation</span>
+        <span class="tab-cnt tab-cnt--dep" *ngIf="depreciableUnits().length">{{ depreciableUnits().length }}</span>
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 3" (click)="onTabChange(3)">
+        <mat-icon>folder_open</mat-icon><span>Documents</span>
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 4" (click)="onTabChange(4)">
+        <mat-icon>qr_code_2</mat-icon><span>QR / Barcodes</span>
+        <span class="tab-cnt">{{ units().length }}</span>
+      </button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 0 — UNITS
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel" *ngIf="activeTab() === 0" [@fadeUp]>
+
+      <!-- ── Unit search + filter bar ── -->
+      <div class="unit-filter-bar">
+        <div class="uf-search">
+          <mat-icon class="ufs-icon">search</mat-icon>
+          <input class="ufs-input" [formControl]="unitSearch"
+                 placeholder="Search asset ID, serial, user, site…" />
+          <button *ngIf="unitSearch.value" mat-icon-button class="ufs-clear"
+                  (click)="unitSearch.setValue('')">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="uf-pills">
+          <button class="uf-pill" [class.active]="unitAssignFilter.value === 'all'"
+                  (click)="unitAssignFilter.setValue('all')">All</button>
+          <button class="uf-pill uf-pill--user" [class.active]="unitAssignFilter.value === 'user'"
+                  (click)="unitAssignFilter.setValue('user')">User</button>
+          <button class="uf-pill uf-pill--site" [class.active]="unitAssignFilter.value === 'site'"
+                  (click)="unitAssignFilter.setValue('site')">Site</button>
+          <button class="uf-pill uf-pill--none" [class.active]="unitAssignFilter.value === 'none'"
+                  (click)="unitAssignFilter.setValue('none')">Unassigned</button>
+          <button class="uf-pill uf-pill--disp" [class.active]="unitAssignFilter.value === 'disposed'"
+                  (click)="unitAssignFilter.setValue('disposed')">Disposed</button>
+        </div>
+
+        <button class="uf-adv-btn" [class.active]="filterExpanded()"
+                (click)="filterExpanded.set(!filterExpanded())">
+          <mat-icon>tune</mat-icon>
+          <span *ngIf="!filterExpanded()">Filters</span>
+          <span *ngIf="filterExpanded()">Hide</span>
+        </button>
+
+        <button class="uf-clear-btn" *ngIf="hasUnitFilters()" (click)="clearUnitFilters()">
+          <mat-icon>filter_list_off</mat-icon>
+        </button>
+
+        <span class="uf-spacer"></span>
+        <span class="uf-count">{{ filteredUnitCount() }} / {{ units().length }} units</span>
+      </div>
+
+      <!-- Advanced filter dropdowns -->
+      <div class="uf-adv" *ngIf="filterExpanded()">
+        <mat-form-field appearance="outline" class="uf-select">
+          <mat-label>Assigned User</mat-label>
+          <mat-select [formControl]="unitUserFilter">
+            <mat-option [value]="null">All Users</mat-option>
+            <mat-option *ngFor="let u of uniqueUsers()" [value]="u.value">{{ u.label }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>person</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="uf-select">
+          <mat-label>Site / Branch</mat-label>
+          <mat-select [formControl]="unitSiteFilter">
+            <mat-option [value]="null">All Sites</mat-option>
+            <mat-option *ngFor="let s of uniqueSites()" [value]="s.value">{{ s.label }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>location_city</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="uf-select">
+          <mat-label>Area</mat-label>
+          <mat-select [formControl]="unitAreaFilter">
+            <mat-option [value]="null">All Areas</mat-option>
+            <mat-option *ngFor="let a of uniqueAreas()" [value]="a.value">{{ a.label }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>map</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <!-- ── Bulk action bar ── -->
+      <div class="unit-bulk-bar" *ngIf="selectedCount() > 0">
+        <span class="ubb-count"><mat-icon>check_circle</mat-icon>{{ selectedCount() }} selected</span>
+
+        <!-- ── BULK STATUS UPDATE ── -->
+        <div class="ubb-status-group">
+          <mat-icon class="ubb-status-ico">flag</mat-icon>
+          <select class="ubb-status-select"
+                  [value]="bulkStatusValue()"
+                  (change)="bulkStatusValue.set(+$any($event.target).value || null)">
+            <option [value]="null">Set Status…</option>
+            <option *ngFor="let s of dropdownData().assetStatus" [value]="s.value">{{ s.label }}</option>
+          </select>
+          <button class="ubb-status-apply-btn"
+                  [disabled]="!bulkStatusValue() || statusUpdateLoading()"
+                  (click)="applyBulkStatus()">
+            <mat-icon>check</mat-icon>
+            {{ statusUpdateLoading() ? 'Updating…' : 'Apply' }}
+          </button>
+        </div>
+
+        <div class="ubb-divider"></div>
+
+        <button mat-stroked-button (click)="openTransfer()"><mat-icon>swap_horiz</mat-icon>Transfer</button>
+        <button mat-stroked-button class="ubb-dispose" (click)="openDispose()"><mat-icon>delete_forever</mat-icon>Dispose</button>
+        <button mat-stroked-button class="ubb-remove" (click)="removeSelectedUnits()"><mat-icon>remove_circle_outline</mat-icon>Remove</button>
+        <button mat-icon-button (click)="clearSelection()" matTooltip="Clear"><mat-icon>deselect</mat-icon></button>
+      </div>
+
+      <!-- Units table -->
+      <div class="units-table-wrap">
+        <table class="units-table">
+          <thead>
+            <tr>
+              <th class="col-chk">
+                <mat-checkbox [checked]="allUnitsSelected()"
+                              [indeterminate]="selectedCount() > 0 && !allUnitsSelected()"
+                              (change)="toggleAllUnits()"></mat-checkbox>
+              </th>
+              <th class="col-seq">#</th>
+              <th class="col-id">Asset ID</th>
+              <th class="col-serial">Serial No.</th>
+              <th class="col-assign">Assigned To</th>
+              <th class="col-location">Location</th>
+              <th class="col-status">Status</th>
+              <th class="col-avail">Avail.</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let unit of pagedUnits(); trackBy: trackById"
+                [class.row-selected]="isUnitSelected(unit.id)"
+                [class.row-disposed]="isDisposed(unit)">
+
+              <td class="col-chk" (click)="$event.stopPropagation()">
+                <mat-checkbox [checked]="isUnitSelected(unit.id)"
+                              (change)="toggleUnit(unit.id)"
+                              [disabled]="isDisposed(unit)"></mat-checkbox>
+              </td>
+
+              <td class="col-seq"><span class="seq-badge">{{ unit.batchSequence ?? '—' }}</span></td>
+
+              <td class="col-id">
+                <span class="id-chip"><mat-icon>tag</mat-icon>{{ unit.assetId }}</span>
+              </td>
+
+              <td class="col-serial"><span class="mono">{{ unit.assetSerialNo || '—' }}</span></td>
+
+              <td class="col-assign">
+                <span class="assign-badge"
+                      [class.ab-user]="unit.assignTo === AssignToType.User"
+                      [class.ab-site]="unit.assignTo === AssignToType.Site"
+                      [class.ab-disp]="unit.assignTo === AssignToType.Disposed"
+                      [class.ab-none]="unit.assignTo === AssignToType.NotAssigned">
+                  <mat-icon>{{ assignIcon(unit.assignTo) }}</mat-icon>
+                  {{ assignLabel(unit.assignTo) }}
+                </span>
+                <div class="assign-sub" *ngIf="unit.assignUserDisplay">
+                  <mat-icon>person</mat-icon>{{ unit.assignUserDisplay }}
+                </div>
+              </td>
+
+              <td class="col-location">
+                <ng-container *ngIf="unit.siteDisplay || unit.areaDisplay; else noLoc">
+                  <div class="loc-row" *ngIf="unit.siteDisplay">
+                    <mat-icon>location_city</mat-icon>{{ unit.siteDisplay }}
+                  </div>
+                  <div class="loc-row loc-area" *ngIf="unit.areaDisplay">
+                    <mat-icon>map</mat-icon>{{ unit.areaDisplay }}
+                  </div>
+                </ng-container>
+                <ng-template #noLoc><span class="cell-empty">—</span></ng-template>
+              </td>
+
+              <!-- ── STATUS CELL — inline edit ── -->
+              <td class="col-status" (click)="$event.stopPropagation()">
+                <!-- View mode -->
+                <ng-container *ngIf="editingStatusUnitId() !== unit.id">
+                  <span class="status-chip"
+                        *ngIf="unit.assetStatusDisplay"
+                        [style.background]="statusColor(unit.assetStatusDisplay) + '22'"
+                        [style.color]="statusColor(unit.assetStatusDisplay)"
+                        [style.borderColor]="statusColor(unit.assetStatusDisplay) + '55'">
+                    <span class="sdot" [style.background]="statusColor(unit.assetStatusDisplay)"></span>
+                    {{ unit.assetStatusDisplay }}
+                  </span>
+                  <span class="cell-empty" *ngIf="!unit.assetStatusDisplay">—</span>
+                  <!-- Edit trigger -->
+                  <button class="status-edit-btn"
+                          *ngIf="!isDisposed(unit)"
+                          (click)="startStatusEdit(unit.id)"
+                          matTooltip="Change status">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                </ng-container>
+
+                <!-- Edit mode -->
+                <ng-container *ngIf="editingStatusUnitId() === unit.id">
+                  <div class="status-inline-edit">
+                    <select class="status-inline-select"
+                            #statusSelectEl
+                            [value]="unit.assetStatus">
+                      <option *ngFor="let s of dropdownData().assetStatus"
+                              [value]="s.value">{{ s.label }}</option>
+                    </select>
+                    <button class="sie-save-btn"
+                            [disabled]="statusUpdateLoading()"
+                            (click)="saveUnitStatus(unit, +statusSelectEl.value)"
+                            matTooltip="Save">
+                      <mat-icon>check</mat-icon>
+                    </button>
+                    <button class="sie-cancel-btn"
+                            (click)="cancelStatusEdit()"
+                            matTooltip="Cancel">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                </ng-container>
+              </td>
+
+              <td class="col-avail">
+                <span class="avail-yes" *ngIf="unit.isAvilable"><mat-icon>check_circle</mat-icon></span>
+                <span class="avail-no"  *ngIf="!unit.isAvilable"><mat-icon>cancel</mat-icon></span>
+              </td>
+
+              <td class="col-actions" (click)="$event.stopPropagation()">
+                <ng-container *ngIf="!isDisposed(unit); else disposedActions">
+                  <button mat-icon-button class="ua-btn"
+                          [disabled]="!unit.isAvilable"
+                          (click)="openTransfer(unit)" matTooltip="Transfer">
+                    <mat-icon>swap_horiz</mat-icon>
+                  </button>
+                  <button mat-icon-button class="ua-btn ua-issue"
+                          (click)="openIssue(unit)" matTooltip="Report Issue">
+                    <mat-icon>bug_report</mat-icon>
+                  </button>
+                  <button mat-icon-button class="ua-btn ua-dispose"
+                          [disabled]="!unit.isAvilable"
+                          (click)="openDispose(unit)" matTooltip="Dispose">
+                    <mat-icon>delete_forever</mat-icon>
+                  </button>
+                </ng-container>
+                <ng-template #disposedActions>
+                  <span class="disposed-tag">Disposed</span>
+                </ng-template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Empty state -->
+        <div class="units-empty" *ngIf="filteredUnitCount() === 0">
+          <mat-icon>search_off</mat-icon>
+          <p>{{ hasUnitFilters() ? 'No units match your filters.' : 'No units in this batch.' }}</p>
+          <button mat-stroked-button *ngIf="hasUnitFilters()" (click)="clearUnitFilters()">
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <mat-paginator
+        *ngIf="filteredUnitCount() > unitPageSize()"
+        [length]="filteredUnitCount()"
+        [pageSize]="unitPageSize()"
+        [pageIndex]="unitPageIndex()"
+        [pageSizeOptions]="[10, 25, 50, 100]"
+        (page)="onUnitPageChange($event)"
+        showFirstLastButtons
+        class="unit-paginator">
+      </mat-paginator>
+
+      <!-- Summary strip -->
+      <div class="assign-strip">
+        <div class="as-item"><span class="as-dot as-user"></span><span class="as-lbl">User Assigned</span><span class="as-val">{{ userAssigned().length }}</span></div>
+        <div class="as-sep"></div>
+        <div class="as-item"><span class="as-dot as-site"></span><span class="as-lbl">Site Assigned</span><span class="as-val">{{ siteAssigned().length }}</span></div>
+        <div class="as-sep"></div>
+        <div class="as-item"><span class="as-dot as-none"></span><span class="as-lbl">Unassigned</span><span class="as-val">{{ unassignedUnits().length }}</span></div>
+        <div class="as-sep"></div>
+        <div class="as-item"><span class="as-dot as-disp"></span><span class="as-lbl">Disposed</span><span class="as-val">{{ disposedUnits().length }}</span></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 1 — OVERVIEW
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel" *ngIf="activeTab() === 1" [@fadeUp]>
+
+      <div class="ov-stat-grid">
+        <div class="ov-stat ov-primary">
+          <div class="ov-ico"><mat-icon>payments</mat-icon></div>
+          <div class="ov-body"><span class="ov-lbl">Total Value</span><span class="ov-val">{{ formatCurrency(totalValue()) }}</span></div>
+        </div>
+        <div class="ov-stat ov-cyan">
+          <div class="ov-ico"><mat-icon>widgets</mat-icon></div>
+          <div class="ov-body"><span class="ov-lbl">Total Units</span><span class="ov-val">{{ batch()!.originalQuantity }}</span></div>
+        </div>
+        <div class="ov-stat ov-green">
+          <div class="ov-ico"><mat-icon>check_circle</mat-icon></div>
+          <div class="ov-body"><span class="ov-lbl">Active Units</span><span class="ov-val">{{ batch()!.activeQuantity }}</span></div>
+        </div>
+        <div class="ov-stat ov-warn" *ngIf="depreciableUnits().length">
+          <div class="ov-ico"><mat-icon>account_balance</mat-icon></div>
+          <div class="ov-body"><span class="ov-lbl">Depr. Cost</span><span class="ov-val">{{ formatCurrency(totalDepreciableCost()) }}</span></div>
+        </div>
+      </div>
+
+      <div class="info-section" *ngIf="units()[0] as u">
+        <div class="is-header"><mat-icon>description</mat-icon><span>Shared Asset Information</span><span class="is-note">(same across all units)</span></div>
+        <div class="is-grid">
+          <div class="is-cell"><span class="is-lbl"><mat-icon>branding_watermark</mat-icon>Brand</span><span class="is-val">{{ u.assetBrand || '—' }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>tag</mat-icon>Model No.</span><span class="is-val">{{ u.assetModelNo || '—' }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>category</mat-icon>Category</span><span class="is-val">{{ u.categoryDisplay || '—' }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>label</mat-icon>Sub Category</span><span class="is-val">{{ u.subCategoryDisplay || '—' }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>payments</mat-icon>Unit Price</span><span class="is-val">{{ formatCurrency(u.unitPrice) }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>business</mat-icon>Supplier</span><span class="is-val">{{ u.supplierDisplay || '—' }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>business_center</mat-icon>Department</span><span class="is-val">{{ u.departmentDisplay || '—' }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>account_tree</mat-icon>Sub Dept.</span><span class="is-val">{{ u.subDepartmentDisplay || '—' }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>verified_user</mat-icon>Warranty</span><span class="is-val">{{ u.warranetyInMonth ? u.warranetyInMonth + ' months' : '—' }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>shopping_cart</mat-icon>Purchase Date</span><span class="is-val">{{ formatDate(u.dateOfPurchase) }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>factory</mat-icon>Mfg. Date</span><span class="is-val">{{ formatDate(u.dateOfManufacture) }}</span></div>
+          <div class="is-cell"><span class="is-lbl"><mat-icon>calendar_today</mat-icon>Date Acquired</span><span class="is-val">{{ formatDate(u.dateAquired) }}</span></div>
+          <div class="is-cell is-cell-full" *ngIf="u.description"><span class="is-lbl"><mat-icon>notes</mat-icon>Description</span><span class="is-val is-val-muted">{{ u.description }}</span></div>
+          <div class="is-cell is-cell-full" *ngIf="u.note"><span class="is-lbl"><mat-icon>note_alt</mat-icon>Notes</span><span class="is-val is-val-muted">{{ u.note }}</span></div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <div class="is-header"><mat-icon>assignment_ind</mat-icon><span>Unit Assignment Summary</span></div>
+        <div class="ual-grid">
+          <div class="ual-card"
+               *ngFor="let unit of units(); trackBy: trackById"
+               [class.ual-assigned]="unit.assignTo !== AssignToType.NotAssigned && unit.assignTo !== AssignToType.Disposed"
+               [class.ual-disposed]="isDisposed(unit)">
+            <div class="ual-top">
+              <span class="ual-seq">{{ unit.batchSequence }}</span>
+              <span class="ual-id">{{ unit.assetId }}</span>
+              <mat-icon class="ual-avail-ico" [class.ico-yes]="unit.isAvilable" [class.ico-no]="!unit.isAvilable">
+                {{ unit.isAvilable ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+            </div>
+            <div class="ual-serial">{{ unit.assetSerialNo || 'No Serial' }}</div>
+
+            <!-- Status display with inline edit in overview card -->
+            <div class="ual-status-row" *ngIf="!isDisposed(unit)" (click)="$event.stopPropagation()">
+              <ng-container *ngIf="editingStatusUnitId() !== unit.id">
+                <span class="ual-status-chip"
+                      [style.background]="statusColor(unit.assetStatusDisplay) + '20'"
+                      [style.color]="statusColor(unit.assetStatusDisplay)"
+                      [style.borderColor]="statusColor(unit.assetStatusDisplay) + '50'">
+                  <span class="sdot" [style.background]="statusColor(unit.assetStatusDisplay)"></span>
+                  {{ unit.assetStatusDisplay || 'No Status' }}
+                </span>
+                <button class="ual-status-edit-btn" (click)="startStatusEdit(unit.id)" matTooltip="Change status">
+                  <mat-icon>edit</mat-icon>
+                </button>
+              </ng-container>
+              <ng-container *ngIf="editingStatusUnitId() === unit.id">
+                <div class="status-inline-edit status-inline-edit--sm">
+                  <select class="status-inline-select" #ovStatusEl [value]="unit.assetStatus">
+                    <option *ngFor="let s of dropdownData().assetStatus" [value]="s.value">{{ s.label }}</option>
+                  </select>
+                  <button class="sie-save-btn" [disabled]="statusUpdateLoading()"
+                          (click)="saveUnitStatus(unit, +ovStatusEl.value)">
+                    <mat-icon>check</mat-icon>
+                  </button>
+                  <button class="sie-cancel-btn" (click)="cancelStatusEdit()">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              </ng-container>
+            </div>
+
+            <span class="assign-badge"
+                  [class.ab-user]="unit.assignTo === AssignToType.User"
+                  [class.ab-site]="unit.assignTo === AssignToType.Site"
+                  [class.ab-disp]="unit.assignTo === AssignToType.Disposed"
+                  [class.ab-none]="unit.assignTo === AssignToType.NotAssigned">
+              <mat-icon>{{ assignIcon(unit.assignTo) }}</mat-icon>{{ assignLabel(unit.assignTo) }}
+            </span>
+            <div class="ual-target" *ngIf="unit.assignUserDisplay"><mat-icon>person</mat-icon>{{ unit.assignUserDisplay }}</div>
+            <div class="ual-target" *ngIf="unit.siteDisplay"><mat-icon>location_city</mat-icon>{{ unit.siteDisplay }}<span *ngIf="unit.areaDisplay"> · {{ unit.areaDisplay }}</span></div>
+            <div class="ual-actions" *ngIf="!isDisposed(unit)">
+              <button mat-icon-button class="ual-btn" (click)="openTransfer(unit)" [disabled]="!unit.isAvilable" matTooltip="Transfer"><mat-icon>swap_horiz</mat-icon></button>
+              <button mat-icon-button class="ual-btn ual-issue" (click)="openIssue(unit)" matTooltip="Issue"><mat-icon>bug_report</mat-icon></button>
+              <button mat-icon-button class="ual-btn ual-dispose" (click)="openDispose(unit)" [disabled]="!unit.isAvilable" matTooltip="Dispose"><mat-icon>delete_forever</mat-icon></button>
+            </div>
+            <span class="ual-disposed-tag" *ngIf="isDisposed(unit)">Disposed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 2 — DEPRECIATION  (unchanged structure)
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel" *ngIf="activeTab() === 2" [@fadeUp]>
+
+      <div class="no-dep" *ngIf="!depreciableFlaggedUnits().length">
+        <mat-icon>trending_flat</mat-icon>
+        <p>No depreciable units in this batch.</p>
+      </div>
+
+      <div class="no-dep no-dep--warn" *ngIf="hasDepreciableButNoSchedule()">
+        <mat-icon>info_outline</mat-icon>
+        <p>
+          {{ depreciableFlaggedUnits().length }} unit(s) are marked as depreciable but the
+          depreciation schedule could not be calculated.<br>
+          Please ensure <strong>Date Acquired</strong> and <strong>Depreciation Period (months)</strong>
+          are set on each unit.
+        </p>
+      </div>
+
+      <ng-container *ngIf="depreciableUnits().length">
+
+        <div class="dep-batch-info-banner">
+          <mat-icon>info</mat-icon>
+          <span>
+            Showing batch totals for <strong>{{ depreciableUnits().length }}</strong>
+            depreciable unit(s). All units share the same depreciation parameters.
+            Per-unit figures are also shown below.
+          </span>
+        </div>
+
+        <div class="dep-stat-grid">
+          <div class="dep-stat ds-primary">
+            <div class="ds-ico"><mat-icon>payments</mat-icon></div>
+            <div class="ds-body">
+              <span class="ds-lbl">Batch Depr. Cost</span>
+              <span class="ds-val">{{ formatCurrency(depreciableUnits()[0].depreciableCost! * depreciableUnits().length) }}</span>
+              <span class="ds-sub">{{ formatCurrency(depreciableUnits()[0].depreciableCost) }} × {{ depreciableUnits().length }} units</span>
+            </div>
+          </div>
+          <div class="dep-stat ds-danger">
+            <div class="ds-ico"><mat-icon>arrow_downward</mat-icon></div>
+            <div class="ds-body">
+              <span class="ds-lbl">Total Depreciated</span>
+              <span class="ds-val">{{ formatCurrency(totalDeprec()) }}</span>
+              <span class="ds-sub">{{ formatCurrency(totalDeprec() / depreciableUnits().length) }}/unit</span>
+            </div>
+          </div>
+          <div class="dep-stat ds-green">
+            <div class="ds-ico"><mat-icon>account_balance</mat-icon></div>
+            <div class="ds-body">
+              <span class="ds-lbl">Batch Salvage Value</span>
+              <span class="ds-val">{{ formatCurrency(depreciableUnits()[0].salvageValue! * depreciableUnits().length) }}</span>
+              <span class="ds-sub">{{ formatCurrency(depreciableUnits()[0].salvageValue) }}/unit</span>
+            </div>
+          </div>
+          <div class="dep-stat ds-warn">
+            <div class="ds-ico"><mat-icon>calculate</mat-icon></div>
+            <div class="ds-body">
+              <span class="ds-lbl">Method</span>
+              <span class="ds-val ds-val-sm">{{ depMethodLabel() }}</span>
+            </div>
+          </div>
+          <div class="dep-stat ds-info">
+            <div class="ds-ico"><mat-icon>schedule</mat-icon></div>
+            <div class="ds-body">
+              <span class="ds-lbl">Period</span>
+              <span class="ds-val">{{ depreciableUnits()[0].depreciationInMonth }} mo</span>
+            </div>
+          </div>
+          <div class="dep-stat ds-units">
+            <div class="ds-ico"><mat-icon>widgets</mat-icon></div>
+            <div class="ds-body">
+              <span class="ds-lbl">Depr. Units</span>
+              <span class="ds-val">{{ depreciableUnits().length }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dep-progress-card">
+          <div class="dp-head">
+            <mat-icon>percent</mat-icon>
+            <span>Overall Depreciation Progress (Batch Total)</span>
+            <span class="dp-pct">{{ depProgress().toFixed(1) }}%</span>
+          </div>
+          <div class="dp-track">
+            <div class="dp-fill" [style.width.%]="depProgress()"></div>
+          </div>
+          <div class="dp-labels">
+            <span>Start: {{ formatCurrency(depreciableUnits()[0].depreciableCost! * depreciableUnits().length) }}</span>
+            <span>Remaining: {{ formatCurrency(lastBookValue()) }}</span>
+          </div>
+        </div>
+
+        <div class="dep-charts-row" *ngIf="depSchedule().length > 0">
+          <div class="dep-chart-card">
+            <div class="dcc-head"><mat-icon>show_chart</mat-icon><span>Book Value Trend (Batch)</span></div>
+            <div class="dcc-body"><canvas #lineCanvas></canvas></div>
+          </div>
+          <div class="dep-chart-card">
+            <div class="dcc-head"><mat-icon>bar_chart</mat-icon><span>Annual Depreciation (Batch)</span></div>
+            <div class="dcc-body"><canvas #barCanvas></canvas></div>
+          </div>
+          <div class="dep-chart-card">
+            <div class="dcc-head"><mat-icon>donut_large</mat-icon><span>Depreciated vs Remaining</span></div>
+            <div class="dcc-body"><canvas #doughnutCanvas></canvas></div>
+          </div>
+        </div>
+
+        <div class="dep-table-card" *ngIf="depSchedule().length > 0">
+          <div class="dtc-head">
+            <mat-icon>table_chart</mat-icon>
+            <span>Batch Year-wise Schedule</span>
+            <span class="dtc-sub">({{ depreciableUnits().length }} units combined)</span>
+            <span class="dtc-years">{{ depSchedule().length }} yrs</span>
+          </div>
+          <div class="dtc-scroll">
+            <table class="dep-table">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th class="tr">Opening Value</th>
+                  <th class="tr">Depreciation</th>
+                  <th class="tr">Closing Value</th>
+                  <th>% of Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of depSchedule(); let i = index" [class.row-even]="i%2===0">
+                  <td><span class="yr-badge">Year {{ row.year }}</span></td>
+                  <td class="tr mono-cell">{{ formatCurrency(row.bookValueYearBegining) }}</td>
+                  <td class="tr"><span class="dep-amt"><mat-icon>arrow_downward</mat-icon>{{ formatCurrency(row.depreciation) }}</span></td>
+                  <td class="tr mono-cell closing">{{ formatCurrency(row.bookValueYearEnd) }}</td>
+                  <td>
+                    <div class="pct-wrap">
+                      <span class="pct-lbl">{{ depreciationPercent(row) }}%</span>
+                      <div class="pct-track"><div class="pct-fill" [style.width.%]="depreciationPercent(row)"></div></div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="dep-table-card dep-table-card--unit" *ngIf="perUnitSchedule().length > 0">
+          <div class="dtc-head dtc-head--unit">
+            <mat-icon>person_outline</mat-icon>
+            <span>Per-Unit Example Schedule</span>
+            <span class="dtc-sub">({{ depreciableUnits()[0].assetId }} — representative unit)</span>
+            <span class="dtc-years">{{ perUnitSchedule().length }} yrs</span>
+          </div>
+          <div class="unit-info-strip">
+            <div class="uis-item"><span class="uis-lbl">Asset ID</span><span class="uis-val">{{ depreciableUnits()[0].assetId }}</span></div>
+            <div class="uis-sep"></div>
+            <div class="uis-item"><span class="uis-lbl">Serial No.</span><span class="uis-val mono">{{ depreciableUnits()[0].depreciationSchedule?.[0] ? depreciableUnits()[0].assetSerialNo || '—' : '—' }}</span></div>
+            <div class="uis-sep"></div>
+            <div class="uis-item"><span class="uis-lbl">Depreciable Cost</span><span class="uis-val">{{ formatCurrency(depreciableUnits()[0].depreciableCost) }}</span></div>
+            <div class="uis-sep"></div>
+            <div class="uis-item"><span class="uis-lbl">Salvage Value</span><span class="uis-val">{{ formatCurrency(depreciableUnits()[0].salvageValue) }}</span></div>
+            <div class="uis-sep"></div>
+            <div class="uis-item"><span class="uis-lbl">Date Acquired</span><span class="uis-val">{{ formatDate(depreciableUnits()[0].dateAquired) }}</span></div>
+          </div>
+          <div class="dtc-scroll">
+            <table class="dep-table">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th class="tr">Opening Value</th>
+                  <th class="tr">Depreciation</th>
+                  <th class="tr">Closing Value</th>
+                  <th>% of Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of perUnitSchedule(); let i = index" [class.row-even]="i%2===0">
+                  <td><span class="yr-badge yr-badge--unit">Year {{ row.year }}</span></td>
+                  <td class="tr mono-cell">{{ formatCurrency(row.bookValueYearBegining) }}</td>
+                  <td class="tr"><span class="dep-amt"><mat-icon>arrow_downward</mat-icon>{{ formatCurrency(row.depreciation) }}</span></td>
+                  <td class="tr mono-cell closing">{{ formatCurrency(row.bookValueYearEnd) }}</td>
+                  <td>
+                    <div class="pct-wrap">
+                      <span class="pct-lbl">{{ (row.depreciation / (depreciableUnits()[0].depreciableCost || 1) * 100).toFixed(1) }}%</span>
+                      <div class="pct-track"><div class="pct-fill" [style.width.%]="row.depreciation / (depreciableUnits()[0].depreciableCost || 1) * 100"></div></div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </ng-container>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 3 — DOCUMENTS  (unchanged)
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel" *ngIf="activeTab() === 3" [@fadeUp]>
+      <ng-container *ngIf="units()[0] as u">
+        <div class="no-dep" *ngIf="!u.imageUrl && !u.deliveryNote && !u.purchaseReceipt && !u.invoice">
+          <mat-icon>folder_off</mat-icon>
+          <p>No documents attached to this asset batch.</p>
+        </div>
+        <div class="docs-grid" *ngIf="u.imageUrl || u.deliveryNote || u.purchaseReceipt || u.invoice">
+          <div class="doc-card" *ngIf="u.imageUrl">
+            <div class="doc-preview" (click)="openFile(u.imageUrl)">
+              <img [src]="u.imageUrl" alt="Asset Image" class="doc-img" (error)="$any($event.target).style.display='none'" />
+              <div class="doc-overlay"><mat-icon>open_in_new</mat-icon></div>
+            </div>
+            <div class="doc-footer"><mat-icon style="color:#2196f3">image</mat-icon><span>Asset Image</span></div>
+          </div>
+          <div class="doc-card" *ngIf="u.deliveryNote">
+            <div class="doc-preview doc-file-preview" (click)="openFile(u.deliveryNote)">
+              <div class="doc-file-ico" style="background:rgba(255,152,0,.12)"><mat-icon style="color:#ff9800">local_shipping</mat-icon></div>
+              <span class="doc-file-name">Delivery Note</span>
+              <div class="doc-overlay"><mat-icon>open_in_new</mat-icon></div>
+            </div>
+            <div class="doc-footer"><mat-icon style="color:#ff9800">description</mat-icon><span>Delivery Note</span></div>
+          </div>
+          <div class="doc-card" *ngIf="u.purchaseReceipt">
+            <div class="doc-preview doc-file-preview" (click)="openFile(u.purchaseReceipt)">
+              <div class="doc-file-ico" style="background:rgba(76,175,80,.12)"><mat-icon style="color:#4caf50">receipt</mat-icon></div>
+              <span class="doc-file-name">Purchase Receipt</span>
+              <div class="doc-overlay"><mat-icon>open_in_new</mat-icon></div>
+            </div>
+            <div class="doc-footer"><mat-icon style="color:#4caf50">description</mat-icon><span>Purchase Receipt</span></div>
+          </div>
+          <div class="doc-card" *ngIf="u.invoice">
+            <div class="doc-preview doc-file-preview" (click)="openFile(u.invoice)">
+              <div class="doc-file-ico" style="background:rgba(156,39,176,.12)"><mat-icon style="color:#9c27b0">receipt_long</mat-icon></div>
+              <span class="doc-file-name">Invoice</span>
+              <div class="doc-overlay"><mat-icon>open_in_new</mat-icon></div>
+            </div>
+            <div class="doc-footer"><mat-icon style="color:#9c27b0">description</mat-icon><span>Invoice</span></div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 4 — QR / BARCODES  (unchanged)
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel" *ngIf="activeTab() === 4" [@fadeUp]>
+      <div class="qr-header-bar">
+        <span class="qr-bar-title"><mat-icon>qr_code_2</mat-icon>QR Codes & Barcodes — {{ units().length }} units</span>
+        <span class="qr-bar-hint">Click any code to preview with full details</span>
+        <div class="qr-print-actions">
+          <button mat-stroked-button [matMenuTriggerFor]="qrPrintMenu" [disabled]="!units().length" class="qr-print-btn">
+            <mat-icon>print</mat-icon>
+            Print
+            <span class="qr-print-cnt" *ngIf="selectedCount() > 0">({{ selectedCount() }} selected)</span>
+            <span class="qr-print-cnt" *ngIf="selectedCount() === 0">(all {{ units().length }})</span>
+            <mat-icon>arrow_drop_down</mat-icon>
+          </button>
+          <mat-menu #qrPrintMenu="matMenu">
+            <button mat-menu-item (click)="openBatchPrintDialog('qr')"><mat-icon>qr_code_2</mat-icon><span>QR Codes Only</span></button>
+            <button mat-menu-item (click)="openBatchPrintDialog('barcode')"><mat-icon>barcode_reader</mat-icon><span>Barcodes Only</span></button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="openBatchPrintDialog('both')"><mat-icon>receipt_long</mat-icon><span>Both QR & Barcode</span></button>
+          </mat-menu>
+        </div>
+      </div>
+
+      <div class="qr-grid">
+        <div class="qr-card" *ngFor="let unit of units(); trackBy: trackById">
+          <div class="qr-card-head">
+            <span class="qr-seq">{{ unit.batchSequence }}</span>
+            <span class="qr-assetid">{{ unit.assetId }}</span>
+            <span class="qr-avail qr-avail-yes" *ngIf="unit.isAvilable"><mat-icon>check_circle</mat-icon></span>
+            <span class="qr-avail qr-avail-no"  *ngIf="!unit.isAvilable"><mat-icon>cancel</mat-icon></span>
+          </div>
+          <div class="qr-serial">SN: {{ unit.assetSerialNo || '—' }}</div>
+          <div class="qr-images-row">
+            <div class="qr-img-wrap" [class.qr-clickable]="unit.qrcodeImage" (click)="unit.qrcodeImage && openQrPreview(unit, 'qr')">
+              <ng-container *ngIf="unit.qrcodeImage; else noQr">
+                <img [src]="unit.qrcodeImage" alt="QR" class="qr-code-img" />
+                <div class="qr-hover-overlay"><mat-icon>zoom_in</mat-icon><span>Preview</span></div>
+              </ng-container>
+              <ng-template #noQr><div class="qr-placeholder"><mat-icon>qr_code_2</mat-icon><span>No QR</span></div></ng-template>
+              <span class="qr-type-label">QR Code</span>
+            </div>
+            <div class="qr-img-wrap qr-bc-wrap" [class.qr-clickable]="unit.barcode" (click)="unit.barcode && openQrPreview(unit, 'barcode')">
+              <ng-container *ngIf="unit.barcode; else noBarcode">
+                <img [src]="unit.barcode" alt="Barcode" class="bc-img" />
+                <div class="qr-hover-overlay"><mat-icon>zoom_in</mat-icon><span>Preview</span></div>
+              </ng-container>
+              <ng-template #noBarcode><div class="qr-placeholder qr-placeholder-bc"><mat-icon>barcode_reader</mat-icon><span>No BC</span></div></ng-template>
+              <span class="qr-type-label">Barcode</span>
+            </div>
+          </div>
+          <span class="assign-badge qr-assign-badge"
+                [class.ab-user]="unit.assignTo === AssignToType.User"
+                [class.ab-site]="unit.assignTo === AssignToType.Site"
+                [class.ab-disp]="unit.assignTo === AssignToType.Disposed"
+                [class.ab-none]="unit.assignTo === AssignToType.NotAssigned">
+            <mat-icon>{{ assignIcon(unit.assignTo) }}</mat-icon>{{ assignLabel(unit.assignTo) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Empty / error -->
+  <div class="page-empty" *ngIf="!loading() && !batch()">
+    <div class="pe-icon"><mat-icon>inventory_off</mat-icon></div>
+    <h3>Asset batch not found</h3>
+    <p>The link may be invalid or the asset may have been removed.</p>
+    <button mat-raised-button color="primary" (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon> Back to Assets
+    </button>
+  </div>
+
+</div>

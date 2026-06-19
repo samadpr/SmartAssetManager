@@ -40,3 +40,14 @@ export interface userLogin {
   operatingSystem: string
   device: string
 }
+
+export interface forgotPasswordRequest {
+  email: string;
+}
+
+export interface resetPasswordRequest {
+  email: string;
+  token: string;
+  password: string;
+  confirmPassword: string;
+}

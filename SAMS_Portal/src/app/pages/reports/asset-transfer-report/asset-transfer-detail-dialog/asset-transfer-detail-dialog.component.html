@@ -1,35 +1,49 @@
-<div class="detail-dialog">
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     asset-transfer-detail-dialog.component.html
+     Full-detail popup — batch info, all legs, current holder, disposal info
+     ═══════════════════════════════════════════════════════════════════════════ -->
 
-  <!-- Compact Header -->
-  <div class="dialog-header">
-    <div class="dh-thumb" *ngIf="getImageUrl(data.asset.imageUrl)">
-      <img [src]="getImageUrl(data.asset.imageUrl)"
-        [alt]="data.asset.assetName ?? ''" (error)="onImageError($event)" />
-    </div>
-    <div class="dh-thumb dh-thumb-placeholder" *ngIf="!getImageUrl(data.asset.imageUrl)">
-      <mat-icon>devices</mat-icon>
+<div class="atd-dialog">
+
+  <!-- ── Compact Header ── -->
+  <div class="atd-header">
+    <div class="atd-thumb">
+      <img *ngIf="getImageUrl(data.asset.imageUrl)"
+           [src]="getImageUrl(data.asset.imageUrl)"
+           [alt]="data.asset.assetName ?? ''"
+           (error)="onImageError($event)" />
+      <mat-icon *ngIf="!getImageUrl(data.asset.imageUrl)">devices</mat-icon>
     </div>
 
-    <div class="dh-info">
-      <span class="dh-id">{{ data.asset.assetId }}</span>
-      <span class="dh-name">{{ data.asset.assetName }}</span>
-      <div class="dh-meta">
+    <div class="atd-title">
+      <div class="atd-id-row">
+        <span class="atd-asset-id">{{ data.asset.assetId }}</span>
+        <span class="atd-batch-badge" *ngIf="data.asset.batchCode">
+          <mat-icon>tag</mat-icon>{{ data.asset.batchCode }}
+        </span>
+        <span class="atd-seq-badge" *ngIf="data.asset.batchSequence">
+          Unit #{{ data.asset.batchSequence }}
+        </span>
+      </div>
+      <div class="atd-name">{{ data.asset.assetName }}</div>
+      <div class="atd-meta">
         <span *ngIf="data.asset.assetBrand">{{ data.asset.assetBrand }}</span>
+        <span *ngIf="data.asset.assetModelNo">{{ data.asset.assetModelNo }}</span>
         <span *ngIf="data.asset.categoryDisplay">{{ data.asset.categoryDisplay }}</span>
         <span *ngIf="data.asset.subCategoryDisplay">{{ data.asset.subCategoryDisplay }}</span>
         <span *ngIf="data.asset.departmentDisplay">{{ data.asset.departmentDisplay }}</span>
       </div>
     </div>
 
-    <div class="dh-right">
-      <span class="dh-status-badge"
-        [class.badge-active]="!data.asset.isDisposed && !data.asset.isCancelled"
-        [class.badge-disposed]="data.asset.isDisposed"
-        [class.badge-cancelled]="data.asset.isCancelled">
+    <div class="atd-header-right">
+      <span class="atd-status-badge"
+            [class.asb-active]="!data.asset.isDisposed && !data.asset.isCancelled"
+            [class.asb-disposed]="data.asset.isDisposed"
+            [class.asb-cancelled]="data.asset.isCancelled">
         <mat-icon>{{ data.asset.isDisposed ? 'delete_forever' : data.asset.isCancelled ? 'cancel' : 'check_circle' }}</mat-icon>
         {{ data.asset.isDisposed ? 'Disposed' : data.asset.isCancelled ? 'Cancelled' : 'Active' }}
       </span>
-      <button mat-icon-button class="dh-close" (click)="close()" matTooltip="Close">
+      <button mat-icon-button class="atd-close-btn" (click)="close()" matTooltip="Close">
         <mat-icon>close</mat-icon>
       </button>
     </div>
@@ -37,173 +51,232 @@
 
   <mat-divider></mat-divider>
 
-  <!-- Dialog Content -->
-  <mat-dialog-content class="dialog-body">
+  <!-- ── Dialog Content ── -->
+  <mat-dialog-content class="atd-body">
 
-    <!-- Asset Info + Current Holder Row -->
-    <div class="info-row">
+    <!-- ── Info + Holder row ── -->
+    <div class="atd-info-row">
 
-      <!-- Asset facts -->
-      <mat-card class="info-card">
+      <!-- Asset Facts -->
+      <mat-card class="atd-card atd-facts-card">
         <mat-card-content>
-          <h4 class="section-title"><mat-icon>info</mat-icon> Asset Information</h4>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="i-label">Serial No</span>
-              <span class="i-val mono">{{ data.asset.assetSerialNo || '—' }}</span>
+          <div class="card-section-title">
+            <mat-icon>info_outline</mat-icon> Asset Information
+          </div>
+          <div class="facts-grid">
+            <div class="fact-item">
+              <span class="fi-label">Serial No.</span>
+              <span class="fi-val mono">{{ data.asset.assetSerialNo || '—' }}</span>
             </div>
-            <div class="info-item">
-              <span class="i-label">Model No</span>
-              <span class="i-val mono">{{ data.asset.assetModelNo || '—' }}</span>
+            <div class="fact-item">
+              <span class="fi-label">Model No.</span>
+              <span class="fi-val mono">{{ data.asset.assetModelNo || '—' }}</span>
             </div>
-            <div class="info-item">
-              <span class="i-label">Department</span>
-              <span class="i-val">{{ data.asset.departmentDisplay || '—' }}</span>
+            <div class="fact-item">
+              <span class="fi-label">Category</span>
+              <span class="fi-val">{{ data.asset.categoryDisplay || '—' }}</span>
             </div>
-            <div class="info-item">
-              <span class="i-label">Total Transfers</span>
-              <span class="i-val">
+            <div class="fact-item" *ngIf="data.asset.subCategoryDisplay">
+              <span class="fi-label">Sub Category</span>
+              <span class="fi-val">{{ data.asset.subCategoryDisplay }}</span>
+            </div>
+            <div class="fact-item" *ngIf="data.asset.departmentDisplay">
+              <span class="fi-label">Department</span>
+              <span class="fi-val">{{ data.asset.departmentDisplay }}</span>
+            </div>
+            <div class="fact-item">
+              <span class="fi-label">Total Transfers</span>
+              <span class="fi-val">
                 <span class="count-pill">{{ data.asset.totalTransfers }}</span>
               </span>
             </div>
-            <div class="info-item" *ngIf="data.asset.firstAssignedDate">
-              <span class="i-label">First Assigned</span>
-              <span class="i-val">{{ formatDate(data.asset.firstAssignedDate) }}</span>
+            <div class="fact-item" *ngIf="data.asset.firstAssignedDate">
+              <span class="fi-label">First Assigned</span>
+              <span class="fi-val">{{ formatDate(data.asset.firstAssignedDate) }}</span>
             </div>
-            <div class="info-item" *ngIf="data.asset.lastTransferDate">
-              <span class="i-label">Last Transfer</span>
-              <span class="i-val">{{ formatDate(data.asset.lastTransferDate) }}</span>
+            <div class="fact-item" *ngIf="data.asset.lastTransferDate">
+              <span class="fi-label">Last Transfer</span>
+              <span class="fi-val">{{ formatDate(data.asset.lastTransferDate) }}</span>
             </div>
           </div>
         </mat-card-content>
       </mat-card>
 
       <!-- Current Holder -->
-      <mat-card class="holder-info-card" *ngIf="data.asset.currentHolder && !data.asset.isDisposed">
+      <mat-card class="atd-card atd-holder-card"
+                *ngIf="data.asset.currentHolder && !data.asset.isDisposed">
         <mat-card-content>
-          <h4 class="section-title"><mat-icon>pin_drop</mat-icon> Currently With</h4>
+          <div class="card-section-title green-title">
+            <mat-icon>pin_drop</mat-icon> Currently With
+          </div>
 
+          <!-- User holder -->
           <ng-container *ngIf="data.asset.currentHolder.holderUser as u">
             <div class="ch-row">
               <div class="ch-av">
                 <img *ngIf="getImageUrl(u.profilePicture)"
-                  [src]="getImageUrl(u.profilePicture)" (error)="onImageError($event)" />
+                     [src]="getImageUrl(u.profilePicture)" (error)="onImageError($event)" />
                 <mat-icon *ngIf="!getImageUrl(u.profilePicture)">person</mat-icon>
               </div>
               <div class="ch-info">
                 <div class="ch-name">{{ u.fullName }}</div>
-                <div class="ch-sub">{{ u.designationDisplay }}</div>
-                <div class="ch-sub">{{ u.email }}</div>
+                <div class="ch-sub" *ngIf="u.designationDisplay">{{ u.designationDisplay }}</div>
+                <div class="ch-sub" *ngIf="u.departmentDisplay">
+                  <mat-icon>account_tree</mat-icon>{{ u.departmentDisplay }}
+                </div>
+                <div class="ch-sub" *ngIf="u.email">
+                  <mat-icon>email</mat-icon>{{ u.email }}
+                </div>
+                <div class="ch-sub" *ngIf="u.phoneNumber">
+                  <mat-icon>phone</mat-icon>{{ u.phoneNumber }}
+                </div>
               </div>
-            </div>
-            <div class="ch-hold">
-              <mat-icon>hourglass_empty</mat-icon>
-              <span>Held <strong>{{ data.asset.currentHolder.holdDays }} days</strong>
-                since {{ formatDate(data.asset.currentHolder.holdStart) }}</span>
             </div>
           </ng-container>
 
+          <!-- Site holder -->
           <ng-container *ngIf="data.asset.currentHolder.holderSite as s">
             <div class="ch-row">
               <div class="ch-av site-av"><mat-icon>location_city</mat-icon></div>
               <div class="ch-info">
                 <div class="ch-name">{{ s.siteName }}</div>
-                <div class="ch-sub">{{ s.siteType }}</div>
+                <div class="ch-sub" *ngIf="s.siteType">
+                  <mat-icon>business</mat-icon>{{ s.siteType }}
+                </div>
                 <div class="ch-sub" *ngIf="s.area">
-                  <mat-icon style="font-size:12px;width:12px;height:12px">place</mat-icon>
-                  {{ s.area.areaName }}
+                  <mat-icon>place</mat-icon>{{ s.area.areaName }}
                 </div>
                 <div class="ch-sub" *ngIf="s.cityName">
-                  <mat-icon style="font-size:12px;width:12px;height:12px">location_on</mat-icon>
-                  {{ s.cityName }}
+                  <mat-icon>location_on</mat-icon>{{ s.cityName }}
+                </div>
+                <div class="ch-sub" *ngIf="s.siteAddress">
+                  <mat-icon>home</mat-icon>{{ s.siteAddress }}
                 </div>
               </div>
             </div>
-            <div class="ch-hold">
-              <mat-icon>hourglass_empty</mat-icon>
-              <span>Held <strong>{{ data.asset.currentHolder.holdDays }} days</strong>
-                since {{ formatDate(data.asset.currentHolder.holdStart) }}</span>
-            </div>
           </ng-container>
+
+          <!-- Hold duration -->
+          <div class="ch-hold-strip"
+               *ngIf="data.asset.currentHolder.holdDays != null">
+            <mat-icon>hourglass_empty</mat-icon>
+            Held for <strong>{{ data.asset.currentHolder.holdDays }} day(s)</strong>
+            since {{ formatDate(data.asset.currentHolder.holdStart) }}
+          </div>
         </mat-card-content>
       </mat-card>
 
-      <!-- Disposed info -->
-      <mat-card class="disposed-info-card" *ngIf="data.asset.isDisposed">
+      <!-- Disposal info -->
+      <mat-card class="atd-card atd-disposed-card" *ngIf="data.asset.isDisposed">
         <mat-card-content>
-          <h4 class="section-title error-title"><mat-icon>delete_forever</mat-icon> Asset Disposed</h4>
+          <div class="card-section-title error-title">
+            <mat-icon>delete_forever</mat-icon> Asset Disposed
+          </div>
           <ng-container *ngIf="getDisposalLeg() as dl">
             <div class="di-grid">
               <div class="di-item">
-                <span class="i-label">Method</span>
-                <span class="i-val">{{ dl.disposalMethod || '—' }}</span>
+                <span class="fi-label">Method</span>
+                <span class="fi-val">{{ dl.disposalMethod || '—' }}</span>
               </div>
               <div class="di-item">
-                <span class="i-label">Date</span>
-                <span class="i-val">{{ formatDate(dl.disposalDate) }}</span>
+                <span class="fi-label">Disposal Date</span>
+                <span class="fi-val">{{ formatDate(dl.disposalDate) }}</span>
               </div>
               <div class="di-item" *ngIf="dl.transferredByUser">
-                <span class="i-label">By</span>
-                <span class="i-val">{{ dl.transferredByUser.fullName }}</span>
+                <span class="fi-label">Disposed By</span>
+                <span class="fi-val">{{ dl.transferredByUser.fullName }}</span>
+              </div>
+              <div class="di-item" *ngIf="dl.disposalDocument">
+                <span class="fi-label">Document</span>
+                <a [href]="dl.disposalDocument" target="_blank" class="doc-link">
+                  <mat-icon>attach_file</mat-icon> View
+                </a>
               </div>
             </div>
           </ng-container>
         </mat-card-content>
       </mat-card>
 
-    </div>
+    </div><!-- /atd-info-row -->
 
-    <!-- Transfer Chain -->
-    <mat-card class="chain-card">
+    <!-- ── Transfer Chain ── -->
+    <mat-card class="atd-card atd-chain-card">
       <mat-card-content>
-        <h4 class="section-title">
+        <div class="card-section-title">
           <mat-icon>timeline</mat-icon> Transfer Chain
-          <span class="chain-pill">{{ data.asset.transferChain.length || 0 }} leg(s)</span>
-        </h4>
+          <span class="chain-count-pill">{{ data.asset.transferChain.length || 0 }} leg(s)</span>
+          <span class="chain-total-days" *ngIf="totalHoldDays > 0">
+            <mat-icon>hourglass_empty</mat-icon>{{ totalHoldDays }} total days tracked
+          </span>
+        </div>
 
+        <!-- Journey progress bar -->
+        <div class="journey-bar" *ngIf="data.asset.transferChain.length > 1">
+          <div class="jb-start">
+            <mat-icon>flag</mat-icon>
+            <span>{{ formatDate(data.asset.firstAssignedDate) }}</span>
+          </div>
+          <div class="jb-track">
+            <div class="jb-fill" [style.width.%]="journeyProgress"></div>
+            <div class="jb-markers">
+              <div *ngFor="let leg of data.asset.transferChain; let i = index"
+                   class="jb-marker"
+                   [style.left.%]="(i / (data.asset.transferChain.length - 1)) * 100"
+                   [class.jm-current]="leg.isCurrent"
+                   [matTooltip]="'Leg '+(i+1)+': '+(leg.assetTypeDisplay||'')">
+              </div>
+            </div>
+          </div>
+          <div class="jb-end" [class.jb-disposed]="data.asset.isDisposed">
+            <mat-icon>{{ data.asset.isDisposed ? 'delete_forever' : 'location_on' }}</mat-icon>
+            <span>{{ formatDate(data.asset.lastTransferDate) }}</span>
+          </div>
+        </div>
+
+        <!-- Chain legs -->
         <div class="dialog-chain">
           <div *ngFor="let leg of data.asset.transferChain; let i = index; let last = last"
-            class="d-leg"
-            [class.d-leg-current]="leg.isCurrent"
-            [class.d-leg-disposed]="leg.isDisposalLeg"
-            [class.d-leg-rejected]="leg.approvalStatus === 3">
+               class="d-leg"
+               [class.d-leg-current]="leg.isCurrent"
+               [class.d-leg-disposed]="leg.isDisposalLeg"
+               [class.d-leg-rejected]="leg.approvalStatus === 3">
 
-            <!-- Step -->
+            <!-- Step indicator -->
             <div class="d-step-col">
-              <div class="d-step-circle"
-                [class.dsc-current]="leg.isCurrent"
-                [class.dsc-disposed]="leg.isDisposalLeg"
-                [class.dsc-rejected]="leg.approvalStatus === 3 && !leg.isCurrent">
+              <div class="d-circle"
+                   [class.dc-current]="leg.isCurrent"
+                   [class.dc-disposed]="leg.isDisposalLeg"
+                   [class.dc-rejected]="leg.approvalStatus === 3 && !leg.isCurrent">
                 <mat-icon *ngIf="leg.isCurrent && !leg.isDisposalLeg">location_on</mat-icon>
                 <mat-icon *ngIf="leg.isDisposalLeg">delete_forever</mat-icon>
                 <mat-icon *ngIf="leg.approvalStatus === 3 && !leg.isCurrent && !leg.isDisposalLeg">cancel</mat-icon>
                 <span *ngIf="leg.approvalStatus !== 3 && !leg.isCurrent && !leg.isDisposalLeg">{{ i + 1 }}</span>
               </div>
-              <div class="d-step-line" *ngIf="!last"></div>
+              <div class="d-line" *ngIf="!last"></div>
             </div>
 
-            <!-- Body -->
-            <div class="d-leg-body">
+            <!-- Leg body -->
+            <div class="d-body">
 
-              <!-- Badges row -->
-              <div class="d-badges-row">
-                <span class="d-type"
-                  [class.dt-created]="leg.assetType === 1"
-                  [class.dt-transferred]="leg.assetType === 2"
-                  [class.dt-disposed]="leg.assetType === 3">
+              <!-- Badge row -->
+              <div class="d-badges">
+                <span class="d-type-chip"
+                      [class.dtc-created]="leg.assetType === 1"
+                      [class.dtc-transferred]="leg.assetType === 2"
+                      [class.dtc-disposed]="leg.assetType === 3">
                   {{ leg.assetTypeDisplay }}
                 </span>
-                <span class="d-approval"
-                  [class.da-approved]="leg.approvalStatus === 2"
-                  [class.da-pending]="leg.approvalStatus === 1"
-                  [class.da-rejected]="leg.approvalStatus === 3">
+                <span class="d-approval-chip"
+                      [class.dac-approved]="leg.approvalStatus === 2"
+                      [class.dac-pending]="leg.approvalStatus === 1"
+                      [class.dac-rejected]="leg.approvalStatus === 3">
                   <mat-icon>{{ leg.approvalStatus === 2 ? 'check_circle' : leg.approvalStatus === 1 ? 'schedule' : 'cancel' }}</mat-icon>
                   {{ leg.approvalStatusDisplay }}
                 </span>
-                <span class="d-status"
-                  [class.ds-assigned]="leg.status === 'Assigned'"
-                  [class.ds-unassigned]="leg.status === 'UnAssigned'"
-                  [class.ds-disposed]="leg.status === 'Disposed'">
+                <span class="d-status-chip"
+                      [class.dsc-assigned]="leg.status === 'Assigned' || leg.status === 'ReAssigned'"
+                      [class.dsc-unassigned]="leg.status === 'UnAssigned'"
+                      [class.dsc-disposed]="leg.status === 'Disposed'">
                   {{ leg.status }}
                 </span>
                 <span class="d-current-tag" *ngIf="leg.isCurrent">
@@ -211,118 +284,142 @@
                 </span>
               </div>
 
-              <!-- Holder + timing -->
-              <div class="d-main-row">
+              <!-- Main content: holder + timing -->
+              <div class="d-main">
 
                 <!-- Holder -->
-                <div class="d-holder">
-                  <!-- User -->
+                <div class="d-holder-card"
+                     [class.dhc-user]="leg.assignTo === 1"
+                     [class.dhc-site]="leg.assignTo === 2"
+                     [class.dhc-disposed]="leg.assignTo === 3">
+
                   <ng-container *ngIf="leg.assignTo === 1 && leg.holderUser">
                     <div class="d-av">
                       <img *ngIf="getImageUrl(leg.holderUser.profilePicture)"
-                        [src]="getImageUrl(leg.holderUser.profilePicture)"
-                        (error)="onImageError($event)" />
+                           [src]="getImageUrl(leg.holderUser.profilePicture)"
+                           (error)="onImageError($event)" />
                       <mat-icon *ngIf="!getImageUrl(leg.holderUser.profilePicture)">person</mat-icon>
                     </div>
                     <div class="d-holder-info">
-                      <span class="d-holder-type user-t"><mat-icon>person</mat-icon>User</span>
+                      <span class="d-holder-type user-ht"><mat-icon>person</mat-icon>User</span>
                       <div class="d-holder-name">{{ leg.holderUser.fullName }}</div>
-                      <div class="d-holder-sub">{{ leg.holderUser.designationDisplay }}</div>
-                      <div class="d-holder-sub">{{ leg.holderUser.email }}</div>
+                      <div class="d-holder-sub" *ngIf="leg.holderUser.designationDisplay">{{ leg.holderUser.designationDisplay }}</div>
+                      <div class="d-holder-sub" *ngIf="leg.holderUser.email">{{ leg.holderUser.email }}</div>
                     </div>
                   </ng-container>
-                  <!-- Site -->
+
                   <ng-container *ngIf="leg.assignTo === 2 && leg.holderSite">
                     <div class="d-av site-av"><mat-icon>location_city</mat-icon></div>
                     <div class="d-holder-info">
-                      <span class="d-holder-type site-t"><mat-icon>business</mat-icon>{{ leg.holderSite.siteType }}</span>
+                      <span class="d-holder-type site-ht"><mat-icon>business</mat-icon>{{ leg.holderSite.siteType }}</span>
                       <div class="d-holder-name">{{ leg.holderSite.siteName }}</div>
                       <div class="d-holder-sub" *ngIf="leg.holderSite.area">
-                        <mat-icon style="font-size:11px;width:11px;height:11px">place</mat-icon>
-                        {{ leg.holderSite.area.areaName }}
+                        <mat-icon>place</mat-icon>{{ leg.holderSite.area.areaName }}
                       </div>
                       <div class="d-holder-sub" *ngIf="leg.holderSite.cityName">
-                        <mat-icon style="font-size:11px;width:11px;height:11px">location_on</mat-icon>
-                        {{ leg.holderSite.cityName }}
+                        <mat-icon>location_on</mat-icon>{{ leg.holderSite.cityName }}
                       </div>
                     </div>
                   </ng-container>
-                  <!-- Disposed -->
+
                   <ng-container *ngIf="leg.assignTo === 3">
-                    <div class="d-av disposed-av"><mat-icon>delete_forever</mat-icon></div>
+                    <div class="d-av disp-av"><mat-icon>delete_forever</mat-icon></div>
                     <div class="d-holder-info">
-                      <span class="d-holder-type disposed-t"><mat-icon>delete_forever</mat-icon>Disposed</span>
+                      <span class="d-holder-type disp-ht"><mat-icon>delete_forever</mat-icon>Disposed</span>
                       <div class="d-holder-name">Asset Disposed</div>
                       <div class="d-holder-sub" *ngIf="leg.disposalMethod">{{ leg.disposalMethod }}</div>
                     </div>
                   </ng-container>
-                  <!-- Unassigned -->
+
                   <ng-container *ngIf="!leg.holderUser && !leg.holderSite && leg.assignTo !== 3">
                     <div class="d-av unassigned-av"><mat-icon>person_off</mat-icon></div>
                     <div class="d-holder-info">
-                      <span class="d-holder-type unassigned-t">Unassigned</span>
+                      <span class="d-holder-type unassigned-ht">Unassigned</span>
                     </div>
                   </ng-container>
-                </div>
+
+                </div><!-- /d-holder-card -->
 
                 <!-- Time details -->
-                <div class="d-times">
-                  <div class="d-time-row" *ngIf="leg.holdStart">
-                    <mat-icon>play_circle</mat-icon>
-                    <span class="dt-label">From</span>
+                <div class="d-time-grid">
+                  <div class="d-time-item" *ngIf="leg.holdStart">
+                    <mat-icon>play_circle_outline</mat-icon>
+                    <span class="dt-label">Start</span>
                     <span class="dt-val">{{ formatDate(leg.holdStart) }}</span>
                   </div>
-                  <div class="d-time-row" *ngIf="leg.holdEnd">
+                  <div class="d-time-item" *ngIf="leg.holdEnd">
                     <mat-icon>stop_circle</mat-icon>
-                    <span class="dt-label">To</span>
+                    <span class="dt-label">End</span>
                     <span class="dt-val">{{ formatDate(leg.holdEnd) }}</span>
                   </div>
-                  <div class="d-time-row" *ngIf="leg.holdDays !== null && leg.holdDays !== undefined">
+                  <div class="d-time-item" *ngIf="leg.holdDays != null">
                     <mat-icon>hourglass_empty</mat-icon>
                     <span class="dt-label">Hold</span>
                     <span class="dt-val hold-pill">{{ leg.holdDays }} day(s)</span>
                   </div>
-                  <div class="d-time-row" *ngIf="leg.transferDate">
+                  <div class="d-time-item" *ngIf="leg.transferDate">
                     <mat-icon>swap_horiz</mat-icon>
                     <span class="dt-label">Transfer</span>
                     <span class="dt-val">{{ formatDate(leg.transferDate) }}</span>
                   </div>
-                  <div class="d-time-row" *ngIf="leg.dueDate">
+                  <div class="d-time-item" *ngIf="leg.dueDate">
                     <mat-icon>event</mat-icon>
                     <span class="dt-label">Due</span>
                     <span class="dt-val due-val">{{ formatDate(leg.dueDate) }}</span>
                   </div>
                 </div>
 
+              </div><!-- /d-main -->
+
+              <!-- Approval trail -->
+              <div class="d-approval-trail"
+                   *ngIf="leg.approvedByLevel1 || leg.approvedByLevel2 || leg.approvedByLevel3">
+                <span class="at-label"><mat-icon>verified</mat-icon>Approved by:</span>
+                <span class="at-person" *ngIf="leg.approvedByLevel1">
+                  L1: {{ leg.approvedByLevel1 }}
+                  <span class="at-date" *ngIf="leg.level1ApprovedDate">
+                    ({{ formatDate(leg.level1ApprovedDate) }})
+                  </span>
+                </span>
+                <span class="at-person" *ngIf="leg.approvedByLevel2">
+                  L2: {{ leg.approvedByLevel2 }}
+                </span>
+                <span class="at-person" *ngIf="leg.approvedByLevel3">
+                  L3: {{ leg.approvedByLevel3 }}
+                </span>
               </div>
 
               <!-- Transferred by -->
-              <div class="d-by" *ngIf="leg.transferredByUser">
-                <span class="d-by-label">By</span>
+              <div class="d-by-row" *ngIf="leg.transferredByUser">
+                <span class="by-label">Transferred by</span>
                 <img *ngIf="getImageUrl(leg.transferredByUser.profilePicture)"
-                  [src]="getImageUrl(leg.transferredByUser.profilePicture)"
-                  class="d-by-av" (error)="onImageError($event)" />
-                <mat-icon *ngIf="!getImageUrl(leg.transferredByUser.profilePicture)"
-                  class="d-by-icon">account_circle</mat-icon>
-                <span class="d-by-name">{{ leg.transferredByUser.fullName }}</span>
-                <span class="d-by-role" *ngIf="leg.transferredByUser.designationDisplay">
+                     [src]="getImageUrl(leg.transferredByUser.profilePicture)"
+                     class="by-av" (error)="onImageError($event)" />
+                <mat-icon *ngIf="!getImageUrl(leg.transferredByUser.profilePicture)" class="by-icon">account_circle</mat-icon>
+                <span class="by-name">{{ leg.transferredByUser.fullName }}</span>
+                <span class="by-role" *ngIf="leg.transferredByUser.designationDisplay">
                   · {{ leg.transferredByUser.designationDisplay }}
                 </span>
               </div>
 
-            </div>
-          </div>
-        </div>
+            </div><!-- /d-body -->
+          </div><!-- /leg loop -->
+        </div><!-- /dialog-chain -->
 
       </mat-card-content>
     </mat-card>
 
   </mat-dialog-content>
 
+  <!-- ── Actions ── -->
   <mat-dialog-actions>
     <button mat-button (click)="close()">Close</button>
-    <button mat-raised-button color="primary" (click)="printSingle()">
+    <span style="flex:1"></span>
+    <button mat-stroked-button (click)="printSingle()">
       <mat-icon>print</mat-icon> Print
+    </button>
+    <button mat-raised-button color="primary" (click)="exportSinglePDF()">
+      <mat-icon>picture_as_pdf</mat-icon> Export PDF
     </button>
   </mat-dialog-actions>
 

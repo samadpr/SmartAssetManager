@@ -1,146 +1,259 @@
-<div class="container-fluid p-0">
-    <div class="row w-100 h-100 g-0 align-items-center justify-content-center">
-        <!-- Left Side - Login Form -->
-        <div class="col-lg-7 col-md-12 col-sm-12 justify-content-center">
-            <div class="login-container w-100 px-4">
-                <!-- Header Section -->
-                <div class="text-left mb-4">
-                    <h2 class="left-title mb-1">Welcome Back</h2>
-                    <p class="left-subtitle">Sign in to your account to continue</p>
-                </div>
+<div class="login-page">
 
-                <!-- Login Form -->
-                <mat-card class="form-card shadow-sm">
-                    <mat-card-content class="p-4">
-                        <form class="login-form" [formGroup]="_loginform" (ngSubmit)="proceedlogin()">
+  <!-- Animated background particles -->
+  <div class="bg-particles">
+    <div class="particle" *ngFor="let p of particles" [style.left]="p.x + '%'" [style.top]="p.y + '%'"
+      [style.animationDelay]="p.delay + 's'" [style.animationDuration]="p.duration + 's'"></div>
+  </div>
 
-                            <!-- Email Field -->
-                            <div class="col-md-12 col-sm-12 mb-3">
-                                <mat-form-field appearance="outline" class="w-100">
-                                    <mat-label>Email Address</mat-label>
-                                    <input matInput formControlName="email" type="email" placeholder="Enter your email">
-                                    <mat-icon matSuffix>email</mat-icon>
-                                    <mat-error
-                                        *ngIf="_loginform.get('email')?.invalid && _loginform.get('email')?.touched">
-                                        <span *ngIf="_loginform.get('email')?.errors?.['required']">Email is
-                                            required</span>
-                                        <span *ngIf="_loginform.get('email')?.errors?.['email']">Please enter a valid
-                                            email</span>
-                                    </mat-error>
-                                </mat-form-field>
-                            </div>
+  <!-- Floating orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
 
-                            <!-- Password Field -->
-                            <div class="col-md-12 col-sm-12 mb-3">
-                                <mat-form-field appearance="outline" class="w-100">
-                                    <mat-label>Password</mat-label>
-                                    <input matInput formControlName="password"
-                                        [type]="hidePassword ? 'password' : 'text'" placeholder="Enter your password">
-                                    <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword"
-                                        type="button">
-                                        <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
-                                    </button>
-                                    <mat-error
-                                        *ngIf="_loginform.get('password')?.invalid && _loginform.get('password')?.touched">
-                                        Password is required
-                                    </mat-error>
-                                </mat-form-field>
-                            </div>
+  <div class="login-wrapper">
 
-                            <!-- Remember Me & Forgot Password Row -->
-                            <div class="row mb-4 align-items-center">
-                                <div class="col-6">
-                                    <mat-checkbox formControlName="rememberMe" color="primary"
-                                        class="remember-checkbox">
-                                        Remember me
-                                    </mat-checkbox>
-                                </div>
-                                <div class="col-6 text-end">
-                                    <a href="#" class="forgot-password-link">Forgot Password?</a>
-                                </div>
-                            </div>
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div class="left-inner">
 
-                            <!-- Submit Button -->
-                            <div class="d-grid mb-4">
-                                <button mat-raised-button color="primary" type="submit" class="submit-btn py-3"
-                                    [disabled]="_loginform.invalid || isSubmitting">
-                                    <mat-icon class="me-2">login</mat-icon>
-                                    {{ isSubmitting ? 'Signing in...' : 'Sign In' }}
-                                </button>
-                            </div>
-
-                            <!-- Divider -->
-                            <div class="divider-section mb-4">
-                                <div class="divider-line"></div>
-                                <span class="divider-text">or continue with</span>
-                                <div class="divider-line"></div>
-                            </div>
-
-                            <!-- Social Login Button - Google Only -->
-                            <div class="social-login-section mb-4">
-                                <div class="d-grid">
-                                    <button mat-stroked-button type="button" class="social-btn w-100">
-                                        <img src="https://developers.google.com/identity/images/g-logo.png" width="18"
-                                            height="18" class="me-2">
-                                        Continue with Google
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Register Link -->
-                            <div class="text-center">
-                                <p class="mb-0" style="color: var(--mat-sys-on-surface-variant);">
-                                    Don't have an account?
-                                    <a routerLink="/register" class="text-decoration-none fw-medium register-link">Sign
-                                        up here</a>
-                                </p>
-                            </div>
-                        </form>
-                    </mat-card-content>
-                </mat-card>
-            </div>
+        <!-- Logo -->
+        <div class="logo-section">
+          <div class="logo-mark">
+            <img src="/assets/images/logos/infoasset_logo-1.png" alt="INFOASSET" class="logo-img" />
+          </div>
+          <span class="logo-text">INFOASSET</span>
         </div>
 
-        <!-- Right Side - Illustration -->
-        <div class="col-lg-5 col-md-5 d-none d-md-flex bg-color">
-            <div class="illustration-container text-center">
-                <!-- Brand Logo at Top -->
-                <div class="brand-logo mb-4">
-                    <img class="brand-logo-icon" src="assets/images/logos/infoasset_logo-1.webp" alt="">
-                    <h4 class="brand-name mt-2">INFOASSET</h4>
-                </div>
-
-                <!-- Main Illustration Image -->
-                <div class="illustration-image-container mb-4">
-                    <img src="assets/images/infoasset-dashboard1.webp" alt="Login Illustration"
-                        class="illustration-image">
-                </div>
-
-                <!-- Content Section -->
-                <div class="illustration-content">
-                    <h3 class="illustration-title mb-3">Welcome Back!</h3>
-                    <p class="illustration-text mb-4">
-                        Access your dashboard and continue managing your business operations
-                        with our comprehensive platform.
-                    </p>
-
-                    <!-- Feature Icons -->
-                    <div class="feature-icons d-flex justify-content-center gap-4">
-                        <div class="feature-item">
-                            <mat-icon class="feature-icon">dashboard</mat-icon>
-                            <small class="d-block mt-2">Dashboard</small>
-                        </div>
-                        <div class="feature-item">
-                            <mat-icon class="feature-icon">analytics</mat-icon>
-                            <small class="d-block mt-2">Analytics</small>
-                        </div>
-                        <div class="feature-item">
-                            <mat-icon class="feature-icon">shield</mat-icon>
-                            <small class="d-block mt-2">Secure</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Headline -->
+        <div class="hero-text">
+          <h1 class="hero-title">
+            <span class="line-1">Smart Asset</span>
+            <span class="line-2">Management</span>
+          </h1>
+          <p class="hero-sub">Enterprise-grade intelligence for your physical assets tracked, managed, and secured.</p>
         </div>
+
+        <!-- Features -->
+        <div class="feature-list">
+          <div class="feature-item" *ngFor="let f of features; let i = index" [style.animationDelay]="(0.2 * i) + 's'">
+            <div class="feature-dot"></div>
+            <span>{{ f }}</span>
+          </div>
+        </div>
+
+        <!-- Dashboard preview -->
+        <div class="preview-card">
+          <div class="preview-header">
+            <div class="preview-dot red"></div>
+            <div class="preview-dot amber"></div>
+            <div class="preview-dot green"></div>
+            <span class="preview-title">Live Dashboard</span>
+          </div>
+          <div class="preview-stats">
+            <div class="stat-chip">
+              <span class="stat-num">2,841</span>
+              <span class="stat-label">Total Assets</span>
+            </div>
+            <div class="stat-chip">
+              <span class="stat-num">98.2%</span>
+              <span class="stat-label">Uptime</span>
+            </div>
+            <div class="stat-chip">
+              <span class="stat-num">47</span>
+              <span class="stat-label">Alerts</span>
+            </div>
+          </div>
+          <div class="preview-bar-row">
+            <div class="mini-bar" style="width: 82%; background: var(--clr-primary);"></div>
+            <div class="mini-bar" style="width: 64%; background: var(--clr-accent);"></div>
+            <div class="mini-bar" style="width: 91%; background: var(--clr-tertiary);"></div>
+          </div>
+        </div>
+
+      </div>
     </div>
+
+    <!-- RIGHT PANEL — Login Form -->
+    <div class="right-panel">
+      <div class="form-wrapper">
+
+        <!-- Avatar Section -->
+        <div class="avatar-section">
+          <div class="avatar-container" [class.peek]="avatarPeek" [class.happy]="avatarHappy">
+            <div class="avatar-body">
+              <div class="avatar-face">
+                <!-- Eyes -->
+                <div class="eyes-row">
+                  <div class="eye" [class.blink]="eyeBlink">
+                    <div class="pupil" [style.transform]="'translate(' + pupilX + 'px, ' + pupilY + 'px)'"></div>
+                  </div>
+                  <div class="eye" [class.blink]="eyeBlink">
+                    <div class="pupil" [style.transform]="'translate(' + pupilX + 'px, ' + pupilY + 'px)'"></div>
+                  </div>
+                </div>
+                <!-- Nose -->
+                <div class="nose"></div>
+                <!-- Mouth -->
+                <div class="mouth" [class.smile]="avatarHappy" [class.covered]="passwordFocused"></div>
+              </div>
+              <!-- Password cover hands -->
+              <div class="cover-hands" [class.visible]="passwordFocused">
+                <div class="hand left-hand">
+                  <div class="finger f1"></div>
+                  <div class="finger f2"></div>
+                  <div class="finger f3"></div>
+                </div>
+                <div class="hand right-hand">
+                  <div class="finger f1"></div>
+                  <div class="finger f2"></div>
+                  <div class="finger f3"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Speech bubble -->
+          <div class="speech-bubble" [class.show]="bubbleText">
+            <span>{{ bubbleText }}</span>
+          </div>
+        </div>
+
+        <!-- Form Header -->
+        <div class="form-header">
+          <h2 class="form-title">Welcome back</h2>
+          <p class="form-subtitle">Sign in to your account to continue</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="form-card">
+          <form [formGroup]="_loginform" (ngSubmit)="proceedlogin()" autocomplete="off">
+
+            <!-- Email Field -->
+            <div class="field-group">
+              <label class="field-label">Email Address</label>
+              <div class="input-wrap" [class.focused]="emailFocused" [class.has-error]="emailError">
+                <span class="input-icon">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="4" width="16" height="13" rx="2" />
+                    <path d="M2 7l8 5 8-5" />
+                  </svg>
+                </span>
+                <input
+                  type="email"
+                  formControlName="email"
+                  placeholder="you@company.com"
+                  class="form-input"
+                  (focus)="onEmailFocus()"
+                  (blur)="onEmailBlur()"
+                  (input)="onEmailInput()"
+                  autocomplete="username"
+                />
+              </div>
+              <div class="field-error" *ngIf="emailError">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12">
+                  <circle cx="8" cy="8" r="7" />
+                  <path d="M8 4v4M8 11v1" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <span *ngIf="_loginform.get('email')?.errors?.['required']">Email is required</span>
+                <span *ngIf="_loginform.get('email')?.errors?.['email']">Please enter a valid email</span>
+              </div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="field-group">
+              <label class="field-label">Password</label>
+              <div class="input-wrap" [class.focused]="passwordFocused" [class.has-error]="passwordError">
+                <span class="input-icon">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="4" y="9" width="12" height="9" rx="2" />
+                    <path d="M7 9V6a3 3 0 016 0v3" />
+                  </svg>
+                </span>
+                <input
+                  [type]="hidePassword ? 'password' : 'text'"
+                  formControlName="password"
+                  placeholder="Enter your password"
+                  class="form-input"
+                  (focus)="onPasswordFocus()"
+                  (blur)="onPasswordBlur()"
+                  autocomplete="current-password"
+                />
+                <button type="button" class="toggle-pw" (click)="hidePassword = !hidePassword" tabindex="-1">
+                  <svg *ngIf="hidePassword" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M2 10s3.5-6 8-6 8 6 8 6-3.5 6-8 6-8-6-8-6z" />
+                    <circle cx="10" cy="10" r="2.5" />
+                  </svg>
+                  <svg *ngIf="!hidePassword" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M3 3l14 14M12.5 12.5A2.5 2.5 0 017.5 7.5" />
+                    <path d="M6 6.5C4 7.7 2.5 9.5 2 10c.8 1.2 4 5 8 5a7.4 7.4 0 003.5-.9" />
+                    <path d="M10 5a8 8 0 014.5 1.5C16.2 7.7 17.5 9.5 18 10a10 10 0 01-2.5 2.8" />
+                  </svg>
+                </button>
+              </div>
+              <div class="field-error" *ngIf="passwordError">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12">
+                  <circle cx="8" cy="8" r="7" />
+                  <path d="M8 4v4M8 11v1" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <span>Password is required</span>
+              </div>
+            </div>
+
+            <!-- Options Row -->
+            <div class="options-row">
+              <label class="check-label">
+                <input type="checkbox" formControlName="rememberMe" class="check-input" />
+                <span class="check-box">
+                  <svg viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2">
+                    <path d="M2 5l2.5 2.5L8 3" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                <span class="check-text">Remember me</span>
+              </label>
+              <a href="forgot-password" class="forgot-link">Forgot password?</a>
+            </div>
+
+            <!-- Submit Button -->
+            <button
+              type="submit"
+              class="submit-btn"
+              [class.loading]="isSubmitting"
+              [disabled]="_loginform.invalid || isSubmitting"
+            >
+              <span class="btn-content" *ngIf="!isSubmitting">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M3 10h14M13 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Sign In
+              </span>
+              <span class="btn-loader" *ngIf="isSubmitting">
+                <span class="spinner"></span>
+                Signing in...
+              </span>
+            </button>
+
+            <!-- Divider -->
+            <div class="divider">
+              <span>or continue with</span>
+            </div>
+
+            <!-- Google -->
+            <button type="button" class="google-btn">
+              <img src="https://developers.google.com/identity/images/g-logo.png" width="18" height="18" alt="Google" />
+              Continue with Google
+            </button>
+
+            <!-- Register -->
+            <p class="register-text">
+              Don't have an account?
+              <a routerLink="/register" class="register-link">Create one free</a>
+            </p>
+
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
 </div>

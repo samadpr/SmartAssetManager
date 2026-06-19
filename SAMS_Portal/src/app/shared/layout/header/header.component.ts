@@ -14,6 +14,7 @@ import { GlobalService } from '../../../core/services/global/global.service';
 import { CompanyService } from '../../../core/services/company/company.service';
 import { AccountService } from '../../../core/services/account/account.service';
 import { CompanyStorageService } from '../../../core/services/localStorage/company/company-storage.service';
+import { FileUrlHelper } from '../../../core/helper/get-file-url';
 
 @Component({
   selector: 'app-header',
@@ -41,7 +42,7 @@ export class HeaderComponent implements OnInit {
   private companyStorage = inject(CompanyStorageService);
 
   sideNavCollapsed = signal(false);
-  companyLogo = signal<string>('assets/images/logos/company_logo.png');
+  companyLogo = signal<string>('/assets/images/logos/company_logo.png');
   companyName = signal<string>('Company');
   companyEmail = signal<string>('');
 
@@ -64,7 +65,7 @@ export class HeaderComponent implements OnInit {
     if (storedCompany) {
       this.companyName.set(storedCompany.name || 'Company');
       this.companyEmail.set(storedCompany.email || '');
-      this.companyLogo.set(storedCompany.logo || 'assets/images/logos/company_logo.png');
+      this.companyLogo.set(FileUrlHelper.getFullUrl(storedCompany.logo) || 'assets/images/logos/company_logo.png');
       return;
     }
     this.companyService.getCurrentUserCompany().subscribe({
@@ -72,11 +73,11 @@ export class HeaderComponent implements OnInit {
         if (response.success && response.data) {
 
           const company = response.data;
-          
+
           this.companyName.set(response.data.name || 'Company');
           this.companyEmail.set(response.data.email || '');
           if (response.data.logo) {
-            this.companyLogo.set(response.data.logo);
+            this.companyLogo.set(FileUrlHelper.getFullUrl(response.data.logo) || 'assets/images/logos/company_logo.png');
           }
           // 🔥 Save to localStorage
           this.companyStorage.save(company);
@@ -122,4 +123,7 @@ export class HeaderComponent implements OnInit {
 
   logoSize = computed(() => this.sideNavCollapsed() ? '32' : '200');
 
+  openAiChat(): void {
+    this.router.navigate(['/ai-chat']);
+  }
 }

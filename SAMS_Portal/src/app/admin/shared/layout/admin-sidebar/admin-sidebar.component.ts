@@ -76,14 +76,14 @@ export class AdminSidebarComponent implements OnInit {
     //   label: 'Roles & Permissions',
     //   route: '/admin/roles',
     // },
-    {
-      icon: 'subscriptions',
-      label: 'Subscriptions',
-      route: '/admin/subscriptions',
-      subItems: [
-        { icon: 'receipt_long', label: 'Billing', route: 'billing' },
-      ]
-    },
+    // {
+    //   icon: 'subscriptions',
+    //   label: 'Subscriptions',
+    //   route: '/admin/subscriptions',
+    //   subItems: [
+    //     { icon: 'receipt_long', label: 'Billing', route: 'billing' },
+    //   ]
+    // },
     // {
     //   icon: 'inventory_2',
     //   label: 'Asset Management',
@@ -93,25 +93,25 @@ export class AdminSidebarComponent implements OnInit {
     //     { icon: 'local_shipping', label: 'Suppliers', route: 'suppliers' },
     //   ]
     // },
-    {
-      icon: 'bar_chart',
-      label: 'Reports',
-      route: '/admin/reports',
-      subItems: [
-        { icon: 'summarize', label: 'System Reports', route: 'system' },
-        { icon: 'assessment', label: 'Usage Analytics', route: 'analytics' },
-      ]
-    },
+    // {
+    //   icon: 'bar_chart',
+    //   label: 'Reports',
+    //   route: '/admin/reports',
+    //   subItems: [
+    //     { icon: 'summarize', label: 'System Reports', route: 'system' },
+    //     { icon: 'assessment', label: 'Usage Analytics', route: 'analytics' },
+    //   ]
+    // },
     // {
     //   icon: 'notifications_active',
     //   label: 'Notifications',
     //   route: '/admin/notifications',
     // },
-    {
-      icon: 'tune',
-      label: 'System Settings',
-      route: '/admin/settings',
-    },
+    // {
+    //   icon: 'tune',
+    //   label: 'System Settings',
+    //   route: '/admin/settings',
+    // },
   ]);
 
   profilePicSize = computed(() => this.sideNavCollapsed() ? '40' : '72');

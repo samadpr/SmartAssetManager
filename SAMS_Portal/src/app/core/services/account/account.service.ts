@@ -1,9 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../../../../environments/environment.development';
-import { loginresponse, registerconfirm, userLogin, userRegister } from '../../models/interfaces/account/user.model';
+import { forgotPasswordRequest, loginresponse, registerconfirm, resetPasswordRequest, userLogin, userRegister } from '../../models/interfaces/account/user.model';
 import { ApiResponse } from '../../models/interfaces/ApiResponse.interface';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -40,6 +40,22 @@ export class AccountService {
 
   logout(): Observable<ApiResponse> {
     return this.http.post<ApiResponse>(`${this.baseUrl}/account/logout`, {});
+  }
+
+  // ================= FORGOT PASSWORD =================
+  forgotPassword(data: forgotPasswordRequest): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(
+      `${this.baseUrl}/account/forgot-password`,
+      data
+    );
+  }
+
+  // ================= RESET PASSWORD =================
+  resetPassword(data: resetPasswordRequest): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(
+      `${this.baseUrl}/account/reset-password`,
+      data
+    );
   }
 
 

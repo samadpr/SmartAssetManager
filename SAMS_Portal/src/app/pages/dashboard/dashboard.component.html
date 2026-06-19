@@ -1,61 +1,189 @@
-<app-page-header [title]="'Dashboard'" [breadcrumbs]="[
-    { label: 'Dashboard' }
-  ]">
+<app-page-header [title]="'Dashboard'" [breadcrumbs]="[{ label: 'Dashboard' }]">
 </app-page-header>
 
+<!-- ── Global skeleton overlay ──────────────────────────────────────────── -->
+@if (pageLoading()) {
+  <div class="page-skeleton">
+    <div class="sk sk--greeting"></div>
+    <div class="sk-kpi-row">
+      @for (i of [1,2,3,4,5,6,7,8]; track i) { <div class="sk sk--kpi"></div> }
+    </div>
+    <div class="sk-chart-row">
+      <div class="sk sk--chart-lg"></div>
+      <div class="sk sk--chart-sm"></div>
+    </div>
+  </div>
+}
+
+@if (!pageLoading()) {
 <div class="dashboard-wrapper" [@dashFade]>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       ROW 0  KPI CARDS
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════
+       GREETING BAR
+       ════════════════════════════════════════════════════════════════════ -->
+  <div class="greeting-bar">
+    <div class="greeting-left">
+      <div class="greeting-icon-wrap">
+        <mat-icon class="greeting-icon">{{ greetingIcon() }}</mat-icon>
+      </div>
+      <div class="greeting-text">
+        <span class="greeting-main">{{ greeting() }}{{ userName() }}!</span>
+        <span class="greeting-sub">Here's what's happening with your assets today.</span>
+      </div>
+    </div>
+
+    <!-- Health Score Badge -->
+    @if (healthScore(); as hs) {
+      <div class="health-badge" [style.border-color]="healthGradeColor(hs.grade)"
+           matTooltip="Asset Health: {{ hs.gradeLabel }} ({{ hs.score }}/100)">
+        <div class="hb-score" [style.color]="healthGradeColor(hs.grade)">{{ hs.score }}</div>
+        <div class="hb-grade" [style.color]="healthGradeColor(hs.grade)">{{ hs.grade }}</div>
+        <div class="hb-label">Health</div>
+      </div>
+    }
+
+    <div class="greeting-date">
+      <mat-icon>calendar_today</mat-icon>
+      <span>{{ today | date:'EEE, dd MMM yyyy' }}</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       ROW 0 — KPI CARDS (4 columns × 2 rows = 8 cards)
+       ════════════════════════════════════════════════════════════════════ -->
   <section class="kpi-row">
     @for (card of kpiCards(); track card.key; let i = $index) {
       <mat-card class="kpi-card kpi-card--{{ card.color }}"
-                [style.animation-delay]="(i * 60) + 'ms'">
+                [style.animation-delay]="(i * 55) + 'ms'">
         <mat-card-content>
           <div class="kpi-inner">
             <div class="kpi-info">
               <span class="kpi-label">{{ card.label }}</span>
               <span class="kpi-value">
-                @if (kpiLoading()) {
-                  <span class="sk sk--val"></span>
-                } @else if (card.isCurrency) {
-                  {{ formatKpi(card.value) }}
-                } @else {
-                  {{ card.value | number }}
-                }
+                @if (card.isCurrency) { {{ formatKpi(card.value) }} }
+                @else { {{ card.value | number }} }
               </span>
-              @if (!kpiLoading()) {
-                <span class="kpi-trend" [class.up]="card.trend >= 0" [class.dn]="card.trend < 0">
-                  <mat-icon>{{ card.trend >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
-                  {{ card.trend >= 0 ? '+' : '' }}{{ card.trend }}% this month
-                </span>
-              }
+              <span class="kpi-trend" [class.up]="card.trend >= 0" [class.dn]="card.trend < 0">
+                <mat-icon>{{ card.trend >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+                {{ card.trend >= 0 ? '+' : '' }}{{ card.trend }}% vs last month
+              </span>
             </div>
             <div class="kpi-icon">
               <mat-icon>{{ card.icon }}</mat-icon>
             </div>
           </div>
-          <div class="kpi-spark">
-            @if (kpiLoading()) {
-              <span class="sk sk--spark"></span>
-            } @else {
+          @if (card.sparkline.length > 0) {
+            <div class="kpi-spark">
               @for (b of card.sparkline; track $index) {
                 <div class="spark-b" [style.height.%]="b || 5"></div>
               }
-            }
-          </div>
+            </div>
+          } @else {
+            <div class="kpi-spark kpi-spark--empty"></div>
+          }
         </mat-card-content>
       </mat-card>
     }
   </section>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       ROW 1  Asset Status Donut (35%)  +  Growth Line (65%)
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════
+       ASSET HEALTH SCORE — expanded detail
+       ════════════════════════════════════════════════════════════════════ -->
+  @if (healthScore(); as hs) {
+    <mat-card class="dc dc--full health-card">
+      <mat-card-header>
+        <div class="ch-left">
+          <mat-icon class="ci">health_and_safety</mat-icon>
+          <span class="ct">Asset Health Overview</span>
+        </div>
+        <span class="sp"></span>
+        <div class="health-grade-badge" [style.background]="healthGradeColor(hs.grade) + '1a'"
+             [style.color]="healthGradeColor(hs.grade)" [style.border-color]="healthGradeColor(hs.grade)">
+          Grade {{ hs.grade }} — {{ hs.gradeLabel }}
+        </div>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="health-grid">
+          <!-- Score ring -->
+          <div class="health-ring-wrap">
+            <div class="health-ring" [style.--score]="hs.score" [style.--color]="healthGradeColor(hs.grade)">
+              <svg viewBox="0 0 80 80" class="ring-svg">
+                <circle cx="40" cy="40" r="32" class="ring-track"/>
+                <circle cx="40" cy="40" r="32" class="ring-fill"
+                        [style.stroke]="healthGradeColor(hs.grade)"
+                        [style.stroke-dasharray]="(hs.score / 100 * 201) + ' 201'"/>
+              </svg>
+              <div class="ring-center">
+                <span class="ring-num" [style.color]="healthGradeColor(hs.grade)">{{ hs.score }}</span>
+                <span class="ring-of">/ 100</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Distribution bars -->
+          <div class="health-bars">
+            <div class="hb-row">
+              <span class="hb-lbl"><span class="sdot sdot--inuse"></span>In Use</span>
+              <div class="hb-track"><div class="hb-fill" [style.width.%]="hs.inUsePct" style="background:#10b981"></div></div>
+              <span class="hb-pct">{{ hs.inUsePct }}%</span>
+            </div>
+            <div class="hb-row">
+              <span class="hb-lbl"><span class="sdot sdot--available"></span>Available</span>
+              <div class="hb-track"><div class="hb-fill" [style.width.%]="hs.availablePct" style="background:#06b6d4"></div></div>
+              <span class="hb-pct">{{ hs.availablePct }}%</span>
+            </div>
+            <div class="hb-row">
+              <span class="hb-lbl"><span class="sdot sdot--maintenance"></span>Maintenance</span>
+              <div class="hb-track"><div class="hb-fill" [style.width.%]="hs.maintenancePct" style="background:#f59e0b"></div></div>
+              <span class="hb-pct">{{ hs.maintenancePct }}%</span>
+            </div>
+            <div class="hb-row">
+              <span class="hb-lbl"><span class="sdot sdot--damaged"></span>Damaged</span>
+              <div class="hb-track"><div class="hb-fill" [style.width.%]="hs.damagedPct" style="background:#ef4444"></div></div>
+              <span class="hb-pct">{{ hs.damagedPct }}%</span>
+            </div>
+            <div class="hb-row">
+              <span class="hb-lbl"><span class="sdot sdot--expired"></span>Expired</span>
+              <div class="hb-track"><div class="hb-fill" [style.width.%]="hs.expiredPct" style="background:#94a3b8"></div></div>
+              <span class="hb-pct">{{ hs.expiredPct }}%</span>
+            </div>
+          </div>
+
+          <!-- Alert counters -->
+          <div class="health-alerts">
+            <div class="ha-item ha-item--warn">
+              <mat-icon>rule</mat-icon>
+              <div>
+                <div class="ha-val">{{ hs.pendingApprovalCount }}</div>
+                <div class="ha-lbl">Pending Approvals</div>
+              </div>
+            </div>
+            <div class="ha-item ha-item--error">
+              <mat-icon>report_problem</mat-icon>
+              <div>
+                <div class="ha-val">{{ hs.openIssueCount }}</div>
+                <div class="ha-lbl">Open Issues</div>
+              </div>
+            </div>
+            <div class="ha-item ha-item--info">
+              <mat-icon>schedule</mat-icon>
+              <div>
+                <div class="ha-val">{{ hs.warrantyExpiring30Days }}</div>
+                <div class="ha-lbl">Warranties &lt;30 days</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       ROW 1 — Asset Status (35%) + Growth Line (65%)
+       ════════════════════════════════════════════════════════════════════ -->
   <div class="row row--3565">
 
-    <!-- Asset Status -->
+    <!-- Asset Status Donut -->
     <mat-card class="dc">
       <mat-card-header>
         <div class="ch-left">
@@ -69,16 +197,15 @@
         </mat-button-toggle-group>
       </mat-card-header>
       <mat-card-content>
-        @if (chartLoading()) {
-          <div class="sk sk--donut"></div>
-        } @else if (donutTotal() === 0) {
+        @if (chartLoading()) { <div class="sk sk--donut"></div> }
+        @else if (donutTotal() === 0) {
           <div class="empty-chart"><mat-icon>donut_large</mat-icon><p>No data</p></div>
         } @else {
           <div class="cw cw--donut">
             <canvas baseChart [data]="assetStatusChartData()" [options]="doughnutOpts" type="doughnut"></canvas>
             <div class="dc-center">
-              <span class="dc-num">{{ donutTotal() }}</span>
-              <span class="dc-lbl">Total</span>
+              <span class="dc-num">{{ donutTotal() | number }}</span>
+              <span class="dc-lbl">Units</span>
             </div>
           </div>
           <div class="leg">
@@ -86,6 +213,7 @@
               <div class="leg-row">
                 <span class="leg-dot" [style.background]="item.color"></span>
                 <span class="leg-lbl">{{ item.label }}</span>
+                <span class="leg-pct" [style.color]="item.color">{{ item.pct }}%</span>
                 <span class="leg-val">{{ item.value }}</span>
               </div>
             }
@@ -94,7 +222,7 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Asset Growth -->
+    <!-- Asset Growth Line -->
     <mat-card class="dc">
       <mat-card-header>
         <div class="ch-left">
@@ -122,9 +250,9 @@
 
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       ROW 2  Category Bar (65%)  +  Depreciation Bar (35%)
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════
+       ROW 2 — Category Bar (65%) + Depreciation Bar (35%)
+       ════════════════════════════════════════════════════════════════════ -->
   <div class="row row--6535">
 
     <!-- Category Value -->
@@ -137,7 +265,7 @@
         <span class="sp"></span>
         <mat-button-toggle-group [(value)]="categorySort" class="mtg" (change)="rebuildCategoryChart()">
           <mat-button-toggle value="value">Value</mat-button-toggle>
-          <mat-button-toggle value="count">Count</mat-button-toggle>
+          <mat-button-toggle value="count">Units</mat-button-toggle>
         </mat-button-toggle-group>
       </mat-card-header>
       <mat-card-content>
@@ -178,12 +306,12 @@
 
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       ROW 3  Issues HBar (33%)  +  User Polar (33%)  +  Approval (33%)
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════
+       ROW 3 — Issues (33%) + User Dist (33%) + Approval (33%)
+       ════════════════════════════════════════════════════════════════════ -->
   <div class="row row--333">
 
-    <!-- Issues -->
+    <!-- Issues HBar -->
     <mat-card class="dc">
       <mat-card-header>
         <div class="ch-left">
@@ -216,7 +344,7 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- User Distribution -->
+    <!-- User Distribution Doughnut -->
     <mat-card class="dc">
       <mat-card-header>
         <div class="ch-left">
@@ -236,8 +364,8 @@
       <mat-card-content>
         @if (chartLoading()) { <div class="sk sk--donut"></div> }
         @else {
-          <div class="cw cw--polar">
-            <canvas baseChart [data]="userChartData()" [options]="polarOpts" type="polarArea"></canvas>
+          <div class="cw cw--donut360">
+            <canvas baseChart [data]="userChartData()" [options]="userDoughnutOpts" type="doughnut"></canvas>
           </div>
         }
       </mat-card-content>
@@ -251,7 +379,7 @@
           <span class="ct">Approval Pipeline</span>
         </div>
         <span class="sp"></span>
-        <button mat-icon-button routerLink="/assets/asset-approve" matTooltip="View all">
+        <button mat-icon-button routerLink="/asset-management/asset-approve" matTooltip="View all approvals">
           <mat-icon>open_in_new</mat-icon>
         </button>
       </mat-card-header>
@@ -260,6 +388,10 @@
         @else {
           <div class="cw cw--donut">
             <canvas baseChart [data]="approvalChartData()" [options]="doughnutOpts" type="doughnut"></canvas>
+            <div class="dc-center">
+              <span class="dc-num">{{ (approvalBars()[0].value || 0) + (approvalBars()[1].value || 0) + (approvalBars()[2].value || 0) }}</span>
+              <span class="dc-lbl">Total</span>
+            </div>
           </div>
           <div class="appr-bars">
             @for (s of approvalBars(); track s.label) {
@@ -278,9 +410,9 @@
 
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       ROW 4  Sites / Branches  — horizontal scroll (Fix #2)
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════
+       ROW 4 — Sites / Branches horizontal scroll
+       ════════════════════════════════════════════════════════════════════ -->
   <mat-card class="dc dc--full">
     <mat-card-header>
       <div class="ch-left">
@@ -295,36 +427,25 @@
           <mat-option value="2">Branches</mat-option>
         </mat-select>
       </mat-form-field>
-      <button mat-icon-button
-        routerLink="/assets/site-branch-assets-overview"
-        matTooltip="Asset Overview">
+      <button mat-icon-button routerLink="/asset-management/site-branch-assets-overview" matTooltip="Asset Overview">
         <mat-icon>open_in_new</mat-icon>
       </button>
     </mat-card-header>
 
     <mat-card-content>
       @if (siteLoading()) {
-        <!-- Skeleton — horizontal row -->
         <div class="site-scroll-row">
           <div class="site-grid">
-            @for (i of [1,2,3,4]; track i) {
-              <div class="sk sk--site"></div>
-            }
+            @for (i of [1,2,3,4]; track i) { <div class="sk sk--site"></div> }
           </div>
         </div>
       } @else if (filteredSites().length === 0) {
-        <div class="empty-state">
-          <mat-icon>location_off</mat-icon>
-          <p>No sites found</p>
-        </div>
+        <div class="empty-state"><mat-icon>location_off</mat-icon><p>No sites found</p></div>
       } @else {
-        <!-- Horizontal scroll wrapper -->
         <div class="site-scroll-row">
           <div class="site-grid">
             @for (site of filteredSites(); track site.siteId) {
               <div class="stile">
-
-                <!-- Card header -->
                 <div class="stile-head">
                   <div class="stile-ico stile-ico--{{ site.type === 1 ? 'site' : 'branch' }}">
                     <mat-icon>{{ site.type === 1 ? 'domain' : 'account_tree' }}</mat-icon>
@@ -340,11 +461,16 @@
                   </div>
                 </div>
 
-                <!-- Stats band -->
+                <!-- Stats band — 3 metrics -->
                 <div class="stile-stats">
                   <div class="ss">
                     <span class="ss-n">{{ site.assetCount }}</span>
-                    <span class="ss-l">Assets</span>
+                    <span class="ss-l">Units</span>
+                  </div>
+                  <div class="ss-sep"></div>
+                  <div class="ss">
+                    <span class="ss-n" style="color:#10b981">{{ site.inUseCount }}</span>
+                    <span class="ss-l">In Use</span>
                   </div>
                   <div class="ss-sep"></div>
                   <div class="ss">
@@ -353,7 +479,6 @@
                   </div>
                 </div>
 
-                <!-- Asset list — scrolls vertically inside fixed-height card -->
                 <div class="stile-list">
                   @if (site.assets.length === 0) {
                     <div class="stile-empty">No assets assigned</div>
@@ -363,12 +488,14 @@
                         <span class="sdot sdot--{{ a.statusKey }}"></span>
                         <span class="sa-nm">{{ a.name }}</span>
                         <span class="sa-id">{{ a.assetId }}</span>
+                        @if (a.quantity && a.quantity > 1) {
+                          <span class="sa-qty">×{{ a.quantity }}</span>
+                        }
                         <span class="schip schip--{{ a.statusKey }}">{{ a.status }}</span>
                       </div>
                     }
                   }
                 </div>
-
               </div>
             }
           </div>
@@ -377,46 +504,40 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       ROW 5  Recent Assets (60%)  +  Recent Users (40%)
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════
+       ROW 5 — Recent Assets (60%) + Recent Users (40%)
+       ════════════════════════════════════════════════════════════════════ -->
   <div class="row row--6040">
 
-    <!-- ── Recent Assets ────────────────────────────────────── -->
+    <!-- Recent Assets (batch-aware) -->
     <mat-card class="dc dc--table">
       <mat-card-header>
         <div class="ch-left">
           <mat-icon class="ci">inventory_2</mat-icon>
           <span class="ct">Recent Assets</span>
+          <span class="ct-sub">by group</span>
         </div>
         <span class="sp"></span>
-        <!-- <mat-form-field appearance="outline" class="mf mf--search">
-          <mat-icon matPrefix>search</mat-icon>
-          <input matInput placeholder="Search…" [(ngModel)]="assetSearch" (ngModelChange)="filterAssets()">
-        </mat-form-field> -->
-        <button mat-stroked-button class="va-btn" routerLink="/assets">
+        <button mat-stroked-button class="va-btn" routerLink="/asset-management">
           View All<mat-icon iconPositionEnd>chevron_right</mat-icon>
         </button>
       </mat-card-header>
       <mat-card-content class="np">
         @if (tableLoading()) {
           <div class="tskel">
-            @for (i of [1,2,3,4,5,6]; track i) { <div class="sk sk--row"></div> }
+            @for (i of [1,2,3,4,5,6,7,8]; track i) { <div class="sk sk--row"></div> }
           </div>
         } @else {
           <div class="tscroll">
             <table mat-table [dataSource]="recentAssetsDS" class="dt">
 
               <ng-container matColumnDef="name">
-                <th mat-header-cell *matHeaderCellDef>Asset</th>
+                <th mat-header-cell *matHeaderCellDef>Asset / Batch</th>
                 <td mat-cell *matCellDef="let r">
                   <div class="ta-cell">
                     <div class="thumb thumb--asset">
                       @if (hasImg(r.imageUrl)) {
-                        <img class="thumb-img"
-                             [src]="r.imageUrl"
-                             [alt]="r.name"
-                             (error)="onImgError($event)" />
+                        <img class="thumb-img" [src]="r.imageUrl" [alt]="r.name" (error)="onImgError($event)"/>
                         <div class="img-fb at" [style.background]="catColor(r.category)">
                           <mat-icon>{{ catIcon(r.category) }}</mat-icon>
                         </div>
@@ -428,7 +549,10 @@
                     </div>
                     <div class="cell-text">
                       <div class="tp">{{ r.name }}</div>
-                      <div class="ts">{{ r.assetId }}</div>
+                      <div class="ts">
+                        {{ r.batchCode || r.assetId }}
+                        @if (r.isBatch) { <span class="batch-tag">Batch</span> }
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -448,12 +572,16 @@
                 </td>
               </ng-container>
 
-              <!-- Value column — uses company currency via formatKpi -->
-              <ng-container matColumnDef="value">
-                <th mat-header-cell *matHeaderCellDef>Value</th>
-                <td mat-cell *matCellDef="let r" class="tm">
-                  {{ formatKpi(r.value) }}
+              <ng-container matColumnDef="qty">
+                <th mat-header-cell *matHeaderCellDef>Qty</th>
+                <td mat-cell *matCellDef="let r">
+                  <span class="qty-badge" [class.qty-multi]="r.qty > 1">{{ r.qty }}</span>
                 </td>
+              </ng-container>
+
+              <ng-container matColumnDef="value">
+                <th mat-header-cell *matHeaderCellDef>Total Value</th>
+                <td mat-cell *matCellDef="let r" class="tm">{{ formatKpi(r.totalValue || r.value) }}</td>
               </ng-container>
 
               <ng-container matColumnDef="site">
@@ -469,8 +597,7 @@
               </ng-container>
 
               <tr mat-header-row *matHeaderRowDef="assetCols; sticky: true"></tr>
-              <tr mat-row *matRowDef="let r; columns: assetCols;" class="dr"
-                  routerLink="/assets"></tr>
+              <tr mat-row *matRowDef="let r; columns: assetCols;" class="dr" routerLink="/asset-management"></tr>
             </table>
             @if (recentAssetsDS.data.length === 0) {
               <div class="empty-state"><mat-icon>inventory_2</mat-icon><p>No recent assets</p></div>
@@ -480,7 +607,7 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- ── Recent Users ──────────────────────────────────────── -->
+    <!-- Recent Users -->
     <mat-card class="dc dc--table">
       <mat-card-header>
         <div class="ch-left">
@@ -507,17 +634,10 @@
                   <div class="tu-cell">
                     <div class="thumb thumb--user">
                       @if (hasImg(r.profilePic)) {
-                        <img class="thumb-img thumb-img--round"
-                             [src]="r.profilePic"
-                             [alt]="r.fullName"
-                             (error)="onImgError($event)" />
-                        <div class="img-fb ua" [style.background]="userColor(r.fullName)">
-                          {{ initials(r.firstName, r.lastName) }}
-                        </div>
+                        <img class="thumb-img thumb-img--round" [src]="r.profilePic" [alt]="r.fullName" (error)="onImgError($event)"/>
+                        <div class="img-fb ua" [style.background]="userColor(r.fullName)">{{ initials(r.firstName, r.lastName) }}</div>
                       } @else {
-                        <div class="ua" [style.background]="userColor(r.fullName)">
-                          {{ initials(r.firstName, r.lastName) }}
-                        </div>
+                        <div class="ua" [style.background]="userColor(r.fullName)">{{ initials(r.firstName, r.lastName) }}</div>
                       }
                     </div>
                     <div class="cell-text">
@@ -530,28 +650,21 @@
 
               <ng-container matColumnDef="dept">
                 <th mat-header-cell *matHeaderCellDef>Department</th>
-                <td mat-cell *matCellDef="let r">
-                  <span class="ts">{{ r.department }}</span>
-                </td>
+                <td mat-cell *matCellDef="let r"><span class="ts">{{ r.department }}</span></td>
               </ng-container>
 
               <ng-container matColumnDef="role">
                 <th mat-header-cell *matHeaderCellDef>Role</th>
-                <td mat-cell *matCellDef="let r">
-                  <span class="rtag">{{ r.role }}</span>
-                </td>
+                <td mat-cell *matCellDef="let r"><span class="rtag">{{ r.role }}</span></td>
               </ng-container>
 
               <ng-container matColumnDef="date">
                 <th mat-header-cell *matHeaderCellDef>Joined</th>
-                <td mat-cell *matCellDef="let r">
-                  <span class="ts">{{ r.date | date:'dd MMM yy' }}</span>
-                </td>
+                <td mat-cell *matCellDef="let r"><span class="ts">{{ r.date | date:'dd MMM yy' }}</span></td>
               </ng-container>
 
               <tr mat-header-row *matHeaderRowDef="userCols; sticky: true"></tr>
-              <tr mat-row *matRowDef="let r; columns: userCols;" class="dr"
-                  routerLink="/manage-users"></tr>
+              <tr mat-row *matRowDef="let r; columns: userCols;" class="dr" routerLink="/manage-users"></tr>
             </table>
             @if (recentUsersDS.data.length === 0) {
               <div class="empty-state"><mat-icon>people_outline</mat-icon><p>No recent users</p></div>
@@ -563,9 +676,9 @@
 
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       ROW 6  Alerts Triptych
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════════════════════════════════
+       ROW 6 — Alerts Triptych
+       ════════════════════════════════════════════════════════════════════ -->
   <div class="alerts-row">
 
     <!-- Pending Approvals -->
@@ -577,7 +690,7 @@
           <span class="abadge abadge--warn">{{ pendingApprovals().length }}</span>
         </div>
         <span class="sp"></span>
-        <button mat-icon-button routerLink="/assets/asset-approve" matTooltip="View all">
+        <button mat-icon-button routerLink="/asset-management/asset-approve" matTooltip="View all">
           <mat-icon>open_in_new</mat-icon>
         </button>
       </mat-card-header>
@@ -591,23 +704,20 @@
             <div class="aitem aitem--warn">
               <div class="thumb thumb--alert">
                 @if (hasImg(item.assetImageUrl)) {
-                  <img class="thumb-img" [src]="item.assetImageUrl" [alt]="item.assetId"
-                       (error)="onImgError($event)" />
-                  <div class="img-fb alert-ico alert-ico--warn">
-                    <mat-icon>inventory_2</mat-icon>
-                  </div>
+                  <img class="thumb-img" [src]="item.assetImageUrl" [alt]="item.assetId" (error)="onImgError($event)"/>
+                  <div class="img-fb alert-ico alert-ico--warn"><mat-icon>inventory_2</mat-icon></div>
                 } @else {
-                  <div class="alert-ico alert-ico--warn">
-                    <mat-icon>inventory_2</mat-icon>
-                  </div>
+                  <div class="alert-ico alert-ico--warn"><mat-icon>inventory_2</mat-icon></div>
                 }
               </div>
               <div class="ai-body">
                 <div class="tp">{{ item.assetName }}</div>
+                @if (item.batchCode) {
+                  <div class="ts"><span class="batch-tag">{{ item.batchCode }}</span></div>
+                }
                 <div class="ts">
                   @if (hasImg(item.requesterPic)) {
-                    <img class="req-pic" [src]="item.requesterPic"
-                         [alt]="item.requesterName" (error)="onImgError($event)" />
+                    <img class="req-pic" [src]="item.requesterPic" [alt]="item.requesterName" (error)="onImgError($event)"/>
                   } @else {
                     <span class="req-ini" [style.background]="userColor(item.requesterName)">
                       {{ item.requesterName[0].toUpperCase() }}
@@ -616,12 +726,10 @@
                   {{ item.requesterName }} · {{ item.requestedDate | date:'dd MMM' }}
                 </div>
                 @if (item.siteName) {
-                  <div class="ts site-hint">
-                    <mat-icon class="pin-xs">place</mat-icon>{{ item.siteName }}
-                  </div>
+                  <div class="ts site-hint"><mat-icon class="pin-xs">place</mat-icon>{{ item.siteName }}</div>
                 }
               </div>
-              <span class="schip schip--maintenance">Pending</span>
+              <span class="schip schip--pending">Pending</span>
             </div>
           }
         }
@@ -637,7 +745,7 @@
           <span class="abadge abadge--error">{{ openIssues().length }}</span>
         </div>
         <span class="sp"></span>
-        <button mat-icon-button routerLink="/assets/asset-issue" matTooltip="View all">
+        <button mat-icon-button routerLink="/asset-management/asset-issue" matTooltip="View all">
           <mat-icon>open_in_new</mat-icon>
         </button>
       </mat-card-header>
@@ -649,18 +757,12 @@
         } @else {
           @for (issue of openIssues(); track issue.id) {
             <div class="aitem aitem--error">
-              <div class="alert-ico alert-ico--error">
-                <mat-icon>warning_amber</mat-icon>
-              </div>
+              <div class="alert-ico alert-ico--error"><mat-icon>warning_amber</mat-icon></div>
               <div class="ai-body">
                 <div class="tp">{{ issue.assetName }}</div>
-                <div class="ts">
-                  {{ (issue.description || issue.title) | slice:0:52 }}{{ (issue.description || '').length > 52 ? '…' : '' }}
-                </div>
+                <div class="ts">{{ (issue.description || issue.title) | slice:0:55 }}{{ (issue.description || '').length > 55 ? '…' : '' }}</div>
                 @if (issue.priorityLabel) {
-                  <span class="pri-tag {{ priorityClass(issue.priorityKey) }}">
-                    {{ issue.priorityLabel }}
-                  </span>
+                  <span class="pri-tag {{ priorityClass(issue.priorityKey) }}">{{ issue.priorityLabel }}</span>
                 }
               </div>
               <span class="schip schip--{{ issue.statusKey }}">{{ issue.statusLabel }}</span>
@@ -686,25 +788,25 @@
           <div class="empty"><mat-icon>verified</mat-icon><p>All warranties valid</p></div>
         } @else {
           @for (item of warrantyExpiring(); track item.id) {
-            <div class="aitem aitem--info">
-              <div class="alert-ico alert-ico--info">
+            <div class="aitem aitem--{{ item.urgency === 'critical' ? 'error' : item.urgency === 'warn' ? 'warn' : 'info' }}">
+              <div class="alert-ico alert-ico--{{ item.urgency === 'critical' ? 'error' : item.urgency === 'warn' ? 'warn' : 'info' }}">
                 <mat-icon>event_available</mat-icon>
               </div>
               <div class="ai-body">
                 <div class="tp">{{ item.name }}</div>
-                <div class="ts">
-                  {{ item.site ? item.site + ' · ' : '' }}Expires in <strong>{{ item.daysLeft }} days</strong>
-                </div>
+                <div class="ts">{{ item.site ? item.site + ' · ' : '' }}Expires in <strong>{{ item.daysLeft }} days</strong></div>
               </div>
-              <div class="wbadge" [class.wbadge--urgent]="item.daysLeft <= 30">
-                {{ item.daysLeft }}d
-              </div>
+              <div class="wbadge wbadge--{{ item.urgency }}">{{ item.daysLeft }}d</div>
             </div>
           }
         }
       </mat-card-content>
     </mat-card>
 
-  </div><!-- /alerts-row -->
+  </div>
 
-</div><!-- /dashboard-wrapper -->
+</div>
+}
+
+<!-- today helper (TS getter) -->
+<ng-template #noData><span>—</span></ng-template>

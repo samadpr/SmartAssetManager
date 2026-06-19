@@ -3,11 +3,11 @@
   ]">
 </app-page-header>
 
-<div class="reports-hub-container">
-
+<div class="reports-hub">
+ 
   <!-- ══════════════════════ HERO ══════════════════════ -->
-  <div class="reports-hero">
-    <div class="hero-bg-pattern"></div>
+  <div class="rh-hero">
+    <div class="hero-bg-radial"></div>
     <div class="hero-content">
       <div class="hero-icon-wrap">
         <mat-icon>analytics</mat-icon>
@@ -15,161 +15,144 @@
       <div class="hero-text">
         <h1 class="hero-title">Reports &amp; Analytics</h1>
         <p class="hero-subtitle">
-          Comprehensive insights into your asset lifecycle — from acquisition to disposal and every transfer in between.
+          Comprehensive insights into your asset lifecycle — acquisition, transfers,
+          depreciation, disposals, and every movement in between.
         </p>
       </div>
     </div>
-    <div class="hero-shape hero-shape-1"></div>
-    <div class="hero-shape hero-shape-2"></div>
-    <div class="hero-shape hero-shape-3"></div>
+ 
+    <!-- Health score badge -->
+    <div class="hero-health" *ngIf="healthScore() && !loadingCharts()">
+      <div class="hh-score" [style.color]="healthGradeColor()">
+        {{ healthScore().score ?? 0 }}
+      </div>
+      <div class="hh-label">Health Score</div>
+      <div class="hh-grade" [style.color]="healthGradeColor()">{{ healthScore().grade }}</div>
+    </div>
+ 
+    <div class="hero-shapes">
+      <div class="hs hs-1"></div>
+      <div class="hs hs-2"></div>
+      <div class="hs hs-3"></div>
+    </div>
   </div>
-
-  <!-- ══════════════════ KPI STRIP ══════════════════ -->
+ 
+  <!-- ══════════════════════ KPI STRIP ══════════════════════ -->
   <div class="kpi-strip" *ngIf="!loadingKpi()">
-    <div class="kpi-item" *ngFor="let kpi of kpiItems(); let i = index"
-      [style.animation-delay]="(i * 0.07) + 's'">
-      <div class="kpi-icon-wrap" [style.background]="kpi.gradient">
+    <div class="kpi-card"
+         *ngFor="let kpi of kpiItems(); let i = index"
+         [style.animation-delay]="(i * 0.06) + 's'"
+         [style.cursor]="kpi.route ? 'pointer' : 'default'"
+         (click)="kpi.route && navigateTo(kpi.route)"
+         [matTooltip]="kpi.route ? 'View ' + kpi.label : ''"
+         matRipple [matRippleDisabled]="!kpi.route">
+      <div class="kc-icon-wrap" [style.background]="kpi.gradient">
         <mat-icon>{{ kpi.icon }}</mat-icon>
       </div>
-      <div class="kpi-detail">
-        <div class="kpi-val">{{ kpi.value }}</div>
-        <div class="kpi-label">{{ kpi.label }}</div>
+      <div class="kc-body">
+        <div class="kc-val">{{ kpi.value }}</div>
+        <div class="kc-lbl">{{ kpi.label }}</div>
       </div>
-      <div class="kpi-accent-line" [style.background]="kpi.gradient"></div>
+      <div class="kc-accent" [style.background]="kpi.gradient"></div>
     </div>
   </div>
+ 
   <!-- KPI skeleton -->
   <div class="kpi-strip" *ngIf="loadingKpi()">
-    <div class="kpi-item kpi-skeleton" *ngFor="let s of [1,2,3,4,5,6]">
-      <div class="skel-icon"></div>
-      <div class="skel-text">
-        <div class="skel-line skel-val"></div>
-        <div class="skel-line skel-lbl"></div>
+    <div class="kpi-card kpi-skel" *ngFor="let s of [1,2,3,4,5,6,7,8]">
+      <div class="sk-ico"></div>
+      <div class="sk-lines">
+        <div class="sk-line sk-val"></div>
+        <div class="sk-line sk-lbl"></div>
       </div>
     </div>
   </div>
-
-  <!-- ══════════════════ REPORT NAV CARDS ══════════════════ -->
-  <div class="report-nav-section">
-    <h2 class="section-heading">
+ 
+  <!-- ══════════════════════ REPORT NAV CARDS ══════════════════════ -->
+  <div class="rh-section">
+    <div class="rh-section-header">
       <mat-icon>folder_open</mat-icon>
-      Available Reports
-    </h2>
+      <span>Available Reports</span>
+    </div>
     <div class="report-cards-grid">
-
-      <!-- Asset Report Card -->
-      <div class="report-nav-card report-card-asset"
-        (click)="navigateTo('/reports/asset-reports')"
-        matRipple role="button" tabindex="0"
-        (keydown.enter)="navigateTo('/reports/asset-reports')">
+      <div *ngFor="let card of reportCards"
+           class="rnc"
+           [style.--card-gradient]="card.gradient"
+           (click)="navigateTo(card.route)"
+           matRipple role="button" tabindex="0"
+           (keydown.enter)="navigateTo(card.route)">
+ 
         <div class="rnc-glow"></div>
+ 
         <div class="rnc-top">
-          <div class="rnc-icon-wrap"><mat-icon>assessment</mat-icon></div>
-          <mat-chip class="rnc-badge">3 report types</mat-chip>
+          <div class="rnc-icon-wrap" [style.background]="card.gradient">
+            <mat-icon>{{ card.icon }}</mat-icon>
+          </div>
+          <span class="rnc-badge">{{ card.badgeLabel }}</span>
         </div>
+ 
         <div class="rnc-body">
-          <h3 class="rnc-title">Asset Reports</h3>
-          <p class="rnc-desc">
-            Full asset inventory, depreciation schedules, and disposal summaries — with advanced filters, export to PDF/Excel/CSV, and print.
-          </p>
+          <h3 class="rnc-title">{{ card.title }}</h3>
+          <p class="rnc-desc">{{ card.description }}</p>
         </div>
+ 
         <div class="rnc-features">
-          <span class="feat-chip"><mat-icon>inventory_2</mat-icon> Full Inventory</span>
-          <span class="feat-chip"><mat-icon>trending_down</mat-icon> Depreciation</span>
-          <span class="feat-chip"><mat-icon>delete_forever</mat-icon> Disposal</span>
+          <span class="feat-chip" *ngFor="let f of card.features">
+            <mat-icon>{{ f.icon }}</mat-icon>{{ f.label }}
+          </span>
         </div>
+ 
         <div class="rnc-footer">
-          <button mat-flat-button class="rnc-btn" color="primary"
-            (click)="$event.stopPropagation(); navigateTo('/reports/asset-reports')">
-            <mat-icon>open_in_new</mat-icon>
-            Open Report
+          <button mat-flat-button
+                  [class]="'rnc-btn ' + card.btnClass"
+                  (click)="$event.stopPropagation(); navigateTo(card.route)">
+            <mat-icon>open_in_new</mat-icon> Open Report
           </button>
           <mat-icon class="rnc-arrow">arrow_forward</mat-icon>
         </div>
       </div>
-
-      <!-- Transfer Report Card -->
-      <div class="report-nav-card report-card-transfer"
-        (click)="navigateTo('/reports/asset-transfer-reports')"
-        matRipple role="button" tabindex="0"
-        (keydown.enter)="navigateTo('/reports/asset-transfer-reports')">
-        <div class="rnc-glow"></div>
-        <div class="rnc-top">
-          <div class="rnc-icon-wrap"><mat-icon>receipt_long</mat-icon></div>
-          <mat-chip class="rnc-badge">Timeline &amp; Table</mat-chip>
-        </div>
-        <div class="rnc-body">
-          <h3 class="rnc-title">Transfer Reports</h3>
-          <p class="rnc-desc">
-            Complete transfer chain history per asset — holders, approval stages, hold durations, and full lifecycle visibility.
-          </p>
-        </div>
-        <div class="rnc-features">
-          <span class="feat-chip"><mat-icon>swap_horiz</mat-icon> Transfer Chain</span>
-          <span class="feat-chip"><mat-icon>timeline</mat-icon> Timeline View</span>
-          <span class="feat-chip"><mat-icon>how_to_reg</mat-icon> Approval Track</span>
-        </div>
-        <div class="rnc-footer">
-          <button mat-flat-button class="rnc-btn rnc-btn-transfer"
-            (click)="$event.stopPropagation(); navigateTo('/reports/asset-transfer-reports')">
-            <mat-icon>open_in_new</mat-icon>
-            Open Report
-          </button>
-          <mat-icon class="rnc-arrow">arrow_forward</mat-icon>
-        </div>
-      </div>
-
     </div>
   </div>
-
-  <!-- ══════════════════ CHARTS ══════════════════ -->
-  <div class="charts-section" *ngIf="!loadingCharts()">
-    <h2 class="section-heading">
+ 
+  <!-- ══════════════════════ CHARTS ══════════════════════ -->
+  <div class="rh-section" *ngIf="!loadingCharts()">
+    <div class="rh-section-header">
       <mat-icon>bar_chart</mat-icon>
-      Quick Overview
-    </h2>
+      <span>Quick Overview</span>
+    </div>
+ 
     <div class="charts-grid">
-
+ 
       <!-- ── Donut: Asset Status ── -->
-      <mat-card class="chart-card chart-donut-card">
+      <mat-card class="chart-card donut-card">
         <mat-card-content>
           <div class="cc-header">
             <div class="cc-title-row">
-              <mat-icon class="cc-icon" style="color: var(--mat-sys-primary)">donut_large</mat-icon>
+              <mat-icon class="cc-icon" style="color:var(--mat-sys-primary)">donut_large</mat-icon>
               <span class="cc-title">Asset Status Distribution</span>
             </div>
             <span class="cc-badge">All Assets</span>
           </div>
-
-          <!-- SVG donut — fixed viewBox so circle is perfectly centred -->
+ 
           <div class="donut-wrap">
-            <svg viewBox="0 0 200 200" class="donut-svg"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-label="Asset status distribution donut chart">
-              <!-- Track ring -->
-              <circle cx="100" cy="100" r="72"
-                fill="none"
-                stroke="var(--mat-sys-surface-container-highest)"
-                stroke-width="24"/>
-              <!-- Data segments -->
+            <svg viewBox="0 0 200 200" class="donut-svg" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="100" cy="100" r="72" fill="none"
+                      stroke="var(--mat-sys-surface-container-highest)" stroke-width="24"/>
               <circle *ngFor="let seg of donutSegments(); let i = index"
-                cx="100" cy="100" r="72"
-                fill="none"
-                [attr.stroke]="seg.color"
-                stroke-width="24"
-                stroke-linecap="butt"
-                [attr.stroke-dasharray]="seg.dash"
-                [attr.stroke-dashoffset]="seg.offset"
-                transform="rotate(-90 100 100)"
-                class="donut-seg"
-                [style.animation-delay]="(i * 0.1) + 's'"/>
-              <!-- Centre label -->
-              <text x="100" y="96" text-anchor="middle" class="donut-centre-val">{{ totalAssetsCount() }}</text>
+                      cx="100" cy="100" r="72" fill="none"
+                      [attr.stroke]="seg.color" stroke-width="24" stroke-linecap="butt"
+                      [attr.stroke-dasharray]="seg.dash"
+                      [attr.stroke-dashoffset]="seg.offset"
+                      transform="rotate(-90 100 100)"
+                      class="donut-seg"
+                      [style.animation-delay]="(i * 0.1) + 's'"/>
+              <text x="100" y="96" text-anchor="middle" class="donut-centre-val">
+                {{ totalAssetsCount() }}
+              </text>
               <text x="100" y="114" text-anchor="middle" class="donut-centre-lbl">TOTAL</text>
             </svg>
           </div>
-
-          <!-- Legend -->
+ 
           <div class="donut-legend">
             <div class="dl-item" *ngFor="let seg of donutSegments()">
               <span class="dl-dot" [style.background]="seg.color"></span>
@@ -179,63 +162,57 @@
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
       <!-- ── Bar: Asset Growth ── -->
-      <mat-card class="chart-card chart-bar-card">
+      <mat-card class="chart-card bar-card">
         <mat-card-content>
           <div class="cc-header">
             <div class="cc-title-row">
-              <mat-icon class="cc-icon" style="color: #4caf50">bar_chart</mat-icon>
+              <mat-icon class="cc-icon" style="color:#4caf50">bar_chart</mat-icon>
               <span class="cc-title">Asset Growth (Last 6 Months)</span>
             </div>
             <span class="cc-badge">Acquired vs Disposed</span>
           </div>
-
+ 
           <div class="bar-chart-outer">
-            <!-- Y-axis hint lines -->
             <div class="bar-grid-lines">
               <div class="bar-grid-line" *ngFor="let l of [1,2,3,4]"></div>
             </div>
-            <!-- Bars -->
             <div class="bar-chart">
-              <div *ngFor="let bar of growthBars(); let i = index" class="bar-group"
-                [style.animation-delay]="(i * 0.09) + 's'">
+              <div *ngFor="let bar of growthBars(); let i = index"
+                   class="bar-group" [style.animation-delay]="(i * 0.09) + 's'">
                 <div class="bars-col">
-                  <div class="bar bar-acquired"
-                    [style.height.%]="bar.acquiredPct || 0"
-                    [matTooltip]="'Acquired: ' + bar.acquired"
-                    matTooltipPosition="above"></div>
-                  <div class="bar bar-disposed"
-                    [style.height.%]="bar.disposedPct || 0"
-                    [matTooltip]="'Disposed: ' + bar.disposed"
-                    matTooltipPosition="above"></div>
+                  <div class="bar bar-acquired" [style.height.%]="bar.acquiredPct || 0"
+                       [matTooltip]="'Acquired: ' + bar.acquired"></div>
+                  <div class="bar bar-disposed" [style.height.%]="bar.disposedPct || 0"
+                       [matTooltip]="'Disposed: ' + bar.disposed"></div>
                 </div>
                 <div class="bar-label">{{ bar.month }}</div>
               </div>
             </div>
           </div>
-
+ 
           <div class="bar-legend">
             <span class="bl-item"><span class="bl-dot bl-acquired"></span>Acquired</span>
             <span class="bl-item"><span class="bl-dot bl-disposed"></span>Disposed</span>
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
       <!-- ── Horizontal bar: Top Categories ── -->
-      <mat-card class="chart-card chart-hbar-card">
+      <mat-card class="chart-card hbar-card">
         <mat-card-content>
           <div class="cc-header">
             <div class="cc-title-row">
-              <mat-icon class="cc-icon" style="color: #ff9800">category</mat-icon>
+              <mat-icon class="cc-icon" style="color:#ff9800">category</mat-icon>
               <span class="cc-title">Top Categories by Value</span>
             </div>
             <span class="cc-badge">Asset Value</span>
           </div>
-
+ 
           <div class="hbar-list">
             <div *ngFor="let cat of topCategories(); let i = index" class="hbar-item"
-              [style.animation-delay]="(i * 0.09) + 's'">
+                 [style.animation-delay]="(i * 0.09) + 's'">
               <div class="hbar-meta-row">
                 <div class="hbar-rank" [style.background]="cat.color">{{ i + 1 }}</div>
                 <span class="hbar-label">{{ cat.label }}</span>
@@ -243,113 +220,250 @@
               </div>
               <div class="hbar-track">
                 <div class="hbar-fill"
-                  [style.width.%]="cat.pct"
-                  [style.background]="'linear-gradient(90deg,' + cat.color + ' 0%, ' + cat.colorLight + ' 100%)'">
+                     [style.width.%]="cat.pct"
+                     [style.background]="'linear-gradient(90deg,'+cat.color+','+cat.colorLight+')'">
                 </div>
               </div>
               <div class="hbar-footer-row">
                 <span class="hbar-count">{{ cat.count }} asset{{ cat.count !== 1 ? 's' : '' }}</span>
-                <span class="hbar-pct-lbl">{{ cat.pct }}%</span>
+                <span class="hbar-pct">{{ cat.pct }}%</span>
               </div>
             </div>
-            <div *ngIf="topCategories().length === 0" class="no-chart-data">
-              <mat-icon>info</mat-icon>
-              <span>No category data available</span>
+            <div class="no-chart-data" *ngIf="topCategories().length === 0">
+              <mat-icon>info</mat-icon><span>No category data</span>
             </div>
           </div>
         </mat-card-content>
       </mat-card>
-
+ 
     </div>
   </div>
-
-  <!-- Charts loading skeleton -->
-  <div class="charts-section" *ngIf="loadingCharts()">
-    <h2 class="section-heading"><mat-icon>bar_chart</mat-icon> Quick Overview</h2>
+ 
+  <!-- Charts skeleton -->
+  <div class="rh-section" *ngIf="loadingCharts()">
     <div class="charts-grid">
       <mat-card class="chart-card" *ngFor="let s of [1,2,3]">
         <mat-card-content>
-          <div class="skel-line" style="width:55%;height:13px;border-radius:6px;margin-bottom:18px;
-            background:var(--mat-sys-surface-container-highest);animation:shimmer 1.4s infinite;"></div>
-          <div class="skel-chart-body"></div>
+          <div class="sk-line" style="width:55%;height:13px;border-radius:6px;margin-bottom:18px;background:var(--mat-sys-surface-container-highest);animation:shimmer 1.4s infinite;"></div>
+          <div class="skel-chart"></div>
         </mat-card-content>
       </mat-card>
     </div>
   </div>
-
-  <!-- ══════════════════ QUICK INSIGHTS ══════════════════ -->
-  <div class="insights-section" *ngIf="!loadingCharts()">
-    <h2 class="section-heading">
-      <mat-icon>lightbulb</mat-icon>
-      Quick Insights
-    </h2>
-    <div class="insights-grid">
-
-      <mat-card class="insight-card insight-warning" *ngIf="warrantyAlertCount() > 0">
-        <mat-card-content>
-          <div class="insight-inner">
-            <div class="insight-icon-wrap warning-icon"><mat-icon>warning_amber</mat-icon></div>
-            <div class="insight-detail">
-              <div class="insight-val">{{ warrantyAlertCount() }}</div>
-              <div class="insight-label">Assets Warranty Expiring (90 days)</div>
-            </div>
-            <button mat-icon-button color="warn" matTooltip="View in Asset Reports"
-              (click)="navigateTo('/reports/asset-reports')">
-              <mat-icon>arrow_forward</mat-icon>
-            </button>
+ 
+  <!-- ══════════════════════ HEALTH SCORE ══════════════════════ -->
+  <div class="rh-section" *ngIf="healthScore() && !loadingCharts()">
+    <div class="rh-section-header">
+      <mat-icon>health_and_safety</mat-icon>
+      <span>Asset Health Score</span>
+    </div>
+ 
+    <mat-card class="health-card">
+      <mat-card-content>
+        <div class="health-inner">
+ 
+          <!-- Score circle -->
+          <div class="health-score-wrap">
+            <svg viewBox="0 0 120 120" class="health-svg">
+              <circle cx="60" cy="60" r="52" fill="none"
+                      stroke="var(--mat-sys-surface-container-highest)" stroke-width="10"/>
+              <circle cx="60" cy="60" r="52" fill="none"
+                      [attr.stroke]="healthGradeColor()" stroke-width="10"
+                      stroke-linecap="round"
+                      [attr.stroke-dasharray]="326.73"
+                      [attr.stroke-dashoffset]="326.73 * (1 - (healthScore().score ?? 0) / 100)"
+                      transform="rotate(-90 60 60)"
+                      class="health-arc"/>
+              <text x="60" y="57" text-anchor="middle" class="health-score-text"
+                    [attr.fill]="healthGradeColor()">
+                {{ healthScore().score ?? 0 }}
+              </text>
+              <text x="60" y="72" text-anchor="middle" class="health-grade-text"
+                    [attr.fill]="healthGradeColor()">
+                {{ healthScore().grade }}
+              </text>
+            </svg>
+            <div class="health-grade-label">{{ healthScore().gradeLabel }}</div>
           </div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="insight-card insight-pending" *ngIf="pendingApprovalCount() > 0">
-        <mat-card-content>
-          <div class="insight-inner">
-            <div class="insight-icon-wrap pending-icon"><mat-icon>pending_actions</mat-icon></div>
-            <div class="insight-detail">
-              <div class="insight-val">{{ pendingApprovalCount() }}</div>
-              <div class="insight-label">Pending Transfer Approvals</div>
+ 
+          <!-- Health breakdown bars -->
+          <div class="health-breakdown">
+            <div class="hb-item" *ngIf="healthScore().availablePct != null">
+              <div class="hb-label">
+                <span>Available</span>
+                <span>{{ healthScore().availablePct | number:'1.0-1' }}%</span>
+              </div>
+              <mat-progress-bar mode="determinate" [value]="healthScore().availablePct" color="primary"></mat-progress-bar>
             </div>
-            <button mat-icon-button color="accent" matTooltip="View in Transfer Reports"
-              (click)="navigateTo('/reports/asset-transfer-reports')">
-              <mat-icon>arrow_forward</mat-icon>
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="insight-card insight-info">
-        <mat-card-content>
-          <div class="insight-inner">
-            <div class="insight-icon-wrap info-icon"><mat-icon>trending_down</mat-icon></div>
-            <div class="insight-detail">
-              <div class="insight-val">{{ depreciableCount() }}</div>
-              <div class="insight-label">Depreciable Assets Tracked</div>
+            <div class="hb-item" *ngIf="healthScore().inUsePct != null">
+              <div class="hb-label">
+                <span>In Use</span>
+                <span>{{ healthScore().inUsePct | number:'1.0-1' }}%</span>
+              </div>
+              <mat-progress-bar mode="determinate" [value]="healthScore().inUsePct" color="accent"></mat-progress-bar>
             </div>
-            <button mat-icon-button color="primary" matTooltip="View Depreciation Report"
-              (click)="navigateTo('/reports/asset-reports')">
-              <mat-icon>arrow_forward</mat-icon>
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="insight-card insight-success">
-        <mat-card-content>
-          <div class="insight-inner">
-            <div class="insight-icon-wrap success-icon"><mat-icon>swap_horiz</mat-icon></div>
-            <div class="insight-detail">
-              <div class="insight-val">{{ totalTransferLegs() }}</div>
-              <div class="insight-label">Total Transfer Legs Recorded</div>
+            <div class="hb-item" *ngIf="healthScore().damagedPct != null">
+              <div class="hb-label">
+                <span>Damaged</span>
+                <span>{{ healthScore().damagedPct | number:'1.0-1' }}%</span>
+              </div>
+              <mat-progress-bar mode="determinate" [value]="healthScore().damagedPct" color="warn"></mat-progress-bar>
             </div>
-            <button mat-icon-button matTooltip="View Transfer Reports"
-              (click)="navigateTo('/reports/asset-transfer-reports')">
-              <mat-icon>arrow_forward</mat-icon>
-            </button>
+            <div class="hb-item" *ngIf="healthScore().maintenancePct != null">
+              <div class="hb-label">
+                <span>Under Maintenance</span>
+                <span>{{ healthScore().maintenancePct | number:'1.0-1' }}%</span>
+              </div>
+              <mat-progress-bar mode="determinate" [value]="healthScore().maintenancePct"></mat-progress-bar>
+            </div>
           </div>
-        </mat-card-content>
-      </mat-card>
-
+ 
+          <!-- Health alerts -->
+          <div class="health-alerts">
+            <div class="ha-item ha-warn" *ngIf="healthScore().pendingApprovalCount > 0">
+              <mat-icon>pending_actions</mat-icon>
+              <span>{{ healthScore().pendingApprovalCount }} pending approval(s)</span>
+              <button mat-icon-button matTooltip="View" (click)="navigateTo('/reports/asset-transfer-reports')">
+                <mat-icon>arrow_forward</mat-icon>
+              </button>
+            </div>
+            <div class="ha-item ha-issue" *ngIf="healthScore().openIssueCount > 0">
+              <mat-icon>report_problem</mat-icon>
+              <span>{{ healthScore().openIssueCount }} open issue(s)</span>
+              <button mat-icon-button matTooltip="View" (click)="navigateTo('/asset-management/asset-issue')">
+                <mat-icon>arrow_forward</mat-icon>
+              </button>
+            </div>
+            <div class="ha-item ha-warranty" *ngIf="healthScore().warrantyExpiring30Days > 0">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ healthScore().warrantyExpiring30Days }} warranty expiring in 30 days</span>
+            </div>
+          </div>
+ 
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+ 
+  <!-- ══════════════════════ PENDING APPROVALS + WARRANTY ══════════════════════ -->
+  <div class="rh-section two-col-section" *ngIf="!loadingCharts()">
+ 
+    <!-- Pending Approvals -->
+    <mat-card class="side-card" *ngIf="pendingApprovalsList().length > 0">
+      <mat-card-content>
+        <div class="sc-header">
+          <mat-icon>pending_actions</mat-icon>
+          <span class="sc-title">Recent Pending Approvals</span>
+          <button mat-button class="sc-link" (click)="navigateTo('/reports/asset-transfer-reports')">
+            View All <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+        <div class="approval-list">
+          <div class="al-item" *ngFor="let ap of pendingApprovalsList()">
+            <img *ngIf="getImageUrl(ap.assetImageUrl)"
+                 [src]="getImageUrl(ap.assetImageUrl)" class="al-img" (error)="onImageError($event)" />
+            <mat-icon *ngIf="!getImageUrl(ap.assetImageUrl)" class="al-icon">inventory_2</mat-icon>
+            <div class="al-info">
+              <div class="al-title">{{ ap.assetName || ap.assetId }}</div>
+              <div class="al-sub">
+                <span *ngIf="ap.batchCode" class="al-batch"><mat-icon>tag</mat-icon>{{ ap.batchCode }}</span>
+                By: {{ ap.requestedByName || ap.requestedByEmail }}
+              </div>
+            </div>
+            <div class="al-right">
+              <span class="al-type">{{ ap.assetType }}</span>
+              <span class="al-date">{{ formatDate(ap.requestedDate) }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+ 
+    <!-- Warranty Expiring -->
+    <mat-card class="side-card" *ngIf="insightCards().length > 0">
+      <mat-card-content>
+        <div class="sc-header">
+          <mat-icon>insights</mat-icon>
+          <span class="sc-title">Quick Insights</span>
+        </div>
+        <div class="insights-list">
+          <div class="insight-item"
+               *ngFor="let ins of insightCards()"
+               [style.border-color]="ins.borderColor"
+               [class.insight-urgent]="ins.urgent"
+               (click)="navigateTo(ins.route)" matRipple>
+            <div class="ii-icon-wrap" [style.background]="ins.gradient">
+              <mat-icon>{{ ins.icon }}</mat-icon>
+            </div>
+            <div class="ii-info">
+              <div class="ii-val">{{ ins.value }}</div>
+              <div class="ii-label">{{ ins.label }}</div>
+            </div>
+            <mat-icon class="ii-arrow">arrow_forward</mat-icon>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+ 
+  </div>
+ 
+  <!-- ══════════════════════ TRANSFER SUMMARY STRIP ══════════════════════ -->
+  <div class="rh-section" *ngIf="transferSummary() && !loadingCharts()">
+    <div class="rh-section-header">
+      <mat-icon>swap_horiz</mat-icon>
+      <span>Transfer Overview</span>
+      <button mat-button class="sh-link" (click)="navigateTo('/reports/asset-transfer-reports')">
+        Full Report <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+ 
+    <div class="transfer-overview-strip">
+      <div class="to-stat">
+        <div class="to-icon-wrap" style="background:linear-gradient(135deg,#1976d2,#0d47a1)">
+          <mat-icon>inventory_2</mat-icon>
+        </div>
+        <div class="to-body">
+          <div class="to-val">{{ transferSummary()?.totalAssets }}</div>
+          <div class="to-lbl">Total Assets Tracked</div>
+        </div>
+      </div>
+      <div class="to-stat">
+        <div class="to-icon-wrap" style="background:linear-gradient(135deg,#43a047,#2e7d32)">
+          <mat-icon>check_circle</mat-icon>
+        </div>
+        <div class="to-body">
+          <div class="to-val">{{ transferSummary()?.totalActiveAssets }}</div>
+          <div class="to-lbl">Active Assets</div>
+        </div>
+      </div>
+      <div class="to-stat">
+        <div class="to-icon-wrap" style="background:linear-gradient(135deg,#673ab7,#4527a0)">
+          <mat-icon>swap_horiz</mat-icon>
+        </div>
+        <div class="to-body">
+          <div class="to-val">{{ transferSummary()?.totalTransferLegs }}</div>
+          <div class="to-lbl">Total Transfer Legs</div>
+        </div>
+      </div>
+      <div class="to-stat">
+        <div class="to-icon-wrap" style="background:linear-gradient(135deg,#e53935,#b71c1c)">
+          <mat-icon>delete_forever</mat-icon>
+        </div>
+        <div class="to-body">
+          <div class="to-val">{{ transferSummary()?.totalDisposedAssets }}</div>
+          <div class="to-lbl">Disposed</div>
+        </div>
+      </div>
+      <div class="to-stat">
+        <div class="to-icon-wrap" style="background:linear-gradient(135deg,#fb8c00,#e65100)">
+          <mat-icon>pending_actions</mat-icon>
+        </div>
+        <div class="to-body">
+          <div class="to-val">{{ transferSummary()?.totalPendingApprovals }}</div>
+          <div class="to-lbl">Pending Approvals</div>
+        </div>
+      </div>
     </div>
   </div>
-
-</div>
+ 
+</div><!-- /reports-hub -->

@@ -53,7 +53,7 @@ export class AssetsIssueComponent implements OnInit {
 
   // ─── List Config — follows department pattern exactly ─────────────
   listConfig: ListConfig = {
-    title: 'Asset Issues',
+    title: 'Asset Tickets',
     showSearch: true,
     showRefresh: true,
     showDownload: true,

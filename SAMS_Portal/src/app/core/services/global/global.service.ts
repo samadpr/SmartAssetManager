@@ -14,7 +14,7 @@ export class GlobalService {
 
   public showSnackbar(message: string, type: 'success' | 'error' | 'info' | 'warning'): void {
     this.snackBar.open(message, 'Close', {
-      duration: 3000,
+      duration: 5000,
       panelClass: [type === 'success' ? 'snackbar-success' : 'snackbar-error'],
     });
   }

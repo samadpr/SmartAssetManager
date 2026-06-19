@@ -1,0 +1,58 @@
+.unauthorized-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      padding: 2rem;
+    }
+    .content {
+      text-align: center;
+      max-width: 480px;
+    }
+    .icon-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .lock-icon {
+      font-size: 5rem;
+      width: 5rem;
+      height: 5rem;
+      color: var(--mat-sys-error, #ef4444);
+      opacity: 0.7;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: var(--mat-sys-on-surface);
+    }
+    .message {
+      font-size: 1.1rem;
+      color: var(--mat-sys-on-surface-variant);
+      margin-bottom: 1rem;
+    }
+    .sub-message {
+      font-size: 0.9rem;
+      color: var(--mat-sys-on-surface-variant);
+      margin-bottom: 2rem;
+    }
+    .role-tag {
+      display: inline-block;
+      background: var(--mat-sys-primary-container);
+      color: var(--mat-sys-on-primary-container);
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      margin: 2px 3px;
+    }
+    .no-role {
+      color: var(--mat-sys-error);
+      font-style: italic;
+    }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }

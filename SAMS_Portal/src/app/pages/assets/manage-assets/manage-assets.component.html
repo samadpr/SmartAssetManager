@@ -5,215 +5,618 @@
 
 <div class="assets-page">
  
-  <!-- ═══ ASSET LIMIT BANNER — only when limit is near (≤10 remaining) or reached ═══ -->
+  <!-- ══════════════════════ LIMIT BANNER ══════════════════════ -->
   <div class="limit-banner"
        *ngIf="showLimitBanner()"
        [class.limit-reached]="isLimitReached()"
        [class.limit-warning]="!isLimitReached() && remainingAssets() <= 10"
        [@bannerSlide]>
- 
-    <!-- Icon ring -->
     <div class="limit-banner-icon">
-      <mat-icon *ngIf="isLimitReached()">lock</mat-icon>
-      <mat-icon *ngIf="!isLimitReached()">warning_amber</mat-icon>
+      <mat-icon>{{ isLimitReached() ? 'lock' : 'warning_amber' }}</mat-icon>
     </div>
- 
-    <!-- Text content -->
     <div class="limit-banner-body">
-      <span class="limit-banner-title" *ngIf="isLimitReached()">
-        Asset Limit Reached
-      </span>
-      <span class="limit-banner-title" *ngIf="!isLimitReached()">
-        Approaching Asset Limit
-      </span>
- 
+      <span class="limit-banner-title">{{ isLimitReached() ? 'Asset Limit Reached' : 'Approaching Asset Limit' }}</span>
       <span class="limit-banner-desc" *ngIf="isLimitReached()">
-        You have reached your plan's asset limit of
-        <strong>{{ assetLimit() }}</strong> assets.
-        Upgrade your plan to add more assets.
+        Reached plan limit of <strong>{{ assetLimit() }}</strong> assets. Upgrade to add more.
       </span>
       <span class="limit-banner-desc" *ngIf="!isLimitReached()">
-        You have used <strong>{{ totalAssets() }}</strong> of
-        <strong>{{ assetLimit() }}</strong> assets.
+        Used <strong>{{ totalUnits() }}</strong> of <strong>{{ assetLimit() }}</strong>.
         Only <strong>{{ remainingAssets() }}</strong> slot{{ remainingAssets() === 1 ? '' : 's' }} remaining.
       </span>
     </div>
- 
-    <!-- Progress pill -->
-    <div class="limit-banner-progress">
-      <div class="limit-pill">
-        <span class="pill-used">{{ totalAssets() }}</span>
-        <span class="pill-sep">/</span>
-        <span class="pill-total">{{ assetLimit() }}</span>
+    <div class="limit-progress">
+      <div class="lp-bar-track">
+        <div class="lp-bar-fill"
+             [style.width]="limitPercent() + '%'"
+             [class.bar-warn]="!isLimitReached()"
+             [class.bar-danger]="isLimitReached()"></div>
       </div>
-      <div class="limit-bar-wrap">
-        <div class="limit-bar-track">
-          <div class="limit-bar-fill"
-               [style.width]="limitPercent() + '%'"
-               [class.bar-warning]="!isLimitReached() && remainingAssets() <= 10"
-               [class.bar-danger]="isLimitReached()">
-          </div>
-        </div>
-        <span class="limit-pct">{{ limitPercent() | number:'1.0-0' }}%</span>
-      </div>
+      <span class="lp-pct">{{ limitPercent() | number:'1.0-0' }}%</span>
     </div>
- 
-    <!-- CTA -->
-    <div class="limit-banner-actions">
-      <button mat-raised-button
-              class="upgrade-btn"
-              (click)="goToUpgrade()"
-              *ngIf="isLimitReached()">
-        <mat-icon>rocket_launch</mat-icon>
-        Upgrade Plan
+    <div class="limit-actions">
+      <button mat-raised-button class="upgrade-btn" (click)="goToUpgrade()" *ngIf="isLimitReached()">
+        <mat-icon>rocket_launch</mat-icon> Upgrade
       </button>
-      <!-- <button mat-stroked-button
-              class="upgrade-btn-stroked"
-              (click)="goToUpgrade()"
-              *ngIf="!isLimitReached()">
-        <mat-icon>upgrade</mat-icon>
-        View Plans
-      </button> -->
     </div>
- 
-    <!-- Dismiss -->
-    <button mat-icon-button class="limit-dismiss-btn" (click)="dismissLimitBanner()" matTooltip="Dismiss">
+    <button mat-icon-button class="banner-close" (click)="dismissLimitBanner()">
       <mat-icon>close</mat-icon>
     </button>
   </div>
  
-  <!-- ═══ STATS CARDS — only render when assets exist ═══ -->
-  <div class="stats-grid" *ngIf="totalAssets() > 0">
- 
-    <!-- Total Assets -->
-    <div class="stat-card stat-total">
-      <div class="stat-icon-wrap">
-        <mat-icon>inventory_2</mat-icon>
-      </div>
-      <div class="stat-body">
-        <span class="stat-value">{{ totalAssets() }}</span>
-        <span class="stat-label">Total Assets</span>
-      </div>
-      <div class="stat-trend" *ngIf="availableAssets() > 0">
-        <mat-icon class="trend-icon trend-up">check_circle</mat-icon>
-        <span>{{ availableAssets() }} Available</span>
+  <!-- ══════════════════════ KPI STRIP ══════════════════════ -->
+  <div class="kpi-strip" *ngIf="!loading()">
+    <div class="kpi-card kpi-primary">
+      <div class="kpi-icon"><mat-icon>inventory_2</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ totalBatches() }}</span>
+        <span class="kpi-label">Asset Batches</span>
       </div>
     </div>
- 
-    <!-- Total Value — only when > 0 -->
-    <div class="stat-card stat-value-card" *ngIf="totalValue() > 0">
-      <div class="stat-icon-wrap">
-        <mat-icon>payments</mat-icon>
-      </div>
-      <div class="stat-body">
-        <span class="stat-value">
-          <span class="currency-sym">{{ currencySymbolDisplay() }}</span>
-          <span class="currency-amt">{{ formatAmount(totalValue()) }}</span>
-        </span>
-        <span class="stat-label">Total Asset Value</span>
-      </div>
-      <div class="stat-trend">
-        <mat-icon class="trend-icon">trending_up</mat-icon>
-        <span>Portfolio worth</span>
+    <div class="kpi-card kpi-cyan">
+      <div class="kpi-icon"><mat-icon>widgets</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ totalUnits() }}</span>
+        <span class="kpi-label">Total Units</span>
       </div>
     </div>
- 
-    <!-- Depreciable Assets — only when > 0 -->
-    <div class="stat-card stat-depreciation" *ngIf="depreciableCount() > 0">
-      <div class="stat-icon-wrap">
-        <mat-icon>trending_down</mat-icon>
-      </div>
-      <div class="stat-body">
-        <span class="stat-value">{{ depreciableCount() }}</span>
-        <span class="stat-label">Depreciable Assets</span>
-      </div>
-      <div class="stat-trend">
-        <mat-icon class="trend-icon">calculate</mat-icon>
-        <span>{{ nonDepreciableCount() }} non-depreciable</span>
+    <div class="kpi-card kpi-green">
+      <div class="kpi-icon"><mat-icon>check_circle</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-value">{{ filteredBatches().length }}</span>
+        <span class="kpi-label">Filtered Results</span>
       </div>
     </div>
- 
-    <!-- Total Depreciable Cost — only when > 0 -->
-    <div class="stat-card stat-dep-value" *ngIf="totalDepreciableCost() > 0">
-      <div class="stat-icon-wrap">
-        <mat-icon>account_balance</mat-icon>
-      </div>
-      <div class="stat-body">
-        <span class="stat-value">
-          <span class="currency-sym">{{ currencySymbolDisplay() }}</span>
-          <span class="currency-amt">{{ formatAmount(totalDepreciableCost()) }}</span>
-        </span>
-        <span class="stat-label">Total Depreciable Cost</span>
-      </div>
-      <div class="stat-trend" *ngIf="totalSalvageValue() > 0">
-        <mat-icon class="trend-icon">donut_large</mat-icon>
-        <span>Salvage: {{ currencySymbolDisplay() }}&nbsp;{{ formatAmount(totalSalvageValue()) }}</span>
+    <div class="kpi-card kpi-warn" (click)="goToApprovals()" style="cursor:pointer" matTooltip="View pending approvals">
+      <div class="kpi-icon"><mat-icon>pending_actions</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-value"><mat-icon class="kpi-nav-icon">open_in_new</mat-icon></span>
+        <span class="kpi-label">Pending Approvals</span>
       </div>
     </div>
+  </div>
  
-    <!-- Assigned to Site / Branch — only when > 0 -->
-    <div class="stat-card stat-site" *ngIf="assignedToSiteCount() > 0">
-      <div class="stat-icon-wrap">
-        <mat-icon>location_city</mat-icon>
-      </div>
-      <div class="stat-body">
-        <span class="stat-value">{{ assignedToSiteCount() }}</span>
-        <span class="stat-label">Assigned to Site / Branch</span>
-      </div>
-      <div class="stat-trend">
-        <button mat-icon-button
-                class="site-nav-btn"
-                (click)="goToSiteOverview()"
-                matTooltip="View Site & Branch Asset Overview">
-          <mat-icon>open_in_new</mat-icon>
+  <!-- ══════════════════════ TOOLBAR ══════════════════════ -->
+  <div class="toolbar">
+ 
+    <!-- Main toolbar row -->
+    <div class="toolbar-row-main">
+
+      <!-- LEFT group: search + filter btn + sort -->
+      <div class="tb-left-group">
+        <div class="toolbar-search">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input class="search-input" placeholder="Search assets, batches, categories…"
+                 [ngModel]="searchQuery()"
+                 (ngModelChange)="searchQuery.set($event)" />
+          <button mat-icon-button class="search-clear" *ngIf="searchQuery()" (click)="searchQuery.set('')">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <button class="tb-filter-toggle-btn"
+                [class.active]="filterPanelOpen()"
+                [class.has-filters]="hasActiveFilters()"
+                (click)="filterPanelOpen.set(!filterPanelOpen())">
+          <mat-icon>tune</mat-icon>
+          <span class="filter-btn-label">Filters</span>
+          <span class="filter-active-badge" *ngIf="activeFilterCount() > 0">{{ activeFilterCount() }}</span>
+          <mat-icon class="filter-chevron" [class.rotated]="filterPanelOpen()">expand_more</mat-icon>
         </button>
-        <span>View site breakdown</span>
+
       </div>
+
+      <!-- RIGHT group: view toggle + divider + bulk + export + add -->
+      <div class="tb-right-group">
+
+        <div class="view-toggle">
+          <button mat-icon-button [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')" matTooltip="List view">
+            <mat-icon>view_list</mat-icon>
+          </button>
+          <button mat-icon-button [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" matTooltip="Grid view">
+            <mat-icon>grid_view</mat-icon>
+          </button>
+        </div>
+
+        <div class="tb-vdiv"></div>
+
+        <div class="bulk-actions" *ngIf="selectionCount > 0">
+          <span class="bulk-count">{{ selectionCount }} selected</span>
+          <button mat-stroked-button class="bulk-delete-btn" (click)="onBulkDelete()">
+            <mat-icon>delete</mat-icon><span class="btn-label"> Delete</span>
+          </button>
+          <button mat-stroked-button (click)="clearSelection()">
+            <mat-icon>deselect</mat-icon><span class="btn-label"> Clear</span>
+          </button>
+        </div>
+
+        <button mat-stroked-button [matMenuTriggerFor]="exportMenu" class="tb-export-btn">
+          <mat-icon>download</mat-icon><span class="btn-label"> Export</span>
+          <mat-icon>arrow_drop_down</mat-icon>
+        </button>
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item (click)="exportExcel()">
+            <mat-icon style="color:#10b981">table_chart</mat-icon> Excel (.xlsx) — All
+          </button>
+          <button mat-menu-item (click)="exportPdf()">
+            <mat-icon style="color:#ef4444">picture_as_pdf</mat-icon> PDF Report — All
+          </button>
+          <mat-divider></mat-divider>
+          <button mat-menu-item (click)="exportSelectedExcel()" [disabled]="selectionCount === 0">
+            <mat-icon style="color:#10b981">table_view</mat-icon> Selected → Excel
+          </button>
+          <button mat-menu-item (click)="exportSelectedPdf()" [disabled]="selectionCount === 0">
+            <mat-icon style="color:#ef4444">file_present</mat-icon> Selected → PDF
+          </button>
+        </mat-menu>
+
+        <button mat-raised-button color="primary" class="add-btn" (click)="onAddAsset()">
+          <mat-icon>add</mat-icon><span class="btn-label"> Add Asset</span>
+        </button>
+
+      </div>
+    </div>
+ 
+    <!-- ── Collapsible Filter Panel ── -->
+    <div class="filter-panel" *ngIf="filterPanelOpen()" [@filterSlide]>
+
+      <!-- Filter fields row — clean equal columns -->
+      <div class="filter-panel-grid">
+        <mat-form-field appearance="outline" class="fp-field">
+          <mat-label>Status</mat-label>
+          <mat-select [value]="filterStatus()" (selectionChange)="filterStatus.set($event.value)">
+            <mat-option value="all">All Statuses</mat-option>
+            <mat-option value="new">New</mat-option>
+            <mat-option value="inuse">In Use</mat-option>
+            <mat-option value="available">Available</mat-option>
+            <mat-option value="damaged">Damaged</mat-option>
+            <mat-option value="undermaintenance">Under Maintenance</mat-option>
+            <mat-option value="returned">Returned</mat-option>
+            <mat-option value="expired">Expired</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>flag</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="fp-field">
+          <mat-label>Category</mat-label>
+          <mat-select [value]="filterCategory()" (selectionChange)="filterCategory.set($event.value)">
+            <mat-option [value]="null">All Categories</mat-option>
+            <mat-option *ngFor="let c of dropdownData().categories" [value]="c.value">{{ c.label }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>category</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="fp-field">
+          <mat-label>Sub Category</mat-label>
+          <mat-select [value]="filterSubCategory()" (selectionChange)="filterSubCategory.set($event.value)">
+            <mat-option [value]="null">All Sub Categories</mat-option>
+            <mat-option *ngFor="let sc of filteredSubCategoryOptions()" [value]="sc.value">{{ sc.label }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>label</mat-icon>
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline" class="fp-field">
+          <mat-label>Sort</mat-label>
+          <mat-select [value]="sortKey()" (selectionChange)="sortKey.set($event.value)">
+            <mat-option value="date">Newest First</mat-option>
+            <mat-option value="name">Name A–Z</mat-option>
+            <mat-option value="qty">Most Units</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <!-- <mat-form-field appearance="outline" class="fp-field">
+          <mat-label>Supplier</mat-label>
+          <mat-select [value]="filterSupplier()" (selectionChange)="filterSupplier.set($event.value)">
+            <mat-option [value]="null">All Suppliers</mat-option>
+            <mat-option *ngFor="let s of dropdownData().suppliers" [value]="s.value">{{ s.label }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>business</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="fp-field">
+          <mat-label>Site / Branch</mat-label>
+          <mat-select [value]="filterSite()" (selectionChange)="filterSite.set($event.value)">
+            <mat-option [value]="null">All Sites</mat-option>
+            <mat-option *ngFor="let s of dropdownData().sites" [value]="s.value">{{ s.label }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>location_city</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="fp-field">
+          <mat-label>Department</mat-label>
+          <mat-select [value]="filterDepartment()" (selectionChange)="filterDepartment.set($event.value)">
+            <mat-option [value]="null">All Departments</mat-option>
+            <mat-option *ngFor="let d of dropdownData().departments" [value]="d.value">{{ d.label }}</mat-option>
+          </mat-select>
+          <mat-icon matPrefix>business_center</mat-icon>
+        </mat-form-field> -->
+      </div>
+
+      <!-- Footer row: toggle left, actions right — always one line -->
+      <div class="fp-footer">
+        <div class="fp-toggle-wrap">
+          <mat-icon>trending_down</mat-icon>
+          <span class="fp-toggle-label">Depreciable Only</span>
+          <mat-slide-toggle
+            [checked]="filterDepreciable()"
+            (change)="filterDepreciable.set($event.checked)">
+          </mat-slide-toggle>
+        </div>
+
+        <div class="fp-actions">
+          <button mat-stroked-button class="fp-clear-btn" (click)="clearAllFilters()" [disabled]="!hasActiveFilters()">
+            <mat-icon>filter_list_off</mat-icon> Clear All
+          </button>
+          <button mat-flat-button color="primary" class="fp-apply-btn" (click)="filterPanelOpen.set(false)">
+            <mat-icon>check</mat-icon> Apply
+          </button>
+        </div>
+      </div>
+
+      <!-- Active filter chips -->
+      <div class="filter-chips" *ngIf="hasActiveFilters()">
+        <span class="fc-label">Active filters:</span>
+        <span class="fc-chip" *ngIf="searchQuery()">
+          Search: "{{ searchQuery() }}"
+          <button (click)="searchQuery.set('')"><mat-icon>close</mat-icon></button>
+        </span>
+        <span class="fc-chip" *ngIf="filterStatus() !== 'all'">
+          Status: {{ filterStatus() }}
+          <button (click)="filterStatus.set('all')"><mat-icon>close</mat-icon></button>
+        </span>
+        <span class="fc-chip" *ngIf="filterCategory()">
+          Category: {{ getCategoryLabel(filterCategory()) }}
+          <button (click)="filterCategory.set(null)"><mat-icon>close</mat-icon></button>
+        </span>
+        <span class="fc-chip" *ngIf="filterSubCategory()">
+          Sub-Cat: {{ getSubCategoryLabel(filterSubCategory()) }}
+          <button (click)="filterSubCategory.set(null)"><mat-icon>close</mat-icon></button>
+        </span>
+        <span class="fc-chip" *ngIf="filterSupplier()">
+          Supplier: {{ getSupplierLabel(filterSupplier()) }}
+          <button (click)="filterSupplier.set(null)"><mat-icon>close</mat-icon></button>
+        </span>
+        <span class="fc-chip" *ngIf="filterSite()">
+          Site: {{ getSiteLabel(filterSite()) }}
+          <button (click)="filterSite.set(null)"><mat-icon>close</mat-icon></button>
+        </span>
+        <span class="fc-chip" *ngIf="filterDepartment()">
+          Dept: {{ getDepartmentLabel(filterDepartment()) }}
+          <button (click)="filterDepartment.set(null)"><mat-icon>close</mat-icon></button>
+        </span>
+        <span class="fc-chip fc-chip--dep" *ngIf="filterDepreciable()">
+          Depreciable Only
+          <button (click)="filterDepreciable.set(false)"><mat-icon>close</mat-icon></button>
+        </span>
+      </div>
+
     </div>
  
   </div>
  
-  <!-- ═══ ASSET LIST TABLE ═══ -->
-  <app-list-widget
-    [config]="listConfig"
-    [data]="assets()"
-    [loading]="loading()"
-    (actionClick)="onActionClick($event)"
-    (addClick)="onAddAsset()"
-    (refreshClick)="onRefresh()"
-    (selectionChange)="onSelectionChange($event)"
-    (selectionAction)="onSelectionAction($event)"
-    (rowClick)="onRowClick($event)">
-  </app-list-widget>
+  <!-- Results bar -->
+  <div class="results-bar" *ngIf="!loading()">
+    <span>
+      Showing <strong>{{ pagedBatches().length }}</strong> of
+      <strong>{{ filteredBatches().length }}</strong>
+      <span class="results-total">(Total: {{ totalBatches() }})</span>
+    </span>
+    <label class="select-all-label" *ngIf="pagedBatches().length > 0">
+      <mat-checkbox [checked]="allPageSelected()"
+                    [indeterminate]="pageSelectionCount > 0 && !allPageSelected()"
+                    (change)="toggleSelectAll()">
+        Select page
+      </mat-checkbox>
+    </label>
+  </div>
  
+  <!-- ══════════════════════ LOADING SKELETON ══════════════════════ -->
+  <div class="skeleton-wrap" *ngIf="loading()">
+    <div class="skeleton-row" *ngFor="let i of [1,2,3,4,5]"></div>
+  </div>
+ 
+  <!-- ══════════════════════ EMPTY STATE ══════════════════════ -->
+  <div class="empty-state" *ngIf="!loading() && filteredBatches().length === 0" [@fadeUp]>
+    <div class="empty-icon-wrap"><mat-icon>inventory_2</mat-icon></div>
+    <h3>No assets found</h3>
+    <p *ngIf="hasActiveFilters()">Try adjusting your search or filters.</p>
+    <p *ngIf="!hasActiveFilters()">Get started by adding your first asset.</p>
+    <div class="empty-actions">
+      <button mat-stroked-button *ngIf="hasActiveFilters()" (click)="clearAllFilters()">
+        <mat-icon>filter_list_off</mat-icon> Clear Filters
+      </button>
+      <button mat-raised-button color="primary" (click)="onAddAsset()" *ngIf="!hasActiveFilters()">
+        <mat-icon>add</mat-icon> Add First Asset
+      </button>
+    </div>
+  </div>
+ 
+  <!-- ══════════════════════ LIST VIEW ══════════════════════ -->
+  <div class="asset-list" *ngIf="!loading() && pagedBatches().length > 0 && viewMode() === 'list'">
+ 
+    <div class="list-header">
+      <div class="lh-check">
+        <mat-checkbox [checked]="allPageSelected()"
+                      [indeterminate]="pageSelectionCount > 0 && !allPageSelected()"
+                      (change)="toggleSelectAll()"></mat-checkbox>
+      </div>
+      <div class="lh-thumb"></div>
+      <div class="lh-name">Asset / Batch</div>
+      <div class="lh-cat">Category</div>
+      <div class="lh-units">Units</div>
+      <div class="lh-status">Unit Status</div>
+      <div class="lh-date">Created</div>
+      <div class="lh-actions">Actions</div>
+    </div>
+ 
+    <div class="list-row"
+         *ngFor="let batch of pagedBatches(); trackBy: trackByBatchId"
+         [class.row-selected]="isSelected(batch.batchId)"
+         (click)="openBatchDetail(batch)"
+         matRipple
+         [@fadeUp]>
+ 
+      <div class="lr-check" (click)="$event.stopPropagation()">
+        <mat-checkbox [checked]="isSelected(batch.batchId)" (change)="toggleSelect(batch.batchId)"></mat-checkbox>
+      </div>
+ 
+      <div class="lr-thumb">
+        <img *ngIf="batch.imageUrl" [src]="batch.imageUrl" [alt]="batch.assetName"
+             class="lr-img" (error)="$any($event.target).style.display='none'" />
+        <div *ngIf="!batch.imageUrl" class="lr-img-placeholder">
+          <mat-icon>inventory_2</mat-icon>
+        </div>
+      </div>
+ 
+      <div class="lr-name">
+        <span class="lr-asset-name">{{ batch.assetName }}</span>
+        <div class="lr-meta">
+          <span class="lr-batch-code"><mat-icon>tag</mat-icon>{{ batch.batchCode }}</span>
+          <span class="lr-sub-cat" *ngIf="batch.subCategoryDisplay">{{ batch.subCategoryDisplay }}</span>
+        </div>
+        <!-- Mobile inline extras -->
+        <div class="lr-mobile-extras">
+          <span class="lr-cat-chip lr-cat-chip--mob" *ngIf="batch.categoryDisplay">{{ batch.categoryDisplay }}</span>
+          <span class="status-chip status-chip--mob" *ngIf="batch.assetStatusDisplay"
+                [style.background]="statusColor(batch.assetStatusDisplay) + '22'"
+                [style.color]="statusColor(batch.assetStatusDisplay)"
+                [style.borderColor]="statusColor(batch.assetStatusDisplay) + '55'">
+            <span class="status-dot" [style.background]="statusColor(batch.assetStatusDisplay)"></span>
+            {{ batch.assetStatusDisplay }}
+          </span>
+        </div>
+        <!-- Mobile units bar -->
+        <div class="lr-mobile-units">
+          <span class="mbu-label">Units:</span>
+          <span class="units-active">{{ batch.activeQuantity }}</span>
+          <span class="units-sep">/</span>
+          <span class="units-total">{{ batch.originalQuantity }}</span>
+          <div class="units-bar-track">
+            <div class="units-bar-fill"
+                 [style.width]="utilizationPct(batch) + '%'"
+                 [class.units-full]="utilizationPct(batch) === 100"></div>
+          </div>
+        </div>
+      </div>
+ 
+      <div class="lr-cat">
+        <span class="lr-cat-chip" *ngIf="batch.categoryDisplay">{{ batch.categoryDisplay }}</span>
+        <span class="lr-empty" *ngIf="!batch.categoryDisplay">-</span>
+      </div>
+ 
+      <div class="lr-units">
+        <div class="units-display">
+          <span class="units-active">{{ batch.activeQuantity }}</span>
+          <span class="units-sep">/</span>
+          <span class="units-total">{{ batch.originalQuantity }}</span>
+        </div>
+        <div class="units-bar-track">
+          <div class="units-bar-fill"
+               [style.width]="utilizationPct(batch) + '%'"
+               [class.units-full]="utilizationPct(batch) === 100"></div>
+        </div>
+      </div>
+ 
+      <div class="lr-status">
+
+        <!-- Multi-status breakdown (2+ distinct statuses) -->
+        <ng-container *ngIf="batch.statusBreakdown && batch.statusBreakdown.length > 1">
+          <div class="status-breakdown">
+            <div class="sb-row"
+                 *ngFor="let sb of batch.statusBreakdown; let i = index"
+                 [hidden]="i > 2">
+              <span class="sb-dot" [style.background]="statusColor(sb.statusName)"></span>
+              <span class="sb-label">{{ sb.statusName }}</span>
+              <div class="sb-bar-track">
+                <div class="sb-bar-fill"
+                     [style.background]="statusColor(sb.statusName)"
+                     [style.width.%]="(sb.count / batch.activeQuantity) * 100">
+                </div>
+              </div>
+              <span class="sb-count">{{ sb.count }}</span>
+            </div>
+            <div class="sb-overflow"
+                 *ngIf="batch.statusBreakdown.length > 3">
+              +{{ batch.statusBreakdown.length - 3 }} more
+            </div>
+          </div>
+        </ng-container>
+      
+        <!-- Single status (all units same) -->
+        <ng-container *ngIf="!batch.statusBreakdown || batch.statusBreakdown.length <= 1">
+          <span class="status-chip"
+                *ngIf="batch.assetStatusDisplay"
+                [style.background]="statusColor(batch.assetStatusDisplay) + '22'"
+                [style.color]="statusColor(batch.assetStatusDisplay)"
+                [style.borderColor]="statusColor(batch.assetStatusDisplay) + '55'">
+            <span class="status-dot"
+                  [style.background]="statusColor(batch.assetStatusDisplay)">
+            </span>
+            {{ batch.assetStatusDisplay }}
+          </span>
+          <div class="sb-all-same"
+               *ngIf="batch.statusBreakdown?.length === 1 && batch.originalQuantity > 1">
+            All {{ batch.activeQuantity }} units
+          </div>
+          <span class="lr-empty" *ngIf="!batch.assetStatusDisplay">—</span>
+        </ng-container>
+      
+      </div>
+ 
+      <div class="lr-date">{{ formatDate(batch.createdDate) }}</div>
+ 
+      <div class="lr-actions" (click)="$event.stopPropagation()">
+        <button mat-icon-button class="row-action-btn"
+                (click)="openBatchDetail(batch)" matTooltip="View Details">
+          <mat-icon>open_in_new</mat-icon>
+        </button>
+        <button mat-icon-button class="row-action-btn row-edit-btn"
+                (click)="onEditBatch(batch, $event)" matTooltip="Edit Batch">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button class="row-action-btn" [matMenuTriggerFor]="rowMenu" matTooltip="More">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #rowMenu="matMenu">
+          <button mat-menu-item (click)="openBatchDetail(batch)">
+            <mat-icon>visibility</mat-icon> View Details
+          </button>
+          <button mat-menu-item (click)="onEditBatch(batch, $event)">
+            <mat-icon>edit</mat-icon> Edit Batch
+          </button>
+          <button mat-menu-item (click)="exportSingleExcel(batch)">
+            <mat-icon style="color:#10b981">table_chart</mat-icon> Export Excel
+          </button>
+          <button mat-menu-item (click)="exportSinglePdf(batch)">
+            <mat-icon style="color:#ef4444">picture_as_pdf</mat-icon> Export PDF
+          </button>
+          <mat-divider></mat-divider>
+          <button mat-menu-item class="menu-danger" (click)="onDeleteBatch(batch, $event)">
+            <mat-icon>delete_forever</mat-icon> Delete Batch
+          </button>
+        </mat-menu>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- ══════════════════════ GRID VIEW ══════════════════════ -->
+  <div class="asset-grid" *ngIf="!loading() && pagedBatches().length > 0 && viewMode() === 'grid'">
+    <div class="grid-card"
+         *ngFor="let batch of pagedBatches(); trackBy: trackByBatchId"
+         [class.card-selected]="isSelected(batch.batchId)"
+         (click)="openBatchDetail(batch)"
+         matRipple [@fadeUp]>
+ 
+      <div class="gc-check" (click)="$event.stopPropagation()">
+        <mat-checkbox [checked]="isSelected(batch.batchId)" (change)="toggleSelect(batch.batchId)"></mat-checkbox>
+      </div>
+ 
+      <div class="gc-image">
+        <img *ngIf="batch.imageUrl" [src]="batch.imageUrl" [alt]="batch.assetName"
+             class="gc-img" (error)="$any($event.target).style.display='none'" />
+        <div *ngIf="!batch.imageUrl" class="gc-img-placeholder">
+          <mat-icon>inventory_2</mat-icon>
+        </div>
+        <div class="gc-status-dots" *ngIf="batch.statusBreakdown && batch.statusBreakdown.length > 0">
+          <span class="gc-status-dot-wrap"
+                *ngFor="let sb of batch.statusBreakdown; let i = index"
+                [hidden]="i > 3"
+                [matTooltip]="sb.statusName + ' · ' + sb.count + ' unit(s)'"
+                matTooltipPosition="above">
+            <span class="gc-sdot" [style.background]="statusColor(sb.statusName)"></span>
+          </span>
+          <span class="gc-status-primary-label"
+                *ngIf="batch.statusBreakdown.length === 1"
+                [style.background]="statusColor(batch.assetStatusDisplay)">
+            {{ batch.assetStatusDisplay }}
+          </span>
+        </div>
+      </div>
+ 
+      <div class="gc-body">
+        <div class="gc-name">{{ batch.assetName }}</div>
+        <div class="gc-code"><mat-icon>tag</mat-icon>{{ batch.batchCode }}</div>
+        <div class="gc-cat" *ngIf="batch.categoryDisplay">
+          <span class="gc-cat-chip">{{ batch.categoryDisplay }}</span>
+          <span class="gc-sub-chip" *ngIf="batch.subCategoryDisplay">{{ batch.subCategoryDisplay }}</span>
+        </div>
+      </div>
+ 
+      <div class="gc-footer">
+        <div class="gc-stat">
+          <span class="gs-val">{{ batch.activeQuantity }}</span>
+          <span class="gs-lbl">Active</span>
+        </div>
+        <div class="gc-stat-sep"></div>
+        <div class="gc-stat">
+          <span class="gs-val">{{ batch.originalQuantity }}</span>
+          <span class="gs-lbl">Total</span>
+        </div>
+        <span class="gc-spacer"></span>
+        <button mat-icon-button class="gc-action-btn gc-edit-btn"
+                (click)="$event.stopPropagation(); onEditBatch(batch, $event)"
+                matTooltip="Edit batch">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button class="gc-action-btn gc-delete-btn"
+                (click)="$event.stopPropagation(); onDeleteBatch(batch, $event)"
+                matTooltip="Delete batch">
+          <mat-icon>delete_forever</mat-icon>
+        </button>
+        <button mat-icon-button class="gc-detail-btn"
+                (click)="$event.stopPropagation(); openBatchDetail(batch)"
+                matTooltip="View details">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+ 
+      <div class="gc-util-bar">
+        <div class="gc-util-fill"
+             [style.width]="utilizationPct(batch) + '%'"
+             [style.background]="statusColor(batch.assetStatusDisplay)"></div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- ══════════════════════ PAGINATION ══════════════════════ -->
+  <div class="pagination-wrap" *ngIf="!loading() && filteredBatches().length > 0">
+    <mat-paginator
+      [length]="filteredBatches().length"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageIndex()"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+      class="asset-paginator">
+    </mat-paginator>
+  </div>
+ 
+  <!-- ══════════════════════ BULK UPLOAD BAR ══════════════════════ -->
   <div class="bulk-upload-bar" (click)="goToBulkUpload()">
     <div class="bulk-bar-left">
-      <div class="bulk-bar-icon-wrap">
-        <mat-icon>upload_file</mat-icon>
-      </div>
+      <div class="bulk-bar-icon-wrap"><mat-icon>upload_file</mat-icon></div>
       <div class="bulk-bar-text">
         <span class="bulk-bar-title">Bulk Asset Upload</span>
-        <span class="bulk-bar-desc">Upload multiple assets at once using an Excel template — download the template, fill in asset details, then import.</span>
+        <span class="bulk-bar-desc">Upload multiple assets at once using an Excel template.</span>
       </div>
     </div>
     <div class="bulk-bar-actions" (click)="$event.stopPropagation()">
       <button mat-stroked-button class="bulk-btn-template" (click)="downloadTemplate()">
-        <mat-icon>download</mat-icon>
-        Download Template
+        <mat-icon>download</mat-icon><span class="btn-label"> Template</span>
       </button>
       <button mat-raised-button color="primary" class="bulk-btn-upload" (click)="goToBulkUpload()">
-        <mat-icon>cloud_upload</mat-icon>
-        Upload Assets
+        <mat-icon>cloud_upload</mat-icon><span class="btn-label"> Upload</span>
       </button>
     </div>
   </div>
  
-  <!-- Download animation overlay -->
-  <div class="download-overlay" *ngIf="downloadingTemplate()" [@fadeInOut]>
+  <!-- Download / Export overlay -->
+  <div class="download-overlay" *ngIf="downloadingTemplate() || exportingData()" [@fadeInOut]>
     <div class="download-overlay-inner">
       <div class="download-spinner-ring"></div>
-      <mat-icon class="download-icon-anim">table_chart</mat-icon>
-      <span>Generating Excel Template…</span>
+      <mat-icon class="download-icon-anim">{{ exportingData() ? 'download' : 'table_chart' }}</mat-icon>
+      <span>{{ exportingData() ? exportMessage() : 'Generating Template…' }}</span>
     </div>
   </div>
+ 
 </div>
+ 

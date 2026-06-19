@@ -1,12 +1,11 @@
 import {
-  Component, computed, inject, OnInit, signal
+  Component, computed, inject, OnInit, signal, ChangeDetectionStrategy, ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  FormBuilder, FormGroup, ReactiveFormsModule, Validators
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { animate, style, transition, trigger } from '@angular/animations';
+import { forkJoin, Subscription } from 'rxjs';
 
 // Angular Material
 import { MatButtonModule } from '@angular/material/button';
@@ -20,14 +19,14 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatTabsModule } from '@angular/material/tabs';
 
-// Project services & types
-
-
-import { forkJoin, Subscription } from 'rxjs';
+// Project
 import { PageHeaderComponent } from '../../../../shared/widgets/page-header/page-header.component';
 import { ManageAssetsService } from '../../../../core/services/asset/manage-assets.service';
-import { AssetBulkTemplateService } from '../../../../core/services/asset/asset-bulk-template/asset-bulk-template.service';
+import { AssetBulkTemplateService, ParsedBulkRow } from '../../../../core/services/asset/asset-bulk-template/asset-bulk-template.service';
 import { GlobalService } from '../../../../core/services/global/global.service';
 import { SuppliersService } from '../../../../core/services/supplier/suppliers.service';
 import { DepartmentService } from '../../../../core/services/department/department.service';
@@ -36,110 +35,127 @@ import { SubDepartmentService } from '../../../../core/services/department/sub-d
 import { AssetSubCategoriesService } from '../../../../core/services/asset-categories/asset-sub-categories/asset-sub-categories.service';
 import { UserProfileService } from '../../../../core/services/users/user-profile.service';
 import { AssetStatusService } from '../../../../core/services/asset/asset-status/asset-status.service';
-import { AssetDropdownData, AssetRequest } from '../../../../core/models/interfaces/asset-manage/assets.interface';
-import { AssignToType, DepreciationMethod } from '../../../../core/enum/asset.enums';
 import { SitesOrBranchesService } from '../../../../core/services/sites-or-branchs/sites-or-branches.service';
 import { AssetAreaService } from '../../../../core/services/sites-or-branchs/areas/asset-area.service';
 import { CompanyStorageService, SubscriptionStorageService } from '../../../../core/services/localStorage/company/company-storage.service';
+import { AssetDropdownData, AssetRequest, UnitAssignmentRequest } from '../../../../core/models/interfaces/asset-manage/assets.interface';
+import { AssignToType, DepreciationMethod } from '../../../../core/enum/asset.enums';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
- 
-export interface BulkAssetRow {
-  // Required
-  name:          string;
-  assetBrand:    string;
-  assetModelNo:  string;
-  assetSerialNo: string;
- 
-  // Optional basic
-  quantity?:         number;
-  unitPrice?:        number;
-  description?:      string;
-  warranetyInMonth?: number;
-  note?:             string;
- 
-  // IDs (resolved from labels)
-  category?:      number;
-  subCategory?:   number;
-  supplier?:      number;
-  department?:    number;
-  subDepartment?: number;
-  assetStatus?:   number;
- 
-  // Assignment
-  assignTo?:     number;   // AssignToType enum value
+
+/** Per-unit assignment within a batch row */
+export interface UnitAssignment {
+  unitIndex: number;       // 0-based index within the batch
+  serialNumber: string;
+  assignTo: AssignToType;
   assignUserId?: number;
-  siteId?:       number;
-  areaId?:       number;
+  siteId?: number;
+  areaId?: number;
   transferDate?: Date | null;
-  dueDate?:      Date | null;
- 
-  // Display labels
-  categoryDisplay?:      string;
-  subCategoryDisplay?:   string;
-  supplierDisplay?:      string;
-  departmentDisplay?:    string;
-  subDepartmentDisplay?: string;
-  assetStatusDisplay?:   string;
-  assignUserDisplay?:    string;
-  siteDisplay?:          string;
-  areaDisplay?:          string;
- 
-  // Depreciation
-  isDepreciable?:       boolean;
-  depreciableCost?:     number;
-  salvageValue?:        number;
-  depreciationInMonth?: number;
-  depreciationMethod?:  number;
-  dateAquired?:         Date | null;
- 
-  // Dates
-  dateOfPurchase?:    Date | null;
-  dateOfManufacture?: Date | null;
-  yearOfValuation?:   Date | null;
- 
-  // Files
-  _imageFile?:    File | null;
-  _deliveryNote?: File | null;
-  _receipt?:      File | null;
-  _invoice?:      File | null;
+  dueDate?: Date | null;
+  // display
+  assignUserDisplay?: string;
+  siteDisplay?: string;
+  areaDisplay?: string;
 }
- 
+
+/** One row in the review table — represents one batch */
+export interface BulkBatchRow {
+  // Core fields (from parsed template)
+  name: string;
+  assetBrand: string;
+  assetModelNo: string;
+  quantity: number;
+  serialNumbers: string[];       // one per unit
+  serialNumbersRaw: string;      // original comma string for display/editing
+
+  unitPrice?: number;
+  description?: string;
+  warranetyInMonth?: number;
+  note?: string;
+
+  // Resolved IDs
+  category?: number;
+  subCategory?: number;
+  supplier?: number;
+  assetStatus?: number;
+  department?: number;
+  subDepartment?: number;
+  depreciationMethod?: number;
+
+  // Display labels
+  categoryDisplay?: string;
+  subCategoryDisplay?: string;
+  supplierDisplay?: string;
+  assetStatusDisplay?: string;
+  departmentDisplay?: string;
+  subDepartmentDisplay?: string;
+
+  // Depreciation
+  isDepreciable: boolean;
+  depreciableCost?: number;
+  salvageValue?: number;
+  depreciationInMonth?: number;
+  dateAquired?: Date | null;
+
+  // Dates
+  dateOfPurchase?: Date | null;
+  dateOfManufacture?: Date | null;
+  yearOfValuation?: Date | null;
+
+  // Per-unit assignments
+  unitAssignments: UnitAssignment[];
+  /** global assign mode for this batch */
+  assignMode: 'global' | 'per-unit';
+  globalAssignTo: AssignToType;
+  globalAssignUserId?: number;
+  globalSiteId?: number;
+  globalAreaId?: number;
+
+  // Files (shared across all units in batch)
+  _imageFile?: File | null;
+  _deliveryNote?: File | null;
+  _receipt?: File | null;
+  _invoice?: File | null;
+
+  // UI state
+  _serialsValid?: boolean;
+  _serialCountMismatch?: boolean;
+  _autoFilledSerials?: boolean;
+}
+
+/** Import result for step 3 */
 export interface ImportResult {
-  asset:  BulkAssetRow;
+  batch: BulkBatchRow;
   status: 'pending' | 'uploading' | 'success' | 'failed';
   error?: string;
+  batchCode?: string; // returned from API on success
 }
- 
+
+/** File attachment slot */
 export interface FileSlot {
-  key:    '_imageFile' | '_deliveryNote' | '_receipt' | '_invoice';
-  label:  string;
-  icon:   string;
+  key: '_imageFile' | '_deliveryNote' | '_receipt' | '_invoice';
+  label: string;
+  icon: string;
   accept: string;
 }
 
 @Component({
   selector: 'app-asset-bulk-upload',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
-    ReactiveFormsModule,
+    CommonModule, ReactiveFormsModule,
     PageHeaderComponent,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressBarModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatSlideToggleModule,
-    MatTooltipModule,
-    MatExpansionModule,
+    MatButtonModule, MatIconModule, MatProgressBarModule,
+    MatFormFieldModule, MatInputModule, MatSelectModule,
+    MatDatepickerModule, MatNativeDateModule,
+    MatSlideToggleModule, MatTooltipModule, MatExpansionModule,
+    MatChipsModule, MatDividerModule, MatTabsModule,
   ],
   templateUrl: './asset-bulk-upload.component.html',
   styleUrl: './asset-bulk-upload.component.scss',
-animations: [
+  animations: [
     trigger('stepAnim', [
       transition(':enter', [
         style({ opacity: 0, transform: 'translateY(16px)' }),
@@ -159,294 +175,228 @@ animations: [
         animate('200ms ease-in',
           style({ opacity: 0, transform: 'translateY(-6px)', maxHeight: '0px' }))
       ])
-    ])
+    ]),
+    trigger('slideDown', [
+      transition(':enter', [
+        style({ opacity: 0, maxHeight: '0px', overflow: 'hidden' }),
+        animate('250ms ease-out', style({ opacity: 1, maxHeight: '600px' }))
+      ]),
+      transition(':leave', [
+        animate('180ms ease-in', style({ opacity: 0, maxHeight: '0px' }))
+      ])
+    ]),
   ]
 })
 export class AssetBulkUploadComponent implements OnInit {
- 
-  // ── Services ─────────────────────────────────────────────────────────────
-  private router               = inject(Router);
-  private fb                   = inject(FormBuilder);
-  private assetService         = inject(ManageAssetsService);
-  private bulkTemplate         = inject(AssetBulkTemplateService);
-  private globalService        = inject(GlobalService);
-  private supplierService      = inject(SuppliersService);
-  private deptService          = inject(DepartmentService);
-  private subDeptService       = inject(SubDepartmentService);
-  private siteService          = inject(SitesOrBranchesService);
-  private areaService          = inject(AssetAreaService);
-  private catService           = inject(AssetCategoriesService);
-  private subCatService        = inject(AssetSubCategoriesService);
-  private userService          = inject(UserProfileService);
-  private statusService        = inject(AssetStatusService);
-  private companyStorage       = inject(CompanyStorageService);
-  private subscriptionStorage  = inject(SubscriptionStorageService);
- 
-  // ── State ────────────────────────────────────────────────────────────────
-  currentStep         = signal<1 | 2 | 3 | 4>(1);
-  uploadedFile        = signal<File | null>(null);
-  isDragOver          = signal(false);
-  parsing             = signal(false);
-  parseError          = signal<string | null>(null);
+  // ── Services ───────────────────────────────────────────────────────────────
+  private router = inject(Router);
+  private fb = inject(FormBuilder);
+  private cdr = inject(ChangeDetectorRef);
+  private assetService = inject(ManageAssetsService);
+  private bulkTemplate = inject(AssetBulkTemplateService);
+  private globalService = inject(GlobalService);
+  private supplierService = inject(SuppliersService);
+  private deptService = inject(DepartmentService);
+  private subDeptService = inject(SubDepartmentService);
+  private siteService = inject(SitesOrBranchesService);
+  private areaService = inject(AssetAreaService);
+  private catService = inject(AssetCategoriesService);
+  private subCatService = inject(AssetSubCategoriesService);
+  private userService = inject(UserProfileService);
+  private statusService = inject(AssetStatusService);
+  private companyStorage = inject(CompanyStorageService);
+  private subscriptionStorage = inject(SubscriptionStorageService);
+
+  // ── Enums exposed to template ──────────────────────────────────────────────
+  readonly AssignToType = AssignToType;
+
+  // ── Step state ─────────────────────────────────────────────────────────────
+  currentStep = signal<1 | 2 | 3 | 4>(1);
+
+  // ── Step 1: Upload ─────────────────────────────────────────────────────────
+  uploadedFile = signal<File | null>(null);
+  isDragOver = signal(false);
+  parsing = signal(false);
+  parseError = signal<string | null>(null);
   downloadingTemplate = signal(false);
- 
-  parsedAssets  = signal<BulkAssetRow[]>([]);
-  editingIndex  = signal<number | null>(null);
-  editForm!:    FormGroup;
- 
-  importResults    = signal<ImportResult[]>([]);
-  importedCount    = signal(0);
-  failedCount      = signal(0);
-  skippedCount     = signal(0);
+
+  // ── Step 2: Review ─────────────────────────────────────────────────────────
+  batchRows = signal<BulkBatchRow[]>([]);
+  editingIndex = signal<number | null>(null);
+  editForm!: FormGroup;
+  editingUnitIndex = signal<number>(0); // which unit tab is open in drawer
+  expandedSerialPanel = signal<boolean>(false);
+
+  private _drawerSubs: Subscription[] = [];
+
+  // Computed filter signals for drawer cascades
+  drawerSelectedCategory = signal<number | null>(null);
+  drawerSelectedDepartment = signal<number | null>(null);
+  drawerSelectedSite = signal<number | null>(null);
+  drawerGlobalAssignTo = signal<AssignToType>(AssignToType.NotAssigned);
+  drawerUnitAssignTo = signal<AssignToType>(AssignToType.NotAssigned);
+
+  filteredSubCategories = computed(() => {
+    const catId = this.drawerSelectedCategory();
+    if (!catId) return this.dropdowns().allSubCategories;
+    return this.dropdowns().allSubCategories.filter(sc => sc.categoryId === catId);
+  });
+
+  filteredSubDepartments = computed(() => {
+    const deptId = this.drawerSelectedDepartment();
+    if (!deptId) return this.dropdowns().allSubDepartments;
+    return this.dropdowns().allSubDepartments.filter(sd => sd.departmentId === deptId);
+  });
+
+  filteredAreasGlobal = computed(() => {
+    const siteId = this.drawerSelectedSite();
+    if (!siteId) return this.dropdowns().allAreas;
+    return this.dropdowns().allAreas.filter(a => a.siteId === siteId);
+  });
+
+  // ── Step 3: Import ─────────────────────────────────────────────────────────
+  importResults = signal<ImportResult[]>([]);
+  importedCount = signal(0);
+  failedCount = signal(0);
+  skippedCount = signal(0);
   currentImporting = signal<string | null>(null);
- 
+  currentImportingUnit = signal<string | null>(null);
+
+  importProgress = computed(() => {
+    const total = this.validBatches().length;
+    if (!total) return 0;
+    return ((this.importedCount() + this.failedCount()) / total) * 100;
+  });
+  failedResults = computed(() => this.importResults().filter(r => r.status === 'failed'));
+
+  // ── Dropdowns ──────────────────────────────────────────────────────────────
   dropdowns = signal<AssetDropdownData>({
     categories: [], allSubCategories: [], suppliers: [], sites: [],
     allAreas: [], departments: [], allSubDepartments: [],
     depreciationMethods: [], assignToOptions: [], usersList: [], assetStatus: []
   });
- 
-  // ── Subscription limit signals ────────────────────────────────────────────
- 
-  /**
-   * Maximum asset count from the subscription plan.
-   * 0 or negative = no limit configured, don't enforce.
-   */
+
+  // ── Subscription / quota ───────────────────────────────────────────────────
   assetLimit = computed<number>(() => this.subscriptionStorage.getAssetLimit());
- 
-  /**
-   * How many assets are currently stored (loaded from the asset service
-   * at component init so we have an up-to-date count even before any API calls).
-   */
   currentAssetCount = signal<number>(0);
- 
-  /**
-   * Remaining slots = limit − current count.
-   * Infinity when no limit is configured.
-   */
+
   remainingQuota = computed<number>(() => {
     const limit = this.assetLimit();
     if (!limit || limit <= 0) return Infinity;
     return Math.max(0, limit - this.currentAssetCount());
   });
- 
-  /**
-   * Number of valid assets in the upload that exceed the remaining quota.
-   * 0 when within limit or no limit configured.
-   */
+
+  /** Total units across all valid batches */
+  totalValidUnits = computed<number>(() =>
+    this.validBatches().reduce((s, b) => s + b.quantity, 0)
+  );
+
   excessCount = computed<number>(() => {
     const quota = this.remainingQuota();
-    if (!isFinite(quota)) return 0; // no limit
-    return Math.max(0, this.validCount() - quota);
+    if (!isFinite(quota)) return 0;
+    return Math.max(0, this.totalValidUnits() - quota);
   });
- 
-  /**
-   * Number of valid assets we will actually import (capped at quota).
-   */
+
   allowedImportCount = computed<number>(() => {
     const quota = this.remainingQuota();
-    if (!isFinite(quota)) return this.validCount(); // no limit
-    return Math.min(this.validCount(), quota);
+    if (!isFinite(quota)) return this.validBatches().length;
+    // Determine how many batches fit within quota (whole batches)
+    let remaining = quota;
+    let count = 0;
+    for (const b of this.validBatches()) {
+      if (remaining >= b.quantity) { remaining -= b.quantity; count++; }
+      else break;
+    }
+    return count;
   });
- 
-  /**
-   * Show the limit exceeded banner in Step 2 when:
-   * - A real limit is configured, AND
-   * - Valid count in the file exceeds remaining quota
-   */
+
   showLimitExceededBanner = computed<boolean>(() => {
     const quota = this.remainingQuota();
-    if (!isFinite(quota)) return false; // no limit configured
-    return this.validCount() > quota;
+    if (!isFinite(quota)) return false;
+    return this.totalValidUnits() > quota;
   });
- 
-  /**
-   * Import button disabled logic:
-   * - No valid assets, OR
-   * - Quota is 0 (can't import anything)
-   */
+
   importButtonDisabled = computed<boolean>(() => {
-    if (this.validCount() === 0) return true;
+    if (this.validBatches().length === 0) return true;
     const quota = this.remainingQuota();
-    if (isFinite(quota) && quota <= 0) return true; // hard blocked
+    if (isFinite(quota) && quota <= 0) return true;
     return false;
   });
- 
-  /**
-   * Tooltip shown on the disabled/enabled import button.
-   */
+
   importButtonTooltip = computed<string>(() => {
+    if (this.validBatches().length === 0) return 'No valid batches to import';
     const quota = this.remainingQuota();
-    if (this.validCount() === 0) return 'No valid assets to import';
-    if (isFinite(quota) && quota <= 0) {
-      return `Your asset limit of ${this.assetLimit()} has been reached. Upgrade your plan to import more assets.`;
-    }
+    if (isFinite(quota) && quota <= 0) return `Asset limit of ${this.assetLimit()} reached. Upgrade plan.`;
     if (this.showLimitExceededBanner()) {
-      return `Only ${this.allowedImportCount()} of ${this.validCount()} assets will be imported (plan limit: ${this.assetLimit()})`;
+      return `Only ${this.allowedImportCount()} of ${this.validBatches().length} batches can be imported (plan limit).`;
     }
-    return `Import ${this.validCount()} assets`;
+    return `Import ${this.validBatches().length} batch(es) — ${this.totalValidUnits()} total units`;
   });
- 
-  // ── Currency ──────────────────────────────────────────────────────────────
- 
+
+  // ── Computed: valid/invalid ────────────────────────────────────────────────
+  validBatches = computed(() => this.batchRows().filter(b => this.isBatchValid(b)));
+  invalidCount = computed(() => this.batchRows().filter(b => !this.isBatchValid(b)).length);
+  validCount = computed(() => this.validBatches().length);
+
+  totalImportValue = computed(() =>
+    this.validBatches().reduce((s, b) => s + ((b.unitPrice ?? 0) * b.quantity), 0)
+  );
+  depreciableCount = computed(() => this.batchRows().filter(b => b.isDepreciable).length);
+
+  // ── Currency ───────────────────────────────────────────────────────────────
   private get _currencyCode(): string {
     try {
       const code = this.companyStorage.getCurrency()?.trim();
       if (!code || code.length !== 3) return 'USD';
       new Intl.NumberFormat('en', { style: 'currency', currency: code }).format(0);
       return code;
-    } catch {
-      return 'USD';
-    }
+    } catch { return 'USD'; }
   }
- 
+
   currencySymbol = computed<string>(() => {
     try {
       const code = this._currencyCode;
-      return (
-        new Intl.NumberFormat('en', { style: 'currency', currency: code })
-          .formatToParts(0)
-          .find(p => p.type === 'currency')?.value ?? '$'
-      );
-    } catch {
-      return '$';
-    }
+      return new Intl.NumberFormat('en', { style: 'currency', currency: code })
+        .formatToParts(0).find(p => p.type === 'currency')?.value ?? '$';
+    } catch { return '$'; }
   });
- 
+
   currencyCode = computed<string>(() => this._currencyCode);
- 
-  formatAmount(value: number | null | undefined): string {
-    if (value === null || value === undefined || value === 0) return '—';
-    try {
-      return new Intl.NumberFormat('en', {
-        style:                 'currency',
-        currency:              this._currencyCode,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value);
-    } catch {
-      return `${this.currencySymbol()}${value.toFixed(2)}`;
-    }
-  }
- 
-  formatAmountOrZero(value: number | null | undefined): string {
-    const n = Number(value);
-    if (isNaN(n)) return `${this.currencySymbol()}0.00`;
-    try {
-      return new Intl.NumberFormat('en', {
-        style:                 'currency',
-        currency:              this._currencyCode,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(n);
-    } catch {
-      return `${this.currencySymbol()}${n.toFixed(2)}`;
-    }
-  }
- 
-  // ── Reactive drawer filter signals ────────────────────────────────────────
-  drawerSelectedCategory   = signal<number | null>(null);
-  drawerSelectedDepartment = signal<number | null>(null);
-  drawerSelectedAssignTo   = signal<number>(AssignToType.NotAssigned);
-  drawerSelectedSite       = signal<number | null>(null);
- 
-  private _drawerSubs: Subscription[] = [];
- 
-  filteredSubCategories = computed(() => {
-    const catId = this.drawerSelectedCategory();
-    if (!catId) return this.dropdowns().allSubCategories;
-    return this.dropdowns().allSubCategories.filter(sc => sc.categoryId === catId);
-  });
- 
-  filteredSubDepartments = computed(() => {
-    const deptId = this.drawerSelectedDepartment();
-    if (!deptId) return this.dropdowns().allSubDepartments;
-    return this.dropdowns().allSubDepartments.filter(sd => sd.departmentId === deptId);
-  });
- 
-  filteredAreas = computed(() => {
-    const siteId = this.drawerSelectedSite();
-    if (!siteId) return this.dropdowns().allAreas;
-    return this.dropdowns().allAreas.filter(a => a.siteId === siteId);
-  });
- 
-  // ── Computed ─────────────────────────────────────────────────────────────
-  validCount   = computed(() => this.parsedAssets().filter(a => this.isAssetValid(a)).length);
-  invalidCount = computed(() => this.parsedAssets().filter(a => !this.isAssetValid(a)).length);
-  validAssets  = computed(() => this.parsedAssets().filter(a => this.isAssetValid(a)));
- 
-  importProgress = computed(() => {
-    const total = this.validAssets().length;
-    if (!total) return 0;
-    return ((this.importedCount() + this.failedCount()) / total) * 100;
-  });
- 
-  failedResults = computed(() => this.importResults().filter(r => r.status === 'failed'));
- 
-  totalImportValue = computed(() =>
-    this.parsedAssets()
-      .filter(a => this.isAssetValid(a))
-      .reduce((sum, a) => sum + ((a.unitPrice ?? 0) * (a.quantity ?? 1)), 0)
-  );
- 
-  depreciableCount = computed(() =>
-    this.parsedAssets().filter(a => a.isDepreciable).length
-  );
- 
-  // ── File slots ────────────────────────────────────────────────────────────
+
+  // ── File slots ─────────────────────────────────────────────────────────────
   readonly fileSlots: FileSlot[] = [
-    { key: '_imageFile',    label: 'Asset Image',      icon: 'image',          accept: '.jpg,.jpeg,.png,.webp' },
-    { key: '_deliveryNote', label: 'Delivery Note',    icon: 'local_shipping', accept: '.pdf,.jpg,.png' },
-    { key: '_receipt',      label: 'Purchase Receipt', icon: 'receipt',        accept: '.pdf,.jpg,.png' },
-    { key: '_invoice',      label: 'Invoice',          icon: 'receipt_long',   accept: '.pdf,.jpg,.png' },
+    { key: '_imageFile', label: 'Asset Image', icon: 'image', accept: '.jpg,.jpeg,.png,.webp' },
+    { key: '_deliveryNote', label: 'Delivery Note', icon: 'local_shipping', accept: '.pdf,.jpg,.png' },
+    { key: '_receipt', label: 'Purchase Receipt', icon: 'receipt', accept: '.pdf,.jpg,.png' },
+    { key: '_invoice', label: 'Invoice', icon: 'receipt_long', accept: '.pdf,.jpg,.png' },
   ];
- 
-  readonly AssignToType = AssignToType;
- 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+  // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.loadDropdowns();
     this.loadCurrentAssetCount();
   }
- 
-  // ── Load current asset count for quota calculation ────────────────────────
-  /**
-   * Fetch the current number of assets in the organisation so we can
-   * compute remaining quota accurately. We only need the count, not the data.
-   */
+
   private loadCurrentAssetCount(): void {
     this.assetService.getByOrg().subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          this.currentAssetCount.set(response.data.length);
-        }
-      },
-      error: () => {
-        // Non-fatal — quota banner simply won't show if count is unknown
-        console.warn('Could not fetch asset count for quota check.');
-      }
+      next: r => { if (r.success && r.data) this.currentAssetCount.set(r.data.length); },
+      error: () => console.warn('Could not fetch asset count for quota check.')
     });
   }
- 
-  // ── Navigation ─────────────────────────────────────────────────────────────
-  goToUpgrade(): void {
-    this.router.navigate(['/settings/subscription']);
-  }
- 
-  // ── Dropdown loading ───────────────────────────────────────────────────────
+
   private loadDropdowns(): void {
     forkJoin({
-      suppliers:      this.supplierService.getSuppliersByOrg(),
-      departments:    this.deptService.getMyDepartments(),
+      suppliers: this.supplierService.getSuppliersByOrg(),
+      departments: this.deptService.getMyDepartments(),
       subDepartments: this.subDeptService.getSubDepartments(),
-      sites:          this.siteService.getMySites(),
-      areas:          this.areaService.getMyAreas(),
-      categories:     this.catService.getCategoriesByOrg(),
-      subCategories:  this.subCatService.getSubCategoriesByOrg(),
-      usersList:      this.userService.getOrganizationUsers(),
-      assetStatus:    this.statusService.getByOrganization(),
+      sites: this.siteService.getMySites(),
+      areas: this.areaService.getMyAreas(),
+      categories: this.catService.getCategoriesByOrg(),
+      subCategories: this.subCatService.getSubCategoriesByOrg(),
+      usersList: this.userService.getOrganizationUsers(),
+      assetStatus: this.statusService.getByOrganization(),
     }).subscribe({
-      next: (r) => {
+      next: r => {
         this.dropdowns.update(d => ({
           ...d,
           suppliers: r.suppliers.data?.map(s => ({ value: s.id!, label: s.name! })) ?? [],
@@ -466,25 +416,26 @@ export class AssetBulkUploadComponent implements OnInit {
           })) ?? [],
           assetStatus: r.assetStatus.data?.map(s => ({ value: s.id, label: s.name })) ?? [],
           depreciationMethods: [
-            { value: DepreciationMethod.None,                     label: 'None' },
-            { value: DepreciationMethod.StraightLine,             label: 'Straight Line' },
-            { value: DepreciationMethod.DecliningBalance,         label: 'Declining Balance' },
-            { value: DepreciationMethod.DoubleDecliningBalance,   label: 'Double Declining Balance' },
+            { value: DepreciationMethod.None, label: 'None' },
+            { value: DepreciationMethod.StraightLine, label: 'Straight Line' },
+            { value: DepreciationMethod.DecliningBalance, label: 'Declining Balance' },
+            { value: DepreciationMethod.DoubleDecliningBalance, label: 'Double Declining Balance' },
             { value: DepreciationMethod.OneFiftyDecliningBalance, label: '150% Declining Balance' },
-            { value: DepreciationMethod.SumOfYearsDigits,         label: 'Sum of Years Digits' },
+            { value: DepreciationMethod.SumOfYearsDigits, label: 'Sum of Years Digits' },
           ],
           assignToOptions: [
             { value: AssignToType.NotAssigned, label: 'Not Assigned' },
-            { value: AssignToType.User,        label: 'User' },
-            { value: AssignToType.Site,        label: 'Site / Branch' },
+            { value: AssignToType.User, label: 'User' },
+            { value: AssignToType.Site, label: 'Site / Branch' },
           ],
         }));
+        this.cdr.markForCheck();
       },
       error: () => this.globalService.showToastr('Failed to load dropdown data', 'error'),
     });
   }
- 
-  // ── Template download ──────────────────────────────────────────────────────
+
+  // ── Step 1: Upload ─────────────────────────────────────────────────────────
   async downloadTemplate(): Promise<void> {
     this.downloadingTemplate.set(true);
     try {
@@ -494,495 +445,656 @@ export class AssetBulkUploadComponent implements OnInit {
       this.globalService.showToastr('Failed to generate template', 'error');
     } finally {
       this.downloadingTemplate.set(false);
+      this.cdr.markForCheck();
     }
   }
- 
-  // ── Drag & Drop ────────────────────────────────────────────────────────────
+
   onDragOver(e: DragEvent): void { e.preventDefault(); this.isDragOver.set(true); }
-  onDragLeave():            void { this.isDragOver.set(false); }
- 
+  onDragLeave(): void { this.isDragOver.set(false); }
+
   onDrop(e: DragEvent): void {
-    e.preventDefault();
-    this.isDragOver.set(false);
+    e.preventDefault(); this.isDragOver.set(false);
     const file = e.dataTransfer?.files[0];
-    if (file) this.setFile(file);
+    if (file) this._setFile(file);
   }
- 
+
   onFileSelect(e: Event): void {
     const file = (e.target as HTMLInputElement).files?.[0];
-    if (file) this.setFile(file);
+    if (file) this._setFile(file);
   }
- 
-  private setFile(file: File): void {
+
+  private _setFile(file: File): void {
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
       this.parseError.set('Please upload an Excel file (.xlsx or .xls)');
       return;
     }
     this.parseError.set(null);
     this.uploadedFile.set(file);
+    this.cdr.markForCheck();
   }
- 
+
   removeFile(e: Event): void {
     e.stopPropagation();
     this.uploadedFile.set(null);
     this.parseError.set(null);
+    this.cdr.markForCheck();
   }
- 
-  // ── Parsing ────────────────────────────────────────────────────────────────
+
   async parseAndProceed(): Promise<void> {
     const file = this.uploadedFile();
     if (!file) return;
- 
     this.parsing.set(true);
     this.parseError.set(null);
- 
     try {
-      const rawRows = await this.bulkTemplate.parseUploadedTemplate(file);
-      const mapped  = rawRows.map(row => this.mapRowToAsset(row));
-      this.parsedAssets.set(mapped);
+      const rawRows = await this.bulkTemplate.parseUploadedTemplate(file, this.dropdowns());
+      const mapped = rawRows.map(r => this._mapToBatchRow(r));
+      this.batchRows.set(mapped);
       this.currentStep.set(2);
     } catch (err: any) {
       this.parseError.set(err?.message ?? 'Failed to parse file. Please use the official template.');
     } finally {
       this.parsing.set(false);
+      this.cdr.markForCheck();
     }
   }
- 
-  private mapRowToAsset(row: any): BulkAssetRow {
-    const d = this.dropdowns();
- 
-    const label = (key: string) => row[key]?.toString().trim() || '';
- 
-    const catLabel      = label('Category');
-    const subCatLabel   = label('Sub Category');
-    const suppLabel     = label('Supplier');
-    const statusLabel   = label('Asset Status');
-    const deptLabel     = label('Department');
-    const subDeptLabel  = label('Sub Department');
-    const deprMethodStr = label('Depreciation Method');
- 
-    const catObj     = d.categories.find(c => c.label.toLowerCase() === catLabel.toLowerCase());
-    const subCatObj  = d.allSubCategories.find(s => s.label.toLowerCase() === subCatLabel.toLowerCase());
-    const suppObj    = d.suppliers.find(s => s.label.toLowerCase() === suppLabel.toLowerCase());
-    const statusObj  = d.assetStatus.find(s => s.label.toLowerCase() === statusLabel.toLowerCase());
-    const deptObj    = d.departments.find(d => d.label.toLowerCase() === deptLabel.toLowerCase());
-    const subDeptObj = d.allSubDepartments.find(s => s.label.toLowerCase() === subDeptLabel.toLowerCase());
- 
-    const deprMethodMap: Record<string, number> = {
-      'none': 0, 'straight line': 1, 'declining balance': 2,
-      'double declining balance': 3, '150% declining balance': 4,
-      'sum of years digits': 5,
-    };
-    const resolvedDeprMethod = deprMethodStr
-      ? (deprMethodMap[deprMethodStr.toLowerCase()] ?? undefined)
-      : undefined;
- 
-    const isDepr = row['Asset is Depreciable (TRUE/FALSE)']?.toString().toUpperCase() === 'TRUE';
- 
-    return {
-      name:          label('Asset Name')    || '',
-      assetBrand:    label('Brand')         || '',
-      assetModelNo:  label('Model Number')  || '',
-      assetSerialNo: label('Serial Number') || '',
-      quantity:      this.toNum(row['Quantity'])   ?? 1,
-      unitPrice:     this.toNum(row['Unit Price']),
-      description:   label('Description') || undefined,
-      warranetyInMonth: this.toNum(row['Warranty In Month']),
-      note:          label('Note') || undefined,
- 
-      category:      catObj?.value,
-      subCategory:   subCatObj?.value,
-      supplier:      suppObj?.value,
-      assetStatus:   statusObj?.value,
-      department:    deptObj?.value,
-      subDepartment: subDeptObj?.value,
- 
-      categoryDisplay:      catLabel     || undefined,
-      subCategoryDisplay:   subCatLabel  || undefined,
-      supplierDisplay:      suppLabel    || undefined,
-      assetStatusDisplay:   statusLabel  || undefined,
-      departmentDisplay:    deptLabel    || undefined,
-      subDepartmentDisplay: subDeptLabel || undefined,
- 
-      isDepreciable:       isDepr,
-      depreciableCost:     isDepr ? this.toNum(row['Depreciable Cost'])             : undefined,
-      salvageValue:        isDepr ? this.toNum(row['Salvage Value'])                : undefined,
-      depreciationInMonth: isDepr ? this.toNum(row['Depreciation Period In Month']) : undefined,
-      depreciationMethod:  resolvedDeprMethod,
-      dateAquired:         this.toDate(row['Date Acquired (YYYY-MM-DD)']),
-      dateOfPurchase:      this.toDate(row['Purchase Date (YYYY-MM-DD)']),
-      dateOfManufacture:   this.toDate(row['Manufacturing Date (YYYY-MM-DD)']),
-      yearOfValuation:     this.toDate(row['Year of Valuation (YYYY-MM-DD)']),
- 
+
+  private _mapToBatchRow(r: ParsedBulkRow): BulkBatchRow {
+    const unitAssignments: UnitAssignment[] = Array.from({ length: r.quantity }, (_, i) => ({
+      unitIndex: i,
+      serialNumber: r.serialNumbers[i] ?? '',
       assignTo: AssignToType.NotAssigned,
+    }));
+
+    return {
+      name: r.name,
+      assetBrand: r.assetBrand,
+      assetModelNo: r.assetModelNo,
+      quantity: r.quantity,
+      serialNumbers: [...r.serialNumbers],
+      serialNumbersRaw: r.serialNumbersRaw,
+      unitPrice: r.unitPrice,
+      description: r.description,
+      warranetyInMonth: r.warranetyInMonth,
+      note: r.note,
+      category: r.category,
+      subCategory: r.subCategory,
+      supplier: r.supplier,
+      assetStatus: r.assetStatus,
+      department: r.department,
+      subDepartment: r.subDepartment,
+      depreciationMethod: r.depreciationMethod,
+      categoryDisplay: r.categoryDisplay,
+      subCategoryDisplay: r.subCategoryDisplay,
+      supplierDisplay: r.supplierDisplay,
+      assetStatusDisplay: r.assetStatusDisplay,
+      departmentDisplay: r.departmentDisplay,
+      subDepartmentDisplay: r.subDepartmentDisplay,
+      isDepreciable: r.isDepreciable,
+      depreciableCost: r.depreciableCost,
+      salvageValue: r.salvageValue,
+      depreciationInMonth: r.depreciationInMonth,
+      dateAquired: r.dateAquired,
+      dateOfPurchase: r.dateOfPurchase,
+      dateOfManufacture: r.dateOfManufacture,
+      yearOfValuation: r.yearOfValuation,
+      unitAssignments,
+      assignMode: 'global',
+      globalAssignTo: AssignToType.NotAssigned,
+      _serialsValid: r.serialNumbers.every(s => !!s.trim()),
+      _serialCountMismatch: r.serialNumbers.length !== r.quantity,
+      _autoFilledSerials: r.serialNumbers.some(s => s.includes('-00')),
     };
   }
- 
-  private toNum(v: any): number | undefined {
-    const n = parseFloat(v);
-    return isNaN(n) ? undefined : n;
-  }
- 
-  private toDate(v: any): Date | null {
-    if (!v) return null;
-    if (v instanceof Date) return v;
-    const d = new Date(v.toString());
-    return isNaN(d.getTime()) ? null : d;
-  }
- 
+
   // ── Validation ─────────────────────────────────────────────────────────────
-  isAssetValid(asset: BulkAssetRow): boolean {
-    return !!(asset.name?.trim() && asset.assetBrand?.trim() &&
-              asset.assetModelNo?.trim() && asset.assetSerialNo?.trim());
+  isBatchValid(batch: BulkBatchRow): boolean {
+    return !!(
+      batch.name?.trim() &&
+      batch.assetBrand?.trim() &&
+      batch.assetModelNo?.trim() &&
+      batch.quantity >= 1 &&
+      batch.serialNumbers.length === batch.quantity &&
+      batch.serialNumbers.every(s => !!s?.trim())
+    );
   }
- 
-  getValidationErrors(asset: BulkAssetRow): string[] {
+
+  getValidationErrors(batch: BulkBatchRow): string[] {
     const errors: string[] = [];
-    if (!asset.name?.trim())          errors.push('Asset Name is required');
-    if (!asset.assetBrand?.trim())    errors.push('Brand is required');
-    if (!asset.assetModelNo?.trim())  errors.push('Model Number is required');
-    if (!asset.assetSerialNo?.trim()) errors.push('Serial Number is required');
+    if (!batch.name?.trim()) errors.push('Asset Name is required');
+    if (!batch.assetBrand?.trim()) errors.push('Brand is required');
+    if (!batch.assetModelNo?.trim()) errors.push('Model Number is required');
+    if (batch.quantity < 1) errors.push('Quantity must be at least 1');
+    if (batch.serialNumbers.length !== batch.quantity)
+      errors.push(`Serial numbers count (${batch.serialNumbers.length}) ≠ Quantity (${batch.quantity})`);
+    const blanks = batch.serialNumbers.filter(s => !s?.trim()).length;
+    if (blanks > 0) errors.push(`${blanks} serial number(s) are empty`);
     return errors;
   }
- 
-  // ── Review table actions ───────────────────────────────────────────────────
-  removeAsset(index: number): void {
-    this.parsedAssets.update(list => list.filter((_, i) => i !== index));
+
+  hasSerialIssue(batch: BulkBatchRow): boolean {
+    return batch.serialNumbers.length !== batch.quantity ||
+      batch.serialNumbers.some(s => !s?.trim());
+  }
+
+  // ── Review table actions ────────────────────────────────────────────────────
+  removeBatch(index: number): void {
+    this.batchRows.update(list => list.filter((_, i) => i !== index));
     if (this.editingIndex() === index) this.closeEditDrawer();
+    this.cdr.markForCheck();
   }
- 
-  clearAll(): void { this.parsedAssets.set([]); }
- 
-  proceedToImport(): void {
-    // When limit exceeded, only import up to the allowed quota
-    const quota = this.remainingQuota();
-    let assetsToImport: BulkAssetRow[];
- 
-    if (isFinite(quota) && this.validAssets().length > quota) {
-      // Trim to allowed count and warn
-      assetsToImport = this.validAssets().slice(0, quota);
-      const skipped = this.validAssets().length - quota;
-      this.globalService.showSnackbar(
-        `Importing ${quota} asset${quota === 1 ? '' : 's'}. ${skipped} asset${skipped === 1 ? '' : 's'} skipped (plan limit).`,
-        'warning'
+
+  clearAll(): void { this.batchRows.set([]); this.cdr.markForCheck(); }
+
+  // ── Serial number inline editing ───────────────────────────────────────────
+  updateSerial(batchIndex: number, unitIndex: number, value: string): void {
+    this.batchRows.update(list => {
+      const updated = [...list];
+      const batch = { ...updated[batchIndex] };
+      batch.serialNumbers = [...batch.serialNumbers];
+      batch.serialNumbers[unitIndex] = value.trim();
+      batch.unitAssignments = batch.unitAssignments.map((ua, i) =>
+        i === unitIndex ? { ...ua, serialNumber: value.trim() } : ua
       );
+      batch._serialsValid = batch.serialNumbers.every(s => !!s.trim());
+      updated[batchIndex] = batch;
+      return updated;
+    });
+    this.cdr.markForCheck();
+  }
+
+  autoFillSerials(batchIndex: number): void {
+    this.batchRows.update(list => {
+      const updated = [...list];
+      const batch = { ...updated[batchIndex] };
+      const base = batch.assetModelNo?.trim() || 'SN';
+      batch.serialNumbers = Array.from({ length: batch.quantity }, (_, i) =>
+        `${base}-${String(i + 1).padStart(3, '0')}`
+      );
+      batch.unitAssignments = batch.unitAssignments.map((ua, i) => ({
+        ...ua, serialNumber: batch.serialNumbers[i]
+      }));
+      batch._serialsValid = true;
+      batch._autoFilledSerials = true;
+      updated[batchIndex] = batch;
+      return updated;
+    });
+    this.cdr.markForCheck();
+  }
+
+  // ── Proceed to import ──────────────────────────────────────────────────────
+  proceedToImport(): void {
+    const quota = this.remainingQuota();
+    let batchesToImport: BulkBatchRow[];
+
+    if (isFinite(quota) && this.totalValidUnits() > quota) {
+      // Take whole batches up to allowed count
+      batchesToImport = this.validBatches().slice(0, this.allowedImportCount());
+      const skipped = this.validBatches().length - this.allowedImportCount();
+      if (skipped > 0) {
+        this.globalService.showSnackbar(
+          `Importing ${this.allowedImportCount()} batch(es). ${skipped} skipped (plan limit).`,
+          'warning'
+        );
+      }
     } else {
-      assetsToImport = this.validAssets();
+      batchesToImport = this.validBatches();
     }
- 
+
     this.currentStep.set(3);
-    this.importResults.set(assetsToImport.map(asset => ({ asset, status: 'pending' })));
-    this.startImport();
+    this.importResults.set(batchesToImport.map(batch => ({ batch, status: 'pending' })));
+    this.importedCount.set(0);
+    this.failedCount.set(0);
+    this.skippedCount.set(0);
+    this.cdr.markForCheck();
+    this._startImport();
   }
- 
-  // ── Edit drawer ────────────────────────────────────────────────────────────
-  openEditDrawer(index: number): void {
-    this._clearDrawerSubs();
- 
-    this.editingIndex.set(index);
-    const asset = this.parsedAssets()[index];
-    this.editForm = this.buildEditForm(asset);
- 
-    this.drawerSelectedCategory.set(asset.category ?? null);
-    this.drawerSelectedDepartment.set(asset.department ?? null);
-    this.drawerSelectedSite.set(asset.siteId ?? null);
-    this.drawerSelectedAssignTo.set(asset.assignTo ?? AssignToType.NotAssigned);
- 
-    const catSub = this.editForm.get('category')!.valueChanges.subscribe(val => {
-      this.drawerSelectedCategory.set(val ?? null);
-      this.editForm.get('subCategory')!.setValue(null, { emitEvent: false });
-    });
- 
-    const deptSub = this.editForm.get('department')!.valueChanges.subscribe(val => {
-      this.drawerSelectedDepartment.set(val ?? null);
-      this.editForm.get('subDepartment')!.setValue(null, { emitEvent: false });
-    });
- 
-    const siteSub = this.editForm.get('siteId')!.valueChanges.subscribe(val => {
-      this.drawerSelectedSite.set(val ?? null);
-      this.editForm.get('areaId')!.setValue(null, { emitEvent: false });
-    });
- 
-    const assignSub = this.editForm.get('assignTo')!.valueChanges.subscribe(val => {
-      this.drawerSelectedAssignTo.set(val ?? AssignToType.NotAssigned);
-      this.editForm.patchValue({ assignUserId: null, siteId: null, areaId: null }, { emitEvent: false });
-      this.drawerSelectedSite.set(null);
-    });
- 
-    this._drawerSubs = [catSub, deptSub, siteSub, assignSub];
-  }
- 
-  closeEditDrawer(): void {
-    this._clearDrawerSubs();
-    this.editingIndex.set(null);
-  }
- 
-  private _clearDrawerSubs(): void {
-    this._drawerSubs.forEach(s => s.unsubscribe());
-    this._drawerSubs = [];
-  }
- 
-  saveEdit(): void {
-    if (this.editForm.invalid) return;
-    const idx = this.editingIndex();
-    if (idx === null) return;
- 
-    const values = this.editForm.value;
-    const d      = this.dropdowns();
- 
-    const catObj    = d.categories.find(c => c.value === values.category);
-    const subCatObj = d.allSubCategories.find(s => s.value === values.subCategory);
-    const suppObj   = d.suppliers.find(s => s.value === values.supplier);
-    const statusObj = d.assetStatus.find(s => s.value === values.assetStatus);
-    const deptObj   = d.departments.find(d => d.value === values.department);
-    const subDObj   = d.allSubDepartments.find(s => s.value === values.subDepartment);
-    const userObj   = d.usersList.find(u => u.value === values.assignUserId);
-    const siteObj   = d.sites.find(s => s.value === values.siteId);
-    const areaObj   = d.allAreas.find(a => a.value === values.areaId);
- 
-    this.parsedAssets.update(list => {
-      const updated = [...list];
-      updated[idx] = {
-        ...updated[idx],
-        ...values,
-        categoryDisplay:      catObj?.label,
-        subCategoryDisplay:   subCatObj?.label,
-        supplierDisplay:      suppObj?.label,
-        assetStatusDisplay:   statusObj?.label,
-        departmentDisplay:    deptObj?.label,
-        subDepartmentDisplay: subDObj?.label,
-        assignUserDisplay:    userObj?.label,
-        siteDisplay:          siteObj?.label,
-        areaDisplay:          areaObj?.label,
-      };
-      return updated;
-    });
- 
-    this.closeEditDrawer();
-    this.globalService.showSnackbar('Asset updated', 'success');
-  }
- 
-  getCurrentEditAsset(): BulkAssetRow | null {
-    const idx = this.editingIndex();
-    if (idx === null) return null;
-    return this.parsedAssets()[idx] ?? null;
-  }
- 
-  onSlotFileChange(e: Event, key: keyof BulkAssetRow): void {
-    e.stopPropagation();
-    const file = (e.target as HTMLInputElement).files?.[0];
-    const idx  = this.editingIndex();
-    if (idx === null || !file) return;
-    this.parsedAssets.update(list => {
-      const updated = [...list];
-      (updated[idx] as any)[key] = file;
-      return updated;
-    });
-  }
- 
-  removeSlotFile(e: Event, key: keyof BulkAssetRow): void {
-    e.stopPropagation();
-    const idx = this.editingIndex();
-    if (idx === null) return;
-    this.parsedAssets.update(list => {
-      const updated = [...list];
-      (updated[idx] as any)[key] = null;
-      return updated;
-    });
-  }
- 
-  private buildEditForm(asset: BulkAssetRow): FormGroup {
-    return this.fb.group({
-      name:          [asset.name,          [Validators.required, Validators.minLength(2)]],
-      assetBrand:    [asset.assetBrand,    [Validators.required]],
-      assetModelNo:  [asset.assetModelNo,  [Validators.required]],
-      assetSerialNo: [asset.assetSerialNo, [Validators.required]],
-      quantity:         [asset.quantity ?? 1],
-      unitPrice:        [asset.unitPrice],
-      description:      [asset.description],
-      warranetyInMonth: [asset.warranetyInMonth],
-      note:             [asset.note],
-      category:      [asset.category     ?? null],
-      subCategory:   [asset.subCategory  ?? null],
-      supplier:      [asset.supplier     ?? null],
-      assetStatus:   [asset.assetStatus  ?? null],
-      department:    [asset.department   ?? null],
-      subDepartment: [asset.subDepartment ?? null],
-      isDepreciable:       [asset.isDepreciable       ?? false],
-      depreciableCost:     [asset.depreciableCost     ?? null],
-      salvageValue:        [asset.salvageValue        ?? null],
-      depreciationInMonth: [asset.depreciationInMonth ?? null],
-      depreciationMethod:  [asset.depreciationMethod  ?? null],
-      dateAquired:         [asset.dateAquired         ?? null],
-      dateOfPurchase:    [asset.dateOfPurchase    ?? null],
-      dateOfManufacture: [asset.dateOfManufacture ?? null],
-      yearOfValuation:   [asset.yearOfValuation   ?? null],
-      assignTo:     [asset.assignTo    ?? AssignToType.NotAssigned],
-      assignUserId: [asset.assignUserId ?? null],
-      siteId:       [asset.siteId      ?? null],
-      areaId:       [asset.areaId      ?? null],
-      transferDate: [asset.transferDate ?? null],
-      dueDate:      [asset.dueDate      ?? null],
-    });
-  }
- 
+
   // ── Import engine ──────────────────────────────────────────────────────────
-  private async startImport(): Promise<void> {
+  private async _startImport(): Promise<void> {
     const results = this.importResults();
- 
+
     for (let i = 0; i < results.length; i++) {
+      // Mark as uploading
       this.importResults.update(list => {
-        const updated = [...list];
-        updated[i] = { ...updated[i], status: 'uploading' };
-        return updated;
+        const u = [...list];
+        u[i] = { ...u[i], status: 'uploading' };
+        return u;
       });
-      this.currentImporting.set(results[i].asset.name);
- 
-      await new Promise(r => setTimeout(r, 250));
- 
+      this.currentImporting.set(results[i].batch.name);
+      this.currentImportingUnit.set(
+        `Batch of ${results[i].batch.quantity} unit(s)`
+      );
+      this.cdr.markForCheck();
+
+      await new Promise(r => setTimeout(r, 300));
+
       try {
-        await this.uploadSingleAsset(results[i].asset);
+        await this._uploadBatch(results[i].batch);
         this.importResults.update(list => {
-          const updated = [...list];
-          updated[i] = { ...updated[i], status: 'success' };
-          return updated;
+          const u = [...list];
+          u[i] = { ...u[i], status: 'success' };
+          return u;
         });
         this.importedCount.update(n => n + 1);
-        // Update the live count so quota stays accurate during multi-asset import
-        this.currentAssetCount.update(n => n + 1);
+        this.currentAssetCount.update(n => n + results[i].batch.quantity);
       } catch (err: any) {
         const errorMsg = err?.error?.message ?? err?.message ?? 'Upload failed. Please retry.';
         this.importResults.update(list => {
-          const updated = [...list];
-          updated[i] = { ...updated[i], status: 'failed', error: errorMsg };
-          return updated;
+          const u = [...list];
+          u[i] = { ...u[i], status: 'failed', error: errorMsg };
+          return u;
         });
         this.failedCount.update(n => n + 1);
       }
+      this.cdr.markForCheck();
     }
- 
+
     this.currentImporting.set(null);
-    await new Promise(r => setTimeout(r, 600));
+    this.currentImportingUnit.set(null);
+    await new Promise(r => setTimeout(r, 700));
     this.currentStep.set(4);
+    this.cdr.markForCheck();
   }
- 
-  private uploadSingleAsset(asset: BulkAssetRow): Promise<any> {
-    const request: AssetRequest = {
-      name:          asset.name,
-      assetBrand:    asset.assetBrand,
-      assetModelNo:  asset.assetModelNo,
-      assetSerialNo: asset.assetSerialNo,
-      quantity:      asset.quantity,
-      unitPrice:     asset.unitPrice,
-      description:   asset.description,
-      warranetyInMonth: asset.warranetyInMonth,
-      note:          asset.note,
-      category:      asset.category,
-      subCategory:   asset.subCategory,
-      supplier:      asset.supplier,
-      assetStatus:   asset.assetStatus,
-      department:    asset.department,
-      subDepartment: asset.subDepartment,
-      isDepreciable: asset.isDepreciable ?? false,
-      depreciableCost:     asset.depreciableCost,
-      salvageValue:        asset.salvageValue,
-      depreciationInMonth: asset.depreciationInMonth,
-      depreciationMethod:  asset.depreciationMethod,
-      dateAquired:         asset.dateAquired      ?? undefined,
-      dateOfPurchase:      asset.dateOfPurchase   ?? undefined,
-      dateOfManufacture:   asset.dateOfManufacture ?? undefined,
-      yearOfValuation:     asset.yearOfValuation  ?? undefined,
-      assignTo:      asset.assignTo ?? AssignToType.NotAssigned,
-      assignUserId:  asset.assignUserId,
-      assignSiteId:  asset.siteId,
-      assignAreaId:  asset.areaId,
-      transferDate:  asset.transferDate  ?? undefined,
-      dueDate:       asset.dueDate       ?? undefined,
-      imageFile:           asset._imageFile    ?? undefined,
-      deliveryNoteFile:    asset._deliveryNote ?? undefined,
-      purchaseReceiptFile: asset._receipt      ?? undefined,
-      invoiceFile:         asset._invoice      ?? undefined,
+
+  private _uploadBatch(batch: BulkBatchRow): Promise<any> {
+    const serialNumbers = batch.serialNumbers.map(s => s.trim());
+    const isPerUnit = batch.assignMode === 'per-unit' && batch.quantity > 1;
+
+    // ── Build per-unit assignment list when Individual Assignment mode is active ──
+    // Each entry maps 1-to-1 with a unit via sequence (1-based = unitIndex + 1).
+    // The backend CreateAsync iterates createdAssets and matches by BatchSequence.
+    const unitAssignments: UnitAssignmentRequest[] | undefined = isPerUnit
+      ? batch.unitAssignments.map((ua, i) => ({
+        sequence: i + 1,
+        assignTo: ua.assignTo ?? AssignToType.NotAssigned,
+        assignUserId: ua.assignUserId ?? undefined,
+        siteId: ua.siteId ?? undefined,
+        areaId: ua.areaId ?? undefined,
+        assetStatus: batch.assetStatus ?? 0,
+      }))
+      : undefined;
+
+    // In per-unit mode, top-level assignTo is NotAssigned — the backend
+    // uses the UnitAssignments[] array for each unit's individual assignment.
+    const topLevelAssignTo = isPerUnit
+      ? AssignToType.NotAssigned
+      : (batch.globalAssignTo ?? AssignToType.NotAssigned);
+
+    const req: AssetRequest = {
+      name: batch.name,
+      assetBrand: batch.assetBrand,
+      assetModelNo: batch.assetModelNo,
+      assetSerialNo: serialNumbers[0] ?? '',
+      serialNumbers: serialNumbers.length > 1 ? serialNumbers : undefined,
+      quantity: batch.quantity,
+      unitPrice: batch.unitPrice,
+      description: batch.description,
+      warranetyInMonth: batch.warranetyInMonth,
+      note: batch.note,
+      category: batch.category,
+      subCategory: batch.subCategory,
+      supplier: batch.supplier,
+      assetStatus: batch.assetStatus,
+      department: batch.department,
+      subDepartment: batch.subDepartment,
+      isDepreciable: batch.isDepreciable ?? false,
+      depreciableCost: batch.depreciableCost,
+      salvageValue: batch.salvageValue,
+      depreciationInMonth: batch.depreciationInMonth,
+      depreciationMethod: batch.depreciationMethod,
+      dateAquired: batch.dateAquired ?? undefined,
+      dateOfPurchase: batch.dateOfPurchase ?? undefined,
+      dateOfManufacture: batch.dateOfManufacture ?? undefined,
+      yearOfValuation: batch.yearOfValuation ?? undefined,
+
+      // ── Assignment ──────────────────────────────────────────────────────────
+      assignTo: topLevelAssignTo,
+      assignUserId: isPerUnit ? undefined : batch.globalAssignUserId,
+      assignSiteId: isPerUnit ? undefined : batch.globalSiteId,
+      assignAreaId: isPerUnit ? undefined : batch.globalAreaId,
+      unitAssignments,   // undefined for global mode, UnitAssignmentRequest[] for per-unit
+
+      // ── Files ───────────────────────────────────────────────────────────────
+      imageFile: batch._imageFile ?? undefined,
+      deliveryNoteFile: batch._deliveryNote ?? undefined,
+      purchaseReceiptFile: batch._receipt ?? undefined,
+      invoiceFile: batch._invoice ?? undefined,
     };
- 
+
     return new Promise((resolve, reject) => {
-      this.assetService.createAsset(request).subscribe({ next: resolve, error: reject });
+      this.assetService.createAsset(req).subscribe({ next: resolve, error: reject });
     });
   }
- 
+
   // ── Retry / skip ───────────────────────────────────────────────────────────
-  async retryAsset(item: ImportResult): Promise<void> {
+  async retryBatch(item: ImportResult): Promise<void> {
     const idx = this.importResults().indexOf(item);
     if (idx === -1) return;
- 
     this.importResults.update(list => {
-      const updated = [...list];
-      updated[idx] = { ...updated[idx], status: 'uploading', error: undefined };
-      return updated;
+      const u = [...list];
+      u[idx] = { ...u[idx], status: 'uploading', error: undefined };
+      return u;
     });
- 
+    this.cdr.markForCheck();
     try {
-      await this.uploadSingleAsset(item.asset);
+      await this._uploadBatch(item.batch);
       this.importResults.update(list => {
-        const updated = [...list];
-        updated[idx] = { ...updated[idx], status: 'success' };
-        return updated;
+        const u = [...list];
+        u[idx] = { ...u[idx], status: 'success' };
+        return u;
       });
       this.importedCount.update(n => n + 1);
-      this.currentAssetCount.update(n => n + 1);
+      this.currentAssetCount.update(n => n + item.batch.quantity);
       this.failedCount.update(n => Math.max(0, n - 1));
     } catch (err: any) {
       const errorMsg = err?.error?.message ?? err?.message ?? 'Upload failed.';
       this.importResults.update(list => {
-        const updated = [...list];
-        updated[idx] = { ...updated[idx], status: 'failed', error: errorMsg };
-        return updated;
+        const u = [...list];
+        u[idx] = { ...u[idx], status: 'failed', error: errorMsg };
+        return u;
       });
     }
+    this.cdr.markForCheck();
   }
- 
-  editFailedAsset(item: ImportResult): void {
-    const idx = this.parsedAssets().findIndex(a => a === item.asset);
+
+  editFailedBatch(item: ImportResult): void {
+    const idx = this.batchRows().findIndex(b => b === item.batch);
     if (idx !== -1) {
       this.currentStep.set(2);
       setTimeout(() => this.openEditDrawer(idx), 300);
     }
   }
- 
+
   skipFailed(item: ImportResult): void {
     const idx = this.importResults().indexOf(item);
     if (idx === -1) return;
     this.importResults.update(list => list.filter((_, i) => i !== idx));
     this.failedCount.update(n => Math.max(0, n - 1));
     this.skippedCount.update(n => n + 1);
+    this.cdr.markForCheck();
   }
- 
-  async editAndRetryFailed(item: ImportResult): Promise<void> {
-    await this.retryAsset(item);
+
+  // ── Edit Drawer ────────────────────────────────────────────────────────────
+  openEditDrawer(index: number): void {
+    this._clearDrawerSubs();
+    this.editingIndex.set(index);
+    this.editingUnitIndex.set(0);
+    const batch = this.batchRows()[index];
+    this.editForm = this._buildEditForm(batch);
+
+    this.drawerSelectedCategory.set(batch.category ?? null);
+    this.drawerSelectedDepartment.set(batch.department ?? null);
+    this.drawerSelectedSite.set(batch.globalSiteId ?? null);
+    this.drawerGlobalAssignTo.set(batch.globalAssignTo ?? AssignToType.NotAssigned);
+
+    const catSub = this.editForm.get('category')!.valueChanges.subscribe(val => {
+      this.drawerSelectedCategory.set(val ?? null);
+      this.editForm.get('subCategory')!.setValue(null, { emitEvent: false });
+    });
+    const deptSub = this.editForm.get('department')!.valueChanges.subscribe(val => {
+      this.drawerSelectedDepartment.set(val ?? null);
+      this.editForm.get('subDepartment')!.setValue(null, { emitEvent: false });
+    });
+    const siteSub = this.editForm.get('globalSiteId')!.valueChanges.subscribe(val => {
+      this.drawerSelectedSite.set(val ?? null);
+      this.editForm.get('globalAreaId')!.setValue(null, { emitEvent: false });
+    });
+    const assignSub = this.editForm.get('globalAssignTo')!.valueChanges.subscribe(val => {
+      this.drawerGlobalAssignTo.set(val ?? AssignToType.NotAssigned);
+    });
+
+    this._drawerSubs = [catSub, deptSub, siteSub, assignSub];
+    this.cdr.markForCheck();
   }
- 
+
+  closeEditDrawer(): void {
+    this._clearDrawerSubs();
+    this.editingIndex.set(null);
+    this.cdr.markForCheck();
+  }
+
+  private _clearDrawerSubs(): void {
+    this._drawerSubs.forEach(s => s.unsubscribe());
+    this._drawerSubs = [];
+  }
+
+  saveEdit(): void {
+    if (this.editForm.invalid) return;
+    const idx = this.editingIndex();
+    if (idx === null) return;
+    const v = this.editForm.value;
+    const d = this.dropdowns();
+
+    // Resolve display labels
+    const catObj = d.categories.find(c => c.value === v.category);
+    const subCatObj = d.allSubCategories.find(s => s.value === v.subCategory);
+    const suppObj = d.suppliers.find(s => s.value === v.supplier);
+    const statusObj = d.assetStatus.find(s => s.value === v.assetStatus);
+    const deptObj = d.departments.find(d => d.value === v.department);
+    const subDObj = d.allSubDepartments.find(s => s.value === v.subDepartment);
+    const userObj = d.usersList.find(u => u.value === v.globalAssignUserId);
+    const siteObj = d.sites.find(s => s.value === v.globalSiteId);
+
+    // Parse serial numbers from textarea
+    const rawSerials = (v.serialNumbersRaw ?? '')
+      .split(',').map((s: string) => s.trim()).filter(Boolean);
+    const qty = Math.max(1, v.quantity ?? 1);
+    const serials = rawSerials.length === qty ? rawSerials :
+      Array.from({ length: qty }, (_, i) => rawSerials[i] ?? `${v.assetModelNo}-${String(i + 1).padStart(3, '0')}`);
+
+    this.batchRows.update(list => {
+      const updated = [...list];
+      const prev = updated[idx];
+      updated[idx] = {
+        ...prev,
+        ...v,
+        serialNumbers: serials,
+        quantity: qty,
+        categoryDisplay: catObj?.label,
+        subCategoryDisplay: subCatObj?.label,
+        supplierDisplay: suppObj?.label,
+        assetStatusDisplay: statusObj?.label,
+        departmentDisplay: deptObj?.label,
+        subDepartmentDisplay: subDObj?.label,
+        unitAssignments: serials.map((sn: string, i: number) => ({
+          ...prev.unitAssignments[i],
+          unitIndex: i,
+          serialNumber: sn,
+        })),
+        _serialsValid: serials.every((s: string) => !!s.trim()),
+        _serialCountMismatch: serials.length !== qty,
+      };
+      return updated;
+    });
+
+    this.closeEditDrawer();
+    this.globalService.showSnackbar('Batch updated', 'success');
+    this.cdr.markForCheck();
+  }
+
+  getCurrentEditBatch(): BulkBatchRow | null {
+    const idx = this.editingIndex();
+    if (idx === null) return null;
+    return this.batchRows()[idx] ?? null;
+  }
+
+  // ── Unit assignment update (from drawer) ───────────────────────────────────
+  updateUnitAssignment(batchIndex: number, unitIndex: number, field: keyof UnitAssignment, value: any): void {
+    this.batchRows.update(list => {
+      const updated = [...list];
+      const batch = { ...updated[batchIndex] };
+      batch.unitAssignments = batch.unitAssignments.map((ua, i) => {
+        if (i !== unitIndex) return ua;
+        const next = { ...ua, [field]: value };
+        if (field === 'assignTo') {
+          next.assignUserId = undefined;
+          next.siteId = undefined;
+          next.areaId = undefined;
+        }
+        if (field === 'siteId') next.areaId = undefined;
+        return next;
+      });
+      updated[batchIndex] = batch;
+      return updated;
+    });
+    this.cdr.markForCheck();
+  }
+
+  getFilteredAreasForUnit(unitAssignment: UnitAssignment) {
+    if (!unitAssignment.siteId) return this.dropdowns().allAreas;
+    return this.dropdowns().allAreas.filter(a => a.siteId === unitAssignment.siteId);
+  }
+
+  // ── File handling ──────────────────────────────────────────────────────────
+  onSlotFileChange(e: Event, key: keyof BulkBatchRow): void {
+    e.stopPropagation();
+    const file = (e.target as HTMLInputElement).files?.[0];
+    const idx = this.editingIndex();
+    if (idx === null || !file) return;
+    this.batchRows.update(list => {
+      const updated = [...list];
+      (updated[idx] as any)[key] = file;
+      return updated;
+    });
+    this.cdr.markForCheck();
+  }
+
+  removeSlotFile(e: Event, key: keyof BulkBatchRow): void {
+    e.stopPropagation();
+    const idx = this.editingIndex();
+    if (idx === null) return;
+    this.batchRows.update(list => {
+      const updated = [...list];
+      (updated[idx] as any)[key] = null;
+      return updated;
+    });
+    this.cdr.markForCheck();
+  }
+
+  // ── Form builder ───────────────────────────────────────────────────────────
+  private _buildEditForm(batch: BulkBatchRow): FormGroup {
+    // Rebuild serialNumbersRaw from the array
+    const serialRaw = batch.serialNumbers.join(', ');
+    return this.fb.group({
+      name: [batch.name, [Validators.required, Validators.minLength(2)]],
+      assetBrand: [batch.assetBrand, Validators.required],
+      assetModelNo: [batch.assetModelNo, Validators.required],
+      quantity: [batch.quantity, [Validators.required, Validators.min(1), Validators.max(500)]],
+      serialNumbersRaw: [serialRaw, Validators.required],
+      unitPrice: [batch.unitPrice ?? null],
+      description: [batch.description ?? ''],
+      warranetyInMonth: [batch.warranetyInMonth ?? null],
+      note: [batch.note ?? ''],
+      category: [batch.category ?? null],
+      subCategory: [batch.subCategory ?? null],
+      supplier: [batch.supplier ?? null],
+      assetStatus: [batch.assetStatus ?? null],
+      department: [batch.department ?? null],
+      subDepartment: [batch.subDepartment ?? null],
+      isDepreciable: [batch.isDepreciable ?? false],
+      depreciableCost: [batch.depreciableCost ?? null],
+      salvageValue: [batch.salvageValue ?? null],
+      depreciationInMonth: [batch.depreciationInMonth ?? null],
+      depreciationMethod: [batch.depreciationMethod ?? null],
+      dateAquired: [batch.dateAquired ?? null],
+      dateOfPurchase: [batch.dateOfPurchase ?? null],
+      dateOfManufacture: [batch.dateOfManufacture ?? null],
+      yearOfValuation: [batch.yearOfValuation ?? null],
+      assignMode: [batch.assignMode ?? 'global'],
+      globalAssignTo: [batch.globalAssignTo ?? AssignToType.NotAssigned],
+      globalAssignUserId: [batch.globalAssignUserId ?? null],
+      globalSiteId: [batch.globalSiteId ?? null],
+      globalAreaId: [batch.globalAreaId ?? null],
+    });
+  }
+
   // ── Navigation ─────────────────────────────────────────────────────────────
-  goToAssets(): void { this.router.navigate(['/assets']); }
-  cancel():     void { this.router.navigate(['/assets']); }
- 
+  goToAssets(): void { this.router.navigate(['/asset-management']); }
+  cancel(): void { this.router.navigate(['/asset-management']); }
+  goToUpgrade(): void { this.router.navigate(['/settings/subscription']); }
+
   startFresh(): void {
     this.uploadedFile.set(null);
-    this.parsedAssets.set([]);
+    this.batchRows.set([]);
     this.importResults.set([]);
     this.importedCount.set(0);
     this.failedCount.set(0);
     this.skippedCount.set(0);
     this.parseError.set(null);
     this.currentStep.set(1);
-    // Refresh asset count for the new session
     this.loadCurrentAssetCount();
+    this.cdr.markForCheck();
   }
- 
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   formatFileSize(bytes: number): string {
-    if (bytes < 1024)    return `${bytes} B`;
+    if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / 1048576).toFixed(1)} MB`;
   }
- 
+
+  formatAmount(value: number | null | undefined): string {
+    if (value === null || value === undefined || value === 0) return '—';
+    try {
+      return new Intl.NumberFormat('en', {
+        style: 'currency', currency: this._currencyCode,
+        minimumFractionDigits: 2, maximumFractionDigits: 2,
+      }).format(value);
+    } catch { return `${this.currencySymbol()}${value.toFixed(2)}`; }
+  }
+
   trackByIndex(index: number): number { return index; }
+
+  assignIcon(val: AssignToType): string {
+    const icons: Record<number, string> = { 0: 'do_not_disturb', 1: 'person', 2: 'location_city' };
+    return icons[val] ?? 'help';
+  }
+
+  getUnitAssignSummary(ua: UnitAssignment): string {
+    if (ua.assignTo === AssignToType.User) {
+      const u = this.dropdowns().usersList.find(x => x.value === ua.assignUserId);
+      return u ? u.label : 'Select user';
+    }
+    if (ua.assignTo === AssignToType.Site) {
+      const s = this.dropdowns().sites.find(x => x.value === ua.siteId);
+      return s ? s.label : 'Select site';
+    }
+    return 'Not Assigned';
+  }
+
+  getSerialCount(): number {
+
+    const raw =
+      this.editForm.get('serialNumbersRaw')?.value || '';
+
+    return raw
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter((s: string) => !!s)
+      .length;
+  }
+
+  isSerialCountValid(batch: any): boolean {
+
+    if (!batch?.serialNumbers) {
+      return false;
+    }
+
+    return (
+      batch.serialNumbers.length === batch.quantity &&
+      batch.serialNumbers.every((s: string) => !!s?.trim())
+    );
+  }
+
+  hasInvalidSerials(batch: any): boolean {
+
+    if (!batch?.serialNumbers) {
+      return true;
+    }
+
+    return (
+      batch.serialNumbers.length !== batch.quantity ||
+      batch.serialNumbers.some((s: string) => !s?.trim())
+    );
+  }
 }

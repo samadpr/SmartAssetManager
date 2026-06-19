@@ -1,0 +1,75 @@
+<!-- delete-company-dialog.component.html -->
+<div class="del-dialog">
+
+  <!-- Icon -->
+  <div class="del-icon-wrap">
+    <mat-icon>delete_forever</mat-icon>
+  </div>
+
+  <h2 class="del-title">Delete Company</h2>
+  <p class="del-subtitle">
+    This action cannot be undone. The company and its subscription plan will be
+    permanently deactivated (soft deleted). All existing data is retained but
+    <strong>no user can log in</strong> after deletion.
+  </p>
+
+  <!-- Company pill -->
+  <div class="del-company-pill">
+    <div class="dcp-avatar">{{ getInitials(data.company.name) }}</div>
+    <div class="dcp-info">
+      <span class="dcp-name">{{ data.company.name }}</span>
+      <span class="dcp-org">{{ data.company.organizationId | slice:0:20 }}…</span>
+    </div>
+    <mat-icon class="dcp-danger">report_problem</mat-icon>
+  </div>
+
+  <!-- What will be deleted -->
+  <div class="del-impact-list">
+    <div class="dil-item">
+      <mat-icon class="dil-icon dil-warn">cancel</mat-icon>
+      <span>Company record marked as cancelled</span>
+    </div>
+    <div class="dil-item">
+      <mat-icon class="dil-icon dil-warn">workspace_off</mat-icon>
+      <span>Subscription plan cancelled (billing stops)</span>
+    </div>
+    <div class="dil-item">
+      <mat-icon class="dil-icon dil-warn">no_accounts</mat-icon>
+      <span>All user logins blocked immediately</span>
+    </div>
+    <div class="dil-item">
+      <mat-icon class="dil-icon dil-ok">inventory_2</mat-icon>
+      <span>Asset & user data preserved (not erased)</span>
+    </div>
+  </div>
+
+  <!-- Reason -->
+  <mat-form-field appearance="outline" class="del-reason" subscriptSizing="dynamic">
+    <mat-label>Reason for deletion (optional)</mat-label>
+    <mat-icon matPrefix>edit_note</mat-icon>
+    <textarea matInput [(ngModel)]="reason" rows="2"
+              placeholder="Enter reason…"></textarea>
+  </mat-form-field>
+
+  <!-- Confirmation checkbox -->
+  <label class="del-confirm-label" [class.checked]="confirmed">
+    <input type="checkbox" [(ngModel)]="confirmed" class="del-checkbox" />
+    <mat-icon>{{ confirmed ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+    <span>I understand this will deactivate <strong>{{ data.company.name }}</strong></span>
+  </label>
+
+  <!-- Actions -->
+  <div class="del-actions">
+    <button mat-stroked-button class="del-btn-cancel" (click)="onCancel()">
+      Cancel
+    </button>
+    <button mat-flat-button class="del-btn-confirm"
+            [disabled]="!confirmed || saving"
+            (click)="onConfirm()">
+      <mat-spinner *ngIf="saving" diameter="16"></mat-spinner>
+      <mat-icon *ngIf="!saving">delete_forever</mat-icon>
+      {{ saving ? 'Deleting…' : 'Yes, Delete Company' }}
+    </button>
+  </div>
+
+</div>

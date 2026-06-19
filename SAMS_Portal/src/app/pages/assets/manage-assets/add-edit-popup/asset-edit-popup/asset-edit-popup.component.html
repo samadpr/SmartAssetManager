@@ -1,0 +1,525 @@
+<div class="asset-edit-container">
+
+  <!-- ══════════════════════ HEADER ══════════════════════ -->
+  <div class="edit-header">
+    <div class="edit-header-inner">
+      <!-- Avatar -->
+      <div class="edit-avatar" (click)="triggerFileInput('imageUrl')" matTooltip="Change image">
+        <img *ngIf="filePreviews['imageUrl'] || assetData.imageUrl"
+             [src]="filePreviews['imageUrl'] || getFileUrl(assetData.imageUrl)"
+             class="avatar-img" alt="Asset">
+        <div *ngIf="!filePreviews['imageUrl'] && !assetData.imageUrl" class="avatar-placeholder">
+          <mat-icon>inventory_2</mat-icon>
+        </div>
+        <div class="avatar-change-overlay">
+          <mat-icon>photo_camera</mat-icon>
+        </div>
+      </div>
+
+      <div class="edit-header-text">
+        <div class="edit-header-chips">
+          <span class="chip-id" *ngIf="assetData.assetId">{{ assetData.assetId }}</span>
+          <span class="chip-batch" *ngIf="assetData.batchCode">
+            <mat-icon>tag</mat-icon>{{ assetData.batchCode }}
+          </span>
+          <span class="edit-badge">
+            <mat-icon>edit</mat-icon> Editing Batch
+          </span>
+          <span class="batch-units-badge" *ngIf="assetData.quantity && assetData.quantity > 1">
+            <mat-icon>widgets</mat-icon> {{ assetData.quantity }} units
+          </span>
+        </div>
+        <h2 class="edit-header-title">{{ assetData.name || 'Edit Asset' }}</h2>
+        <p class="edit-header-meta" *ngIf="assetData.assetBrand || assetData.assetModelNo">
+          <mat-icon>tag</mat-icon>
+          {{ assetData.assetBrand }}{{ assetData.assetModelNo ? ' · ' + assetData.assetModelNo : '' }}
+        </p>
+      </div>
+    </div>
+
+    <button mat-icon-button class="close-btn" (click)="onCancel()" matTooltip="Close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Batch-edit info banner -->
+  <div class="batch-edit-notice" *ngIf="assetData.quantity && assetData.quantity > 1">
+    <mat-icon>info</mat-icon>
+    <span>
+      Changes to Basic Info, Classification, Dates, Depreciation, and Documents apply to
+      <strong>all {{ assetData.quantity }} units</strong> in this batch.
+      Serial numbers and per-unit codes are not affected.
+    </span>
+  </div>
+
+  <div class="status-per-unit-notice"
+       *ngIf="assetData.quantity && assetData.quantity > 1">
+    <mat-icon>lock</mat-icon>
+    <span>
+      <strong>Asset Status</strong> is disabled here because each unit can have a different
+      status. Update individual unit statuses from the
+      <strong>Batch Detail → Units tab</strong>.
+    </span>
+  </div>
+
+  <!-- ── Tab navigation ── -->
+  <div class="edit-tabs">
+    <button type="button" class="edit-tab"
+            *ngFor="let tab of tabs; let i = index"
+            [class.active]="activeTab === i"
+            [class.has-error]="tabHasError(i)"
+            (click)="activeTab = i">
+      <mat-icon class="tab-icon">{{ tab.icon }}</mat-icon>
+      <span>{{ tab.label }}</span>
+      <span class="tab-error-dot" *ngIf="tabHasError(i)"></span>
+    </button>
+  </div>
+
+  <!-- ══════════════════════ SCROLLABLE BODY ══════════════════════ -->
+  <div class="edit-body">
+
+    <!-- ─── TAB 0: Basic Info ─── -->
+    <div class="tab-panel" *ngIf="activeTab === 0" @tabAnim>
+
+      <!-- Basic Information -->
+      <form [formGroup]="basicForm" class="edit-form-grid">
+        <div class="edit-section-title col-2">
+          <mat-icon>inventory_2</mat-icon> Basic Information
+        </div>
+
+        <mat-form-field appearance="outline" class="col-2">
+          <mat-label>Asset Name *</mat-label>
+          <mat-icon matPrefix>inventory</mat-icon>
+          <input matInput formControlName="name" placeholder="Asset name">
+          <mat-error>Required · min 2 chars</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Brand *</mat-label>
+          <mat-icon matPrefix>branding_watermark</mat-icon>
+          <input matInput formControlName="assetBrand">
+          <mat-error>Required</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Model Number *</mat-label>
+          <mat-icon matPrefix>tag</mat-icon>
+          <input matInput formControlName="assetModelNo">
+          <mat-error>Required</mat-error>
+        </mat-form-field>
+
+        <!-- Serial number — read-only info for multi-unit, editable for single -->
+        <mat-form-field appearance="outline" *ngIf="!assetData.quantity || assetData.quantity === 1">
+          <mat-label>Serial Number *</mat-label>
+          <mat-icon matPrefix>qr_code_2</mat-icon>
+          <input matInput formControlName="assetSerialNo">
+          <mat-error>Required</mat-error>
+        </mat-form-field>
+
+        <div class="serial-readonly-info" *ngIf="assetData.quantity && assetData.quantity > 1">
+          <mat-icon>info_outline</mat-icon>
+          <div>
+            <div class="sri-title">Serial Numbers</div>
+            <div class="sri-desc">Each unit has its own serial. Manage individual unit serials in the batch detail view.</div>
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Unit Price</mat-label>
+          <mat-icon matPrefix>payments</mat-icon>
+          <input matInput type="number" formControlName="unitPrice" min="0">
+          <span matTextPrefix class="currency-prefix">{{ currencySymbol }}</span>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline"
+                [class.field-disabled-override]="assetData.quantity && assetData.quantity > 1">
+          <mat-label>Asset Status</mat-label>
+          <mat-icon matPrefix>fact_check</mat-icon>
+          <mat-select formControlName="assetStatus"
+                      [disabled]="!!(assetData.quantity && assetData.quantity > 1)">
+            <mat-option *ngFor="let s of dropdownData().assetStatus"
+                        [value]="s.value">{{ s.label }}</mat-option>
+          </mat-select>
+          <mat-hint *ngIf="assetData.quantity && assetData.quantity > 1"
+                    class="per-unit-hint">
+            <mat-icon>info_outline</mat-icon> Managed per unit in batch detail
+          </mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="col-2">
+          <mat-label>Description</mat-label>
+          <mat-icon matPrefix>description</mat-icon>
+          <textarea matInput formControlName="description" rows="2"></textarea>
+          <mat-hint align="end">{{ basicForm.get('description')?.value?.length || 0 }}/500</mat-hint>
+        </mat-form-field>
+      </form>
+
+      <!-- Classification -->
+      <form [formGroup]="classForm" class="edit-form-grid" style="margin-top:20px">
+        <div class="edit-section-title col-2">
+          <mat-icon>category</mat-icon> Classification
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Category</mat-label>
+          <mat-icon matPrefix>category</mat-icon>
+          <mat-select formControlName="category" (selectionChange)="onCategoryChange($event.value)">
+            <mat-option *ngFor="let c of dropdownData().categories" [value]="c.value">{{ c.label }}</mat-option>
+          </mat-select>
+          <button matSuffix mat-icon-button type="button" (click)="quickAddCategory($event)" class="quick-add-btn">
+            <mat-icon>add_circle_outline</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Sub Category</mat-label>
+          <mat-icon matPrefix>label</mat-icon>
+          <mat-select formControlName="subCategory">
+            <mat-option *ngFor="let sc of filteredSubCategories" [value]="sc.value">{{ sc.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Supplier</mat-label>
+          <mat-icon matPrefix>business</mat-icon>
+          <mat-select formControlName="supplier">
+            <mat-option *ngFor="let s of dropdownData().suppliers" [value]="s.value">{{ s.label }}</mat-option>
+          </mat-select>
+          <button matSuffix mat-icon-button type="button" (click)="quickAddSupplier($event)" class="quick-add-btn">
+            <mat-icon>add_circle_outline</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Warranty (Months)</mat-label>
+          <mat-icon matPrefix>verified_user</mat-icon>
+          <input matInput type="number" formControlName="warranetyInMonth" min="0">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Department</mat-label>
+          <mat-icon matPrefix>business_center</mat-icon>
+          <mat-select formControlName="department" (selectionChange)="onDepartmentChange($event.value)">
+            <mat-option *ngFor="let d of dropdownData().departments" [value]="d.value">{{ d.label }}</mat-option>
+          </mat-select>
+          <button matSuffix mat-icon-button type="button" (click)="quickAddDepartment($event)" class="quick-add-btn">
+            <mat-icon>add_circle_outline</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Sub Department</mat-label>
+          <mat-icon matPrefix>account_tree</mat-icon>
+          <mat-select formControlName="subDepartment">
+            <mat-option *ngFor="let sd of filteredSubDepartments" [value]="sd.value">{{ sd.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </form>
+
+      <!-- Dates -->
+      <form [formGroup]="datesForm" class="edit-form-grid" style="margin-top:20px">
+        <div class="edit-section-title col-2">
+          <mat-icon>event</mat-icon> Important Dates
+          <span class="dep-dates-hint" *ngIf="depForm.get('isDepreciable')?.value">
+            <mat-icon>info_outline</mat-icon> Purchase Date required for depreciation
+          </span>
+        </div>
+
+        <mat-form-field appearance="outline" [class.dep-required-field]="depForm.get('isDepreciable')?.value">
+          <mat-label>Purchase Date <span class="req-star" *ngIf="depForm.get('isDepreciable')?.value">*</span></mat-label>
+          <mat-icon matPrefix>shopping_cart</mat-icon>
+          <input matInput [matDatepicker]="purchasePicker" formControlName="dateOfPurchase">
+          <mat-datepicker-toggle matIconSuffix [for]="purchasePicker"></mat-datepicker-toggle>
+          <mat-datepicker #purchasePicker></mat-datepicker>
+          <mat-hint *ngIf="depForm.get('isDepreciable')?.value" class="dep-hint">
+            <mat-icon>calculate</mat-icon> Used to generate depreciation schedule
+          </mat-hint>
+          <mat-error>Purchase Date is required when depreciation is enabled</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Manufacturing Date</mat-label>
+          <mat-icon matPrefix>factory</mat-icon>
+          <input matInput [matDatepicker]="mfgPicker" formControlName="dateOfManufacture">
+          <mat-datepicker-toggle matIconSuffix [for]="mfgPicker"></mat-datepicker-toggle>
+          <mat-datepicker #mfgPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Year of Valuation</mat-label>
+          <mat-icon matPrefix>assessment</mat-icon>
+          <input matInput [matDatepicker]="valPicker" formControlName="yearOfValuation">
+          <mat-datepicker-toggle matIconSuffix [for]="valPicker"></mat-datepicker-toggle>
+          <mat-datepicker #valPicker></mat-datepicker>
+        </mat-form-field>
+      </form>
+
+    </div>
+
+    <!-- ─── TAB 1: Depreciation ─── -->
+    <div class="tab-panel" *ngIf="activeTab === 1" @tabAnim>
+      <form [formGroup]="depForm">
+
+        <div class="edit-section-title">
+          <mat-icon>trending_down</mat-icon> Depreciation
+        </div>
+
+        <div class="toggle-card" [class.toggle-card--active]="depForm.get('isDepreciable')?.value">
+          <div class="toggle-card-left">
+            <div class="toggle-icon-wrap"><mat-icon>trending_down</mat-icon></div>
+            <div>
+              <div class="toggle-card-title">Enable Depreciation</div>
+              <div class="toggle-card-desc">Track value reduction over useful life</div>
+            </div>
+          </div>
+          <mat-slide-toggle formControlName="isDepreciable" color="primary"
+                            (change)="onDepreciableToggle($event.checked)">
+          </mat-slide-toggle>
+        </div>
+
+        <div class="dep-fields-panel" *ngIf="depForm.get('isDepreciable')?.value" @slideDown>
+          <div class="calc-info-banner">
+            <mat-icon>auto_fix_high</mat-icon>
+            <span>Total Cost is auto-calculated from <strong>Unit Price × Quantity</strong></span>
+          </div>
+
+          <div class="edit-form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Total Cost *</mat-label>
+              <mat-icon matPrefix>payments</mat-icon>
+              <input matInput type="number" formControlName="depreciableCost" min="0">
+              <span matTextPrefix class="currency-prefix">{{ currencySymbol }}</span>
+              <mat-hint>Auto from Unit Price × Qty</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Salvage Value *</mat-label>
+              <mat-icon matPrefix>account_balance</mat-icon>
+              <input matInput type="number" formControlName="salvageValue" min="0">
+              <span matTextPrefix class="currency-prefix">{{ currencySymbol }}</span>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Useful Life (Months) *</mat-label>
+              <mat-icon matPrefix>schedule</mat-icon>
+              <input matInput type="number" formControlName="depreciationInMonth" min="1">
+              <mat-hint>{{ depreciationYears }} year{{ depreciationYears !== 1 ? 's' : '' }}</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Depreciation Method *</mat-label>
+              <mat-icon matPrefix>calculate</mat-icon>
+              <mat-select formControlName="depreciationMethod" (selectionChange)="recalcDepreciation()">
+                <mat-option *ngFor="let m of dropdownData().depreciationMethods" [value]="m.value">{{ m.label }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Date Acquired</mat-label>
+              <input matInput [matDatepicker]="acqPicker" formControlName="dateAquired">
+              <mat-datepicker-toggle matIconSuffix [for]="acqPicker"></mat-datepicker-toggle>
+              <mat-datepicker #acqPicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+
+          <!-- Summary -->
+          <div class="dep-summary" *ngIf="depSummary">
+            <div class="dep-summary-title"><mat-icon>auto_graph</mat-icon> Live Calculation Preview</div>
+            <div class="dep-summary-grid">
+              <div class="dep-summary-item">
+                <span class="dep-s-label">Total Cost</span>
+                <span class="dep-s-val">{{ currencySymbol }}{{ formatNum(depSummary.depreciableCost) }}</span>
+              </div>
+              <div class="dep-summary-item">
+                <span class="dep-s-label">Salvage Value</span>
+                <span class="dep-s-val">{{ currencySymbol }}{{ formatNum(depSummary.salvageValue) }}</span>
+              </div>
+              <div class="dep-summary-item dep-summary-item--highlight">
+                <span class="dep-s-label">Net Depreciable</span>
+                <span class="dep-s-val">{{ currencySymbol }}{{ formatNum(depSummary.netAmount) }}</span>
+              </div>
+              <div class="dep-summary-item">
+                <span class="dep-s-label">Annual Depreciation</span>
+                <span class="dep-s-val dep-s-val--down">{{ currencySymbol }}{{ formatNum(depSummary.annualDep) }}</span>
+              </div>
+              <div class="dep-summary-item">
+                <span class="dep-s-label">Monthly Depreciation</span>
+                <span class="dep-s-val dep-s-val--down">{{ currencySymbol }}{{ formatNum(depSummary.monthlyDep) }}</span>
+              </div>
+              <div class="dep-summary-item">
+                <span class="dep-s-label">Method</span>
+                <span class="dep-s-val dep-s-val--badge">{{ depSummary.methodLabel }}</span>
+              </div>
+            </div>
+
+            <div class="dep-mini-schedule" *ngIf="depPreviewRows.length">
+              <div class="dep-mini-title">First 3 Years Preview</div>
+              <table class="dep-preview-table">
+                <thead>
+                  <tr><th>Year</th><th>Beginning</th><th>Depreciation</th><th>Ending</th></tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of depPreviewRows">
+                    <td><span class="year-chip">Yr {{ row.year }}</span></td>
+                    <td class="num-cell">{{ currencySymbol }}{{ formatNum(row.begin) }}</td>
+                    <td class="num-cell dep-cell">▼ {{ currencySymbol }}{{ formatNum(row.dep) }}</td>
+                    <td class="num-cell end-cell">{{ currencySymbol }}{{ formatNum(row.end) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="no-dep-state" *ngIf="!depForm.get('isDepreciable')?.value">
+          <mat-icon>trending_flat</mat-icon>
+          <p>Depreciation disabled. Toggle above to enable.</p>
+        </div>
+      </form>
+    </div>
+
+    <!-- ─── TAB 2: Documents ─── -->
+    <div class="tab-panel" *ngIf="activeTab === 2" @tabAnim>
+
+      <div class="edit-section-title">
+        <mat-icon>folder_open</mat-icon> Documents &amp; Images
+      </div>
+
+      <div class="file-upload-grid">
+
+        <!-- Image -->
+        <div class="file-upload-card" [class.has-file]="filePreviews['imageUrl'] || assetData.imageUrl">
+          <div class="file-upload-icon-zone" (click)="triggerFileInput('imageUrl')"
+               (dragover)="onDragOver($event)" (drop)="onDrop($event, 'imageUrl')">
+            <ng-container *ngIf="!filePreviews['imageUrl'] && !assetData.imageUrl">
+              <mat-icon class="upload-icon">image</mat-icon>
+              <span class="upload-title">Asset Image</span>
+              <span class="upload-hint">JPG, PNG · Max 5MB</span>
+              <button mat-stroked-button type="button" class="upload-browse-btn"><mat-icon>upload</mat-icon> Browse</button>
+            </ng-container>
+            <ng-container *ngIf="filePreviews['imageUrl'] || assetData.imageUrl">
+              <img [src]="filePreviews['imageUrl'] || getFileUrl(assetData.imageUrl)" class="file-preview-img" alt="Asset">
+              <div class="preview-overlay">
+                <button mat-icon-button type="button" (click)="removeFile('imageUrl', $event)" class="remove-file-btn"><mat-icon>delete</mat-icon></button>
+              </div>
+            </ng-container>
+          </div>
+          <input #imageUrlInput type="file" accept=".jpg,.jpeg,.png,.webp" style="display:none" (change)="onFileSelected($event, 'imageUrl')">
+          <div class="file-name-row" *ngIf="fileNames['imageUrl']">
+            <mat-icon class="file-name-icon">photo</mat-icon><span>{{ fileNames['imageUrl'] }}</span>
+          </div>
+        </div>
+
+        <!-- Delivery Note -->
+        <div class="file-upload-card" [class.has-file]="filePreviews['deliveryNote'] || assetData.deliveryNote">
+          <div class="file-upload-icon-zone" (click)="triggerFileInput('deliveryNote')"
+               (dragover)="onDragOver($event)" (drop)="onDrop($event, 'deliveryNote')">
+            <ng-container *ngIf="!filePreviews['deliveryNote'] && !assetData.deliveryNote">
+              <mat-icon class="upload-icon">local_shipping</mat-icon>
+              <span class="upload-title">Delivery Note</span>
+              <span class="upload-hint">PDF, JPG, PNG · Max 10MB</span>
+              <button mat-stroked-button type="button" class="upload-browse-btn"><mat-icon>upload</mat-icon> Browse</button>
+            </ng-container>
+            <ng-container *ngIf="filePreviews['deliveryNote'] || assetData.deliveryNote">
+              <ng-container *ngIf="isImageUrl(filePreviews['deliveryNote'] || assetData.deliveryNote); else delPdf">
+                <img [src]="filePreviews['deliveryNote'] || getFileUrl(assetData.deliveryNote)" class="file-preview-img" alt="Delivery Note">
+              </ng-container>
+              <ng-template #delPdf><div class="doc-preview-icon"><mat-icon>picture_as_pdf</mat-icon><span>PDF Document</span></div></ng-template>
+              <div class="preview-overlay">
+                <button mat-icon-button type="button" (click)="removeFile('deliveryNote', $event)" class="remove-file-btn"><mat-icon>delete</mat-icon></button>
+              </div>
+            </ng-container>
+          </div>
+          <input #deliveryNoteInput type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" (change)="onFileSelected($event, 'deliveryNote')">
+          <div class="file-name-row" *ngIf="fileNames['deliveryNote']">
+            <mat-icon class="file-name-icon">description</mat-icon><span>{{ fileNames['deliveryNote'] }}</span>
+          </div>
+        </div>
+
+        <!-- Purchase Receipt -->
+        <div class="file-upload-card" [class.has-file]="filePreviews['purchaseReceipt'] || assetData.purchaseReceipt">
+          <div class="file-upload-icon-zone" (click)="triggerFileInput('purchaseReceipt')"
+               (dragover)="onDragOver($event)" (drop)="onDrop($event, 'purchaseReceipt')">
+            <ng-container *ngIf="!filePreviews['purchaseReceipt'] && !assetData.purchaseReceipt">
+              <mat-icon class="upload-icon">receipt</mat-icon>
+              <span class="upload-title">Purchase Receipt</span>
+              <span class="upload-hint">PDF, JPG, PNG · Max 10MB</span>
+              <button mat-stroked-button type="button" class="upload-browse-btn"><mat-icon>upload</mat-icon> Browse</button>
+            </ng-container>
+            <ng-container *ngIf="filePreviews['purchaseReceipt'] || assetData.purchaseReceipt">
+              <ng-container *ngIf="isImageUrl(filePreviews['purchaseReceipt'] || assetData.purchaseReceipt); else rcptPdf">
+                <img [src]="filePreviews['purchaseReceipt'] || getFileUrl(assetData.purchaseReceipt)" class="file-preview-img" alt="Receipt">
+              </ng-container>
+              <ng-template #rcptPdf><div class="doc-preview-icon"><mat-icon>picture_as_pdf</mat-icon><span>PDF Document</span></div></ng-template>
+              <div class="preview-overlay">
+                <button mat-icon-button type="button" (click)="removeFile('purchaseReceipt', $event)" class="remove-file-btn"><mat-icon>delete</mat-icon></button>
+              </div>
+            </ng-container>
+          </div>
+          <input #purchaseReceiptInput type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" (change)="onFileSelected($event, 'purchaseReceipt')">
+          <div class="file-name-row" *ngIf="fileNames['purchaseReceipt']">
+            <mat-icon class="file-name-icon">description</mat-icon><span>{{ fileNames['purchaseReceipt'] }}</span>
+          </div>
+        </div>
+
+        <!-- Invoice -->
+        <div class="file-upload-card" [class.has-file]="filePreviews['invoice'] || assetData.invoice">
+          <div class="file-upload-icon-zone" (click)="triggerFileInput('invoice')"
+               (dragover)="onDragOver($event)" (drop)="onDrop($event, 'invoice')">
+            <ng-container *ngIf="!filePreviews['invoice'] && !assetData.invoice">
+              <mat-icon class="upload-icon">receipt_long</mat-icon>
+              <span class="upload-title">Invoice</span>
+              <span class="upload-hint">PDF, JPG, PNG · Max 10MB</span>
+              <button mat-stroked-button type="button" class="upload-browse-btn"><mat-icon>upload</mat-icon> Browse</button>
+            </ng-container>
+            <ng-container *ngIf="filePreviews['invoice'] || assetData.invoice">
+              <ng-container *ngIf="isImageUrl(filePreviews['invoice'] || getFileUrl(assetData.invoice)); else invPdf">
+                <img [src]="filePreviews['invoice'] || getFileUrl(assetData.invoice)" class="file-preview-img" alt="Invoice">
+              </ng-container>
+              <ng-template #invPdf><div class="doc-preview-icon"><mat-icon>picture_as_pdf</mat-icon><span>PDF Document</span></div></ng-template>
+              <div class="preview-overlay">
+                <button mat-icon-button type="button" (click)="removeFile('invoice', $event)" class="remove-file-btn"><mat-icon>delete</mat-icon></button>
+              </div>
+            </ng-container>
+          </div>
+          <input #invoiceInput type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" (change)="onFileSelected($event, 'invoice')">
+          <div class="file-name-row" *ngIf="fileNames['invoice']">
+            <mat-icon class="file-name-icon">description</mat-icon><span>{{ fileNames['invoice'] }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="edit-section-title" style="margin-top:24px">
+        <mat-icon>note_alt</mat-icon> Additional Notes
+      </div>
+      <form [formGroup]="notesForm">
+        <mat-form-field appearance="outline" style="width:100%">
+          <mat-label>Notes</mat-label>
+          <mat-icon matPrefix>note</mat-icon>
+          <textarea matInput formControlName="note" rows="3"></textarea>
+        </mat-form-field>
+      </form>
+    </div>
+
+  </div><!-- /edit-body -->
+
+  <!-- ══════════════════════ FOOTER ══════════════════════ -->
+  <div class="edit-footer">
+    <button mat-stroked-button type="button" (click)="onCancel()" class="footer-cancel-btn">
+      <mat-icon>close</mat-icon> Cancel
+    </button>
+    <div class="edit-footer-right">
+      <span class="unsaved-hint" *ngIf="isDirty">
+        <mat-icon>circle</mat-icon> Unsaved changes
+      </span>
+      <button mat-raised-button color="primary" type="button"
+              (click)="onSubmit()" [disabled]="submitting" class="save-btn">
+        <mat-spinner *ngIf="submitting" diameter="18" class="btn-spinner"></mat-spinner>
+        <mat-icon *ngIf="!submitting">save</mat-icon>
+        {{ submitting ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+  </div>
+
+</div>

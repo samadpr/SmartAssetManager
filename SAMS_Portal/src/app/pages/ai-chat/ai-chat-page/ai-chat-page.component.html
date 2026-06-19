@@ -1,0 +1,275 @@
+<div class="page-shell">
+ 
+  <!-- ── LEFT SIDEBAR ─────────────────────────────────────────────────── -->
+  <aside class="page-sidebar">
+ 
+    <!-- Sidebar header -->
+    <div class="psb-header">
+      <div class="psb-brand">
+        <div class="psb-orb">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="5" y="7" width="14" height="10" rx="3" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="9" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="15" cy="12" r="1.5" fill="currentColor"/>
+            <path d="M9 17v1.5M15 17v1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M12 7V5M10 5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="psb-brand-text">
+          <span class="psb-name">SAMS AI</span>
+          <span class="psb-sub">Asset Intelligence</span>
+        </div>
+      </div>
+      <button mat-icon-button class="psb-back-btn" (click)="goBack()" matTooltip="Back">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+    </div>
+ 
+    <!-- New chat button -->
+    <div class="psb-new-wrap">
+      <button class="new-chat-btn" (click)="newChat()">
+        <mat-icon>add</mat-icon>
+        <span>New Conversation</span>
+      </button>
+    </div>
+ 
+    <!-- Search -->
+    <div class="psb-search-wrap">
+      <mat-icon class="search-icon">search</mat-icon>
+      <input class="search-inp"
+             placeholder="Search conversations…"
+             [value]="searchText()"
+             (input)="searchText.set($any($event.target).value)" />
+    </div>
+ 
+    <!-- Usage bar -->
+    @if (usageStats(); as stats) {
+      <div class="psb-usage">
+        <div class="usage-row">
+          <span>Daily tokens</span>
+          <span class="usage-val">{{ stats.todayTokens | number }} / {{ stats.dailyTokenLimit | number }}</span>
+        </div>
+        <div class="usage-track">
+          <div class="usage-fill"
+               [style.width.%]="tokenPct()"
+               [class.warn]="tokenPct() > 75"
+               [class.danger]="tokenPct() > 90"></div>
+        </div>
+        <div class="usage-pills">
+          <span class="upill"><mat-icon>chat</mat-icon>{{ stats.totalSessions }} chats</span>
+          <span class="upill"><mat-icon>today</mat-icon>{{ stats.todayRequests }} today</span>
+        </div>
+      </div>
+    }
+ 
+    <mat-divider></mat-divider>
+ 
+    <!-- Sessions list -->
+    <div class="psb-sessions">
+      @if (filteredSessions().length === 0) {
+        <div class="psb-empty">
+          <mat-icon>forum</mat-icon>
+          <p>{{ searchText() ? 'No results' : 'No conversations yet' }}</p>
+        </div>
+      }
+ 
+      @for (sess of filteredSessions(); track trackBySess($index, sess)) {
+        <div class="psb-sess"
+             [class.active]="currentSessionId() === sess.sessionId"
+             [class.pinned]="sess.isPinned"
+             (click)="openSession(sess)"
+             (mouseenter)="hoveredId.set(sess.sessionId)"
+             (mouseleave)="hoveredId.set(null)">
+ 
+          @if (editingId() === sess.sessionId) {
+            <!-- Rename mode -->
+            <input class="rename-inp"
+                   [(ngModel)]="editingTitle"
+                   (keydown.enter)="confirmRename(sess)"
+                   (keydown.escape)="cancelRename()"
+                   (click)="$event.stopPropagation()" autofocus />
+            <div class="rename-actions">
+              <button mat-icon-button class="tiny-btn"
+                      (click)="confirmRename(sess);$event.stopPropagation()">
+                <mat-icon>check</mat-icon>
+              </button>
+              <button mat-icon-button class="tiny-btn"
+                      (click)="cancelRename();$event.stopPropagation()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          } @else {
+ 
+            <!-- Session icon -->
+            <div class="sess-icon-wrap">
+              <mat-icon class="sess-icon">
+                {{ sess.isPinned ? 'push_pin' : 'chat_bubble_outline' }}
+              </mat-icon>
+            </div>
+ 
+            <!-- Text -->
+            <div class="sess-content">
+              <span class="sess-title">{{ sess.title }}</span>
+              @if (hoveredId() !== sess.sessionId && sess.lastMessage) {
+                <span class="sess-preview">{{ sess.lastMessage }}</span>
+              }
+              <span class="sess-date">{{ formatDate(sess.modifiedDate) }}</span>
+            </div>
+ 
+            <!-- Actions on hover -->
+            <div class="sess-acts" [class.show]="hoveredId() === sess.sessionId">
+              <button mat-icon-button class="tiny-btn"
+                      [matTooltip]="sess.isPinned ? 'Unpin' : 'Pin'"
+                      (click)="pinSession(sess,$event)">
+                <mat-icon>push_pin</mat-icon>
+              </button>
+              <button mat-icon-button class="tiny-btn"
+                      matTooltip="Rename"
+                      (click)="startRename(sess,$event)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button class="tiny-btn del"
+                      matTooltip="Delete"
+                      (click)="deleteSession(sess,$event)">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </aside>
+ 
+  <!-- ── MAIN AREA ──────────────────────────────────────────────────────── -->
+  <main class="page-main">
+ 
+    <!-- Top bar -->
+    <div class="page-topbar">
+      <div class="topbar-left">
+        @if (currentSessionId()) {
+          <span class="topbar-title">
+            {{ currentSessionId() ? currentSessionTitle() : 'New Conversation' }}
+          </span>
+        } @else {
+          <span class="topbar-title">New Conversation</span>
+        }
+        <span class="topbar-sub">SAMS AI Assistant</span>
+      </div>
+      <div class="topbar-right">
+        @if (currentSessionId()) {
+          <button mat-icon-button matTooltip="New chat" (click)="newChat()">
+            <mat-icon>add_comment</mat-icon>
+          </button>
+        }
+        <div class="online-chip">
+          <span class="dot"></span>
+          Online
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Messages area -->
+    <div class="page-msgs">
+ 
+      <!-- Welcome / empty state -->
+      @if (messages().length === 0) {
+        <div class="page-welcome">
+          <div class="pw-orb">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="10" y="18" width="44" height="30" rx="9" stroke="currentColor" stroke-width="2"/>
+              <circle cx="24" cy="33" r="4" fill="currentColor"/>
+              <circle cx="40" cy="33" r="4" fill="currentColor"/>
+              <path d="M24 48v5M40 48v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M32 18v-5M28 13h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M10 31H5M59 31h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="24" cy="33" r="1.8" fill="white" opacity=".8"/>
+              <circle cx="40" cy="33" r="1.8" fill="white" opacity=".8"/>
+            </svg>
+          </div>
+          <h2>Hello! I'm SAMS AI</h2>
+          <p>Ask me anything about your assets, users, departments, reports, or how to use the system.</p>
+          <div class="pw-chips">
+            @for (chip of suggestionChips; track chip) {
+              <button class="pw-chip" (click)="inputText.set(chip)">{{ chip }}</button>
+            }
+          </div>
+        </div>
+      }
+ 
+      <!-- Message list -->
+      @for (msg of messages(); track trackByMsg($index, msg)) {
+        <div class="pmsg-row"
+             [class.user]="msg.role==='user'"
+             [class.ai]="msg.role==='assistant'">
+ 
+          <!-- AI avatar -->
+          @if (msg.role === 'assistant') {
+            <div class="pmsg-av ai-av">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="7" width="14" height="10" rx="3" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="9" cy="12" r="1.5" fill="currentColor"/>
+                <circle cx="15" cy="12" r="1.5" fill="currentColor"/>
+              </svg>
+            </div>
+          }
+ 
+          <!-- Bubble -->
+          <div class="pmsg-bubble" [class.err]="msg.isError">
+            @if (msg.isLoading) {
+              <div class="typing-dots">
+                <span></span><span></span><span></span>
+              </div>
+            } @else {
+              <div class="pmsg-body" [innerHTML]="renderContent(msg.displayContent)"></div>
+              @if (msg.isTyping) {
+                <span class="type-cursor">|</span>
+              }
+              <span class="pmsg-time">{{ formatTime(msg.timestamp) }}</span>
+            }
+          </div>
+ 
+          <!-- User avatar -->
+          @if (msg.role === 'user') {
+            <div class="pmsg-av user-av">
+              <mat-icon>person</mat-icon>
+            </div>
+          }
+        </div>
+      }
+ 
+      <div #msgEnd></div>
+    </div>
+ 
+    <!-- Input bar -->
+    <div class="page-input-bar">
+      <div class="page-input-box" [class.busy]="isLoading()">
+        <textarea #inputRef class="page-ta"
+                  placeholder="Ask about your assets, users, departments, reports…"
+                  [value]="inputText()"
+                  (input)="onInput($event)"
+                  (keydown)="onKeydown($event)"
+                  [disabled]="isLoading()"
+                  rows="1" maxlength="4000"></textarea>
+ 
+        <div class="page-input-actions">
+          <span class="char-cnt" [class.warn]="inputText().length>3500">
+            {{ inputText().length }}/4000
+          </span>
+          <button class="page-send-btn" [disabled]="!canSend()" (click)="sendMessage()"
+                  matTooltip="Send message">
+            @if (isLoading()) {
+              <mat-progress-spinner diameter="20" mode="indeterminate" strokeWidth="2"/>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+          </button>
+        </div>
+      </div>
+      <p class="page-hint">
+        <kbd>Enter</kbd> to send &nbsp;·&nbsp; <kbd>Shift+Enter</kbd> for new line &nbsp;·&nbsp;
+        Powered by Mistral AI via Azure
+      </p>
+    </div>
+ 
+  </main>
+</div>

@@ -1,357 +1,424 @@
-<app-page-header [title]="'Profiles'" [breadcrumbs]="[
-    { label: 'Profiles' }
+<app-page-header [title]="'My Profile'" [breadcrumbs]="[
+    { label: 'My Profile' }
   ]">
 </app-page-header>
 
-<div class="profile-container" [@fadeIn]>
-  <!-- Loading State -->
-  @if (isLoading()) {
-  <div class="loading-container">
-    <mat-progress-spinner [diameter]="60" mode="indeterminate" color="primary"></mat-progress-spinner>
-    <p class="loading-text">Loading profile...</p>
-  </div>
-  }
-
-  @if (!isLoading() && profileDetails()) {
-  <!-- Hero Card with Profile Picture -->
-  <mat-card class="hero-card" [@slideIn]>
-    <div class="hero-background"></div>
-    <div class="hero-content">
-      <div class="profile-picture-section">
-        <div class="profile-picture-container" [class.editable]="isEditing()">
-          <img [src]="profilePictureUrl()" [alt]="fullName() + ' Profile Picture'" class="profile-picture" />
-          @if (isEditing()) {
-          <div class="picture-overlay" (click)="openProfilePictureDialog()">
-            <mat-icon>camera_alt</mat-icon>
-            <span>Change Photo</span>
-          </div>
-          }
-        </div>
+<!-- Sticky save bar slides in below page-header while editing -->
+@if (isEditing()) {
+  <div class="sticky-edit-bar" [@fadeSlide]>
+    <div class="seb-left">
+      <div class="seb-indicator" [class.has-changes]="hasChanges()">
+        <mat-icon>{{ hasChanges() ? 'edit_note' : 'check_circle_outline' }}</mat-icon>
+        <span>{{ hasChanges() ? 'Unsaved changes' : 'No changes yet — edit a field below' }}</span>
       </div>
-
-      <div class="profile-header-info">
-        <h1 class="profile-name">{{ fullName() }}</h1>
-        @if (profileDetails()?.designationDisplay) {
-        <p class="profile-title">{{ profileDetails()?.designationDisplay }}</p>
-        }
-        
-        <div class="profile-meta">
-          @if (profileDetails()?.departmentDisplay) {
-          <div class="meta-item">
-            <mat-icon>business</mat-icon>
-            <span>{{ profileDetails()?.departmentDisplay }}</span>
-          </div>
-          }
-          @if (profileDetails()?.email) {
-          <div class="meta-item">
-            <mat-icon>email</mat-icon>
-            <span>{{ profileDetails()?.email }}</span>
-          </div>
-          }
-          @if (profileDetails()?.phoneNumber) {
-          <div class="meta-item">
-            <mat-icon>phone</mat-icon>
-            <span>{{ profileDetails()?.phoneNumber }}</span>
-          </div>
-          }
-        </div>
-      </div>
-
-      <div class="profile-actions">
-        @if (!isEditing()) {
-        <button mat-raised-button color="primary" (click)="toggleEdit()">
-          <mat-icon>edit</mat-icon>
-          Edit Profile
-        </button>
+    </div>
+    <div class="seb-actions">
+      <button mat-stroked-button class="seb-cancel" (click)="cancelEdit()" [disabled]="isSaving()">
+        <mat-icon>close</mat-icon>
+        Cancel
+      </button>
+      <button mat-flat-button class="seb-save"
+        (click)="saveProfile()"
+        [disabled]="profileForm.invalid || isSaving() || !hasChanges()">
+        @if (isSaving()) {
+          <mat-progress-spinner [diameter]="16" mode="indeterminate"></mat-progress-spinner>
         } @else {
-        <button mat-button (click)="cancelEdit()" [disabled]="isSaving()">
-          <mat-icon>close</mat-icon>
-          Cancel
-        </button>
-        <button mat-raised-button color="primary" (click)="saveProfile()" [disabled]="profileForm.invalid || isSaving()">
-          @if (isSaving()) {
-          <mat-progress-spinner [diameter]="20" mode="indeterminate"></mat-progress-spinner>
-          } @else {
-          <mat-icon>save</mat-icon>
-          }
-          <span>{{ isSaving() ? 'Saving...' : 'Save Changes' }}</span>
-        </button>
+          <mat-icon>check</mat-icon>
         }
-      </div>
+        {{ isSaving() ? 'Saving...' : 'Save Changes' }}
+      </button>
     </div>
-  </mat-card>
-
-  <!-- Main Content -->
-  <div class="content-grid">
-    <!-- Left Column -->
-    <div class="left-column">
-      <!-- Personal Information Card -->
-      <mat-card class="info-card" [@slideIn]>
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>person</mat-icon>
-            Personal Information
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          @if (!isEditing()) {
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">First Name</span>
-              <span class="info-value">{{ profileDetails()?.firstName || 'Not specified' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Last Name</span>
-              <span class="info-value">{{ profileDetails()?.lastName || 'Not specified' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Email</span>
-              <span class="info-value">{{ profileDetails()?.email || 'Not specified' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Phone</span>
-              <span class="info-value">{{ profileDetails()?.phoneNumber || 'Not specified' }}</span>
-            </div>
-            <div class="info-item full-width">
-              <span class="info-label">Address</span>
-              <span class="info-value">{{ profileDetails()?.address || 'Not specified' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Country</span>
-              <span class="info-value">{{ profileDetails()?.country || 'Not specified' }}</span>
-            </div>
+  </div>
+}
+ 
+<div class="profile-shell" [@pageEnter]>
+ 
+  @if (isLoading()) {
+    <div class="profile-loading">
+      <div class="loading-ring"></div>
+      <mat-progress-spinner [diameter]="48" mode="indeterminate" color="primary"></mat-progress-spinner>
+      <p>Loading your profile...</p>
+    </div>
+  }
+ 
+  @if (!isLoading() && profileDetails()) {
+    <div class="profile-layout">
+ 
+      <!-- LEFT RAIL -->
+      <aside class="profile-rail" [@slideUp]>
+ 
+        <div class="identity-card">
+          <div class="identity-banner">
+            <div class="banner-geo"></div>
           </div>
-          } @else {
-          <form [formGroup]="profileForm" class="edit-form">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>First Name</mat-label>
-              <input matInput formControlName="firstName" placeholder="Enter first name">
-              <mat-icon matSuffix>person</mat-icon>
-              <mat-error *ngIf="profileForm.get('firstName')?.hasError('required')">
-                First name is required
-              </mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Last Name</mat-label>
-              <input matInput formControlName="lastName" placeholder="Enter last name">
-              <mat-icon matSuffix>person</mat-icon>
-              <mat-error *ngIf="profileForm.get('lastName')?.hasError('required')">
-                Last name is required
-              </mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Email</mat-label>
-              <input matInput type="email" formControlName="email" placeholder="email@example.com" readonly>
-              <mat-icon matSuffix>email</mat-icon>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Phone Number</mat-label>
-              <input matInput type="tel" formControlName="phoneNumber" placeholder="+1234567890">
-              <mat-icon matSuffix>phone</mat-icon>
-              <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('pattern')">
-                Invalid phone format
-              </mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Address</mat-label>
-              <textarea matInput formControlName="address" placeholder="Enter address" rows="2"></textarea>
-              <mat-icon matSuffix>location_on</mat-icon>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Country</mat-label>
-              <mat-select formControlName="country">
-                <mat-select-trigger>
-                  @if (getSelectedCountry(); as country) {
-                  <img [src]="getFlagUrl(country.code)" width="24" height="16" style="margin-right: 8px;" />
-                  {{ country.name }}
-                  }
-                </mat-select-trigger>
-                @for (country of filteredCountries; track country.code) {
-                <mat-option [value]="country.name">
-                  <img [src]="getFlagUrl(country.code)" width="24" height="16" style="margin-right: 8px;" />
-                  {{ country.name }}
-                </mat-option>
-                }
-              </mat-select>
-              <mat-icon matSuffix>public</mat-icon>
-            </mat-form-field>
-          </form>
-          }
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Work Information Card -->
-      <mat-card class="info-card" [@slideIn]>
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>work</mat-icon>
-            Work Information
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          @if (!isEditing()) {
-          <div class="info-grid">
-            @if (profileDetails()?.employeeId) {
-            <div class="info-item">
-              <span class="info-label">Employee ID</span>
-              <span class="info-value">{{ profileDetails()?.employeeId }}</span>
+ 
+          <div class="avatar-anchor">
+            <div class="avatar-ring"
+              [class.editable]="isEditing()"
+              [matTooltip]="isEditing() ? 'Change profile photo' : ''"
+              (click)="isEditing() && openProfilePictureDialog()">
+              <img [src]="profilePictureUrl()" [alt]="fullName()" class="avatar-img" />
+              @if (isEditing()) {
+                <div class="avatar-overlay">
+                  <mat-icon>photo_camera</mat-icon>
+                  <span>Change</span>
+                </div>
+              }
+              @if (pictureDirty()) {
+                <div class="avatar-dirty-badge" matTooltip="Photo changed — save to confirm"></div>
+              }
             </div>
-            }
+            <div class="online-dot"></div>
+          </div>
+ 
+          <div class="identity-body">
+            <h2 class="identity-name">{{ fullName() }}</h2>
+ 
             @if (profileDetails()?.designationDisplay) {
-            <div class="info-item">
-              <span class="info-label">Designation</span>
-              <span class="info-value">{{ profileDetails()?.designationDisplay }}</span>
-            </div>
+              <p class="identity-role">
+                <mat-icon>work_outline</mat-icon>
+                {{ profileDetails()?.designationDisplay }}
+              </p>
             }
-            @if (profileDetails()?.departmentDisplay) {
-            <div class="info-item">
-              <span class="info-label">Department</span>
-              <span class="info-value">{{ profileDetails()?.departmentDisplay }}</span>
-            </div>
-            }
-            @if (profileDetails()?.subDepartmentDisplay) {
-            <div class="info-item">
-              <span class="info-label">Sub Department</span>
-              <span class="info-value">{{ profileDetails()?.subDepartmentDisplay }}</span>
-            </div>
-            }
+ 
             @if (profileDetails()?.roleIdDisplay) {
-            <div class="info-item">
-              <span class="info-label">Role</span>
-              <span class="info-value">{{ profileDetails()?.roleIdDisplay === 'General' ? 'Admin' : profileDetails()?.roleIdDisplay }}</span>
-            </div>
+              <div class="role-badge">
+                <mat-icon>shield_outlined</mat-icon>
+                {{ profileDetails()?.roleIdDisplay === 'General' ? 'Admin' : profileDetails()?.roleIdDisplay }}
+              </div>
             }
+ 
+            <div class="identity-chips">
+              @if (profileDetails()?.email) {
+                <div class="id-chip">
+                  <mat-icon>alternate_email</mat-icon>
+                  <span>{{ profileDetails()?.email }}</span>
+                </div>
+              }
+              @if (profileDetails()?.phoneNumber) {
+                <div class="id-chip">
+                  <mat-icon>phone_iphone</mat-icon>
+                  <span>{{ profileDetails()?.phoneNumber }}</span>
+                </div>
+              }
+              @if (profileDetails()?.departmentDisplay) {
+                <div class="id-chip">
+                  <mat-icon>corporate_fare</mat-icon>
+                  <span>{{ profileDetails()?.departmentDisplay }}</span>
+                </div>
+              }
+            </div>
           </div>
-          } @else {
-          <form [formGroup]="profileForm" class="edit-form">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Designation</mat-label>
-              <mat-select formControlName="designation">
-                @for (des of designations; track des.id) {
-                <mat-option [value]="des.id">{{ des.name }}</mat-option>
+ 
+          @if (profileDetails()?.employeeId || profileDetails()?.joiningDate) {
+            <div class="identity-meta">
+              @if (profileDetails()?.employeeId) {
+                <div class="meta-row">
+                  <span class="meta-lbl">Employee ID</span>
+                  <span class="meta-val mono">{{ profileDetails()?.employeeId }}</span>
+                </div>
+              }
+              @if (profileDetails()?.joiningDate) {
+                <div class="meta-row">
+                  <span class="meta-lbl">Member since</span>
+                  <span class="meta-val">{{ profileDetails()?.joiningDate | date:'MMM yyyy' }}</span>
+                </div>
+              }
+              @if (profileDetails()?.siteDisplay) {
+                <div class="meta-row">
+                  <span class="meta-lbl">Site</span>
+                  <span class="meta-val">{{ profileDetails()?.siteDisplay }}</span>
+                </div>
+              }
+              @if (profileDetails()?.areaDisplay) {
+                <div class="meta-row">
+                  <span class="meta-lbl">Area</span>
+                  <span class="meta-val">{{ profileDetails()?.areaDisplay }}</span>
+                </div>
+              }
+            </div>
+          }
+ 
+          <div class="identity-actions">
+            @if (!isEditing()) {
+              <button class="btn-edit-profile" mat-flat-button (click)="toggleEdit()">
+                <mat-icon>edit</mat-icon>
+                Edit Profile
+              </button>
+            } @else {
+              <button class="btn-photo" mat-stroked-button (click)="openProfilePictureDialog()">
+                <mat-icon>photo_camera</mat-icon>
+                Change Photo
+                @if (pictureDirty()) {
+                  <span class="photo-dirty-dot"></span>
                 }
-              </mat-select>
-              <mat-icon matSuffix>work</mat-icon>
-            </mat-form-field>
-          </form>
-          }
-        </mat-card-content>
-      </mat-card>
-    </div>
-
-    <!-- Right Column -->
-    <div class="right-column">
-      <!-- Date Information Card -->
-      <mat-card class="info-card" [@slideIn]>
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>event</mat-icon>
-            Important Dates
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          @if (!isEditing()) {
-          <div class="info-grid">
-            @if (profileDetails()?.dateOfBirth) {
-            <div class="info-item full-width">
-              <span class="info-label">Date of Birth</span>
-              <span class="info-value">{{ profileDetails()?.dateOfBirth | date:'mediumDate' }}</span>
-            </div>
-            }
-            @if (profileDetails()?.joiningDate) {
-            <div class="info-item full-width">
-              <span class="info-label">Joining Date</span>
-              <span class="info-value">{{ profileDetails()?.joiningDate | date:'mediumDate' }}</span>
-            </div>
-            }
-            @if (profileDetails()?.leavingDate) {
-            <div class="info-item full-width">
-              <span class="info-label">Leaving Date</span>
-              <span class="info-value">{{ profileDetails()?.leavingDate | date:'mediumDate' }}</span>
-            </div>
+              </button>
             }
           </div>
-          } @else {
-          <form [formGroup]="profileForm" class="edit-form">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Date of Birth</mat-label>
-              <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth">
-              <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
-              <mat-datepicker #dobPicker></mat-datepicker>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Joining Date</mat-label>
-              <input matInput [matDatepicker]="joiningPicker" formControlName="joiningDate">
-              <mat-datepicker-toggle matSuffix [for]="joiningPicker"></mat-datepicker-toggle>
-              <mat-datepicker #joiningPicker></mat-datepicker>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Leaving Date</mat-label>
-              <input matInput [matDatepicker]="leavingPicker" formControlName="leavingDate">
-              <mat-datepicker-toggle matSuffix [for]="leavingPicker"></mat-datepicker-toggle>
-              <mat-datepicker #leavingPicker></mat-datepicker>
-            </mat-form-field>
-          </form>
-          }
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Quick Stats Card -->
-      <mat-card class="stats-card" [@slideIn]>
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>insights</mat-icon>
-            Account Information
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="stats-grid">
-            @if (profileDetails()?.createdDate) {
-            <div class="stat-item">
-              <div class="stat-icon">
-                <mat-icon>calendar_today</mat-icon>
+        </div>
+ 
+        @if (companyData()) {
+          <div class="company-mini-card" (click)="navigateToCompany()" matRipple>
+            <div class="cmc-left">
+              <div class="cmc-logo-wrap">
+                <img [src]="companyLogoUrl()" alt="Company" class="cmc-logo"
+                  (error)="onCompanyLogoError($event)" />
               </div>
-              <div class="stat-info">
-                <span class="stat-label">Member Since</span>
-                <span class="stat-value">{{ profileDetails()?.createdDate | date:'mediumDate' }}</span>
+              <div>
+                <p class="cmc-name">{{ companyData()?.name }}</p>
+                <p class="cmc-industry">{{ industryName() }}</p>
               </div>
             </div>
+            <mat-icon class="cmc-arrow">chevron_right</mat-icon>
+          </div>
+        }
+ 
+        @if (profileDetails()?.createdDate || profileDetails()?.modifiedDate) {
+          <div class="account-info-card">
+            <p class="aic-title">Account Activity</p>
+            @if (profileDetails()?.createdDate) {
+              <div class="aic-row">
+                <mat-icon>event</mat-icon>
+                <div>
+                  <span class="aic-lbl">Profile created</span>
+                  <span class="aic-val">{{ profileDetails()?.createdDate | date:'dd MMM yyyy' }}</span>
+                </div>
+              </div>
             }
             @if (profileDetails()?.modifiedDate) {
-            <div class="stat-item">
-              <div class="stat-icon">
+              <div class="aic-row">
                 <mat-icon>update</mat-icon>
+                <div>
+                  <span class="aic-lbl">Last updated</span>
+                  <span class="aic-val">{{ profileDetails()?.modifiedDate | date:'dd MMM yyyy, HH:mm' }}</span>
+                </div>
               </div>
-              <div class="stat-info">
-                <span class="stat-label">Last Updated</span>
-                <span class="stat-value">{{ profileDetails()?.modifiedDate | date:'mediumDate' }}</span>
-              </div>
-            </div>
             }
           </div>
-        </mat-card-content>
-      </mat-card>
+        }
+      </aside>
+ 
+      <!-- RIGHT CONTENT -->
+      <div class="profile-content">
+ 
+        <!-- Personal Information -->
+        <div class="detail-section" [@slideUp]>
+          <div class="ds-header">
+            <div class="ds-icon-wrap" style="background: linear-gradient(135deg, var(--mat-sys-primary), color-mix(in srgb, var(--mat-sys-primary) 60%, #311b92))">
+              <mat-icon>person_outline</mat-icon>
+            </div>
+            <div>
+              <h3 class="ds-title">Personal Information</h3>
+              <p class="ds-subtitle">Contact details and personal data</p>
+            </div>
+          </div>
+ 
+          @if (!isEditing()) {
+            <div class="info-grid">
+              @if (profileDetails()?.firstName) {
+                <div class="ig-item"><span class="ig-label">First Name</span><span class="ig-value">{{ profileDetails()?.firstName }}</span></div>
+              }
+              @if (profileDetails()?.lastName) {
+                <div class="ig-item"><span class="ig-label">Last Name</span><span class="ig-value">{{ profileDetails()?.lastName }}</span></div>
+              }
+              @if (profileDetails()?.email) {
+                <div class="ig-item"><span class="ig-label">Email Address</span><span class="ig-value"><a [href]="'mailto:' + profileDetails()?.email" class="ig-link">{{ profileDetails()?.email }}</a></span></div>
+              }
+              @if (profileDetails()?.phoneNumber) {
+                <div class="ig-item"><span class="ig-label">Phone Number</span><span class="ig-value"><a [href]="'tel:' + profileDetails()?.phoneNumber" class="ig-link">{{ profileDetails()?.phoneNumber }}</a></span></div>
+              }
+              @if (profileDetails()?.dateOfBirth) {
+                <div class="ig-item"><span class="ig-label">Date of Birth</span><span class="ig-value">{{ profileDetails()?.dateOfBirth | date:'dd MMMM yyyy' }}</span></div>
+              }
+              @if (profileDetails()?.country) {
+                <div class="ig-item">
+                  <span class="ig-label">Country</span>
+                  <span class="ig-value country-row">
+                    <img [src]="getFlagUrl(getCountryCode(profileDetails()?.country!))" width="20" height="14" style="border-radius:2px" />
+                    {{ profileDetails()?.country }}
+                  </span>
+                </div>
+              }
+              @if (profileDetails()?.address) {
+                <div class="ig-item ig-full"><span class="ig-label">Address</span><span class="ig-value">{{ profileDetails()?.address }}</span></div>
+              }
+            </div>
+          } @else {
+            <form [formGroup]="profileForm" class="edit-grid">
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>First Name</mat-label>
+                <input matInput formControlName="firstName">
+                <mat-icon matSuffix>person</mat-icon>
+                <mat-error *ngIf="profileForm.get('firstName')?.hasError('required')">Required</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>Last Name</mat-label>
+                <input matInput formControlName="lastName">
+                <mat-icon matSuffix>person</mat-icon>
+                <mat-error *ngIf="profileForm.get('lastName')?.hasError('required')">Required</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>Email</mat-label>
+                <input matInput type="email" formControlName="email" readonly>
+                <mat-icon matSuffix>lock_outline</mat-icon>
+                <mat-hint>Email cannot be changed</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>Phone Number</mat-label>
+                <input matInput type="tel" formControlName="phoneNumber" placeholder="+1 234 567 8900">
+                <mat-icon matSuffix>phone</mat-icon>
+                <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('pattern')">Invalid format</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>Date of Birth</mat-label>
+                <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth">
+                <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
+                <mat-datepicker #dobPicker></mat-datepicker>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>Country</mat-label>
+                <mat-select formControlName="country">
+                  <mat-select-trigger>
+                    @if (getSelectedCountry(); as c) {
+                      <img [src]="getFlagUrl(c.code)" width="20" height="14" style="margin-right:8px;vertical-align:middle;" />{{ c.name }}
+                    }
+                  </mat-select-trigger>
+                  @for (c of filteredCountries; track c.code) {
+                    <mat-option [value]="c.name">
+                      <img [src]="getFlagUrl(c.code)" width="20" height="14" style="margin-right:8px;vertical-align:middle;" />{{ c.name }}
+                    </mat-option>
+                  }
+                </mat-select>
+                <mat-icon matSuffix>public</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="eg-full">
+                <mat-label>Address</mat-label>
+                <textarea matInput formControlName="address" rows="2"></textarea>
+                <mat-icon matSuffix>location_on</mat-icon>
+              </mat-form-field>
+            </form>
+          }
+        </div>
+ 
+        <!-- Work Information -->
+        <div class="detail-section" [@slideUp]>
+          <div class="ds-header">
+            <div class="ds-icon-wrap" style="background: linear-gradient(135deg, #10b981, #047857)">
+              <mat-icon>work_outline</mat-icon>
+            </div>
+            <div>
+              <h3 class="ds-title">Work Information</h3>
+              <p class="ds-subtitle">Role, department and organisational placement</p>
+            </div>
+          </div>
+ 
+          @if (!isEditing()) {
+            <div class="info-grid">
+              @if (profileDetails()?.designationDisplay) {
+                <div class="ig-item"><span class="ig-label">Designation</span><span class="ig-value">{{ profileDetails()?.designationDisplay }}</span></div>
+              }
+              @if (profileDetails()?.departmentDisplay) {
+                <div class="ig-item"><span class="ig-label">Department</span><span class="ig-value">{{ profileDetails()?.departmentDisplay }}</span></div>
+              }
+              @if (profileDetails()?.subDepartmentDisplay) {
+                <div class="ig-item"><span class="ig-label">Sub Department</span><span class="ig-value">{{ profileDetails()?.subDepartmentDisplay }}</span></div>
+              }
+              @if (profileDetails()?.roleIdDisplay) {
+                <div class="ig-item"><span class="ig-label">System Role</span><span class="ig-value"><span class="role-tag">{{ profileDetails()?.roleIdDisplay === 'General' ? 'Admin' : profileDetails()?.roleIdDisplay }}</span></span></div>
+              }
+              @if (profileDetails()?.siteDisplay) {
+                <div class="ig-item"><span class="ig-label">Site / Branch</span><span class="ig-value">{{ profileDetails()?.siteDisplay }}</span></div>
+              }
+              @if (profileDetails()?.areaDisplay) {
+                <div class="ig-item"><span class="ig-label">Area</span><span class="ig-value">{{ profileDetails()?.areaDisplay }}</span></div>
+              }
+            </div>
+          } @else {
+            <form [formGroup]="profileForm" class="edit-grid">
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>Designation</mat-label>
+                <mat-select formControlName="designation">
+                  @for (d of designations; track d.id) { <mat-option [value]="d.id">{{ d.name }}</mat-option> }
+                </mat-select>
+                <mat-icon matSuffix>work</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>Department</mat-label>
+                <mat-select formControlName="department">
+                  @for (d of departments; track d.id) { <mat-option [value]="d.id">{{ d.name }}</mat-option> }
+                </mat-select>
+                <mat-icon matSuffix>corporate_fare</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>Sub Department</mat-label>
+                <mat-select formControlName="subDepartment">
+                  @for (sd of filteredSubDepartments; track sd.id) { <mat-option [value]="sd.id">{{ sd.name }}</mat-option> }
+                </mat-select>
+                <mat-icon matSuffix>account_tree</mat-icon>
+              </mat-form-field>
+            </form>
+          }
+        </div>
+ 
+        <!-- Important Dates (view) -->
+        @if (!isEditing() && (profileDetails()?.joiningDate || profileDetails()?.leavingDate)) {
+          <div class="detail-section" [@slideUp]>
+            <div class="ds-header">
+              <div class="ds-icon-wrap" style="background: linear-gradient(135deg, #f59e0b, #d97706)">
+                <mat-icon>event_note</mat-icon>
+              </div>
+              <div><h3 class="ds-title">Important Dates</h3><p class="ds-subtitle">Employment timeline</p></div>
+            </div>
+            <div class="dates-track">
+              @if (profileDetails()?.joiningDate) {
+                <div class="date-node active"><div class="dn-dot"></div><div class="dn-body"><span class="dn-label">Joining Date</span><span class="dn-value">{{ profileDetails()?.joiningDate | date:'dd MMMM yyyy' }}</span></div></div>
+              }
+              @if (profileDetails()?.leavingDate) {
+                <div class="date-node"><div class="dn-dot leaving"></div><div class="dn-body"><span class="dn-label">Leaving Date</span><span class="dn-value">{{ profileDetails()?.leavingDate | date:'dd MMMM yyyy' }}</span></div></div>
+              }
+            </div>
+          </div>
+        }
+ 
+        <!-- Important Dates (edit) -->
+        @if (isEditing()) {
+          <div class="detail-section" [@slideUp]>
+            <div class="ds-header">
+              <div class="ds-icon-wrap" style="background: linear-gradient(135deg, #f59e0b, #d97706)">
+                <mat-icon>event_note</mat-icon>
+              </div>
+              <div><h3 class="ds-title">Important Dates</h3><p class="ds-subtitle">Employment timeline</p></div>
+            </div>
+            <form [formGroup]="profileForm" class="edit-grid">
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>Joining Date</mat-label>
+                <input matInput [matDatepicker]="joinPicker" formControlName="joiningDate">
+                <mat-datepicker-toggle matSuffix [for]="joinPicker"></mat-datepicker-toggle>
+                <mat-datepicker #joinPicker></mat-datepicker>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="eg-half">
+                <mat-label>Leaving Date</mat-label>
+                <input matInput [matDatepicker]="leavePicker" formControlName="leavingDate">
+                <mat-datepicker-toggle matSuffix [for]="leavePicker"></mat-datepicker-toggle>
+                <mat-datepicker #leavePicker></mat-datepicker>
+              </mat-form-field>
+            </form>
+          </div>
+        }
+ 
+      </div><!-- /profile-content -->
     </div>
-  </div>
   }
-
-  <!-- Empty State -->
+ 
   @if (!isLoading() && !profileDetails()) {
-  <mat-card class="empty-state" [@fadeIn]>
-    <mat-icon class="empty-icon">person_off</mat-icon>
-    <h2>Profile Not Found</h2>
-    <p>Unable to load your profile information. Please try refreshing the page.</p>
-    <button mat-raised-button color="primary" (click)="loadProfileDetails()">
-      <mat-icon>refresh</mat-icon>
-      Retry
-    </button>
-  </mat-card>
+    <div class="empty-state" [@fadeSlide]>
+      <div class="es-icon"><mat-icon>person_off</mat-icon></div>
+      <h2>Profile Not Found</h2>
+      <p>Unable to load your profile. Please try again.</p>
+      <button mat-flat-button color="primary" (click)="loadProfileDetails()">
+        <mat-icon>refresh</mat-icon> Retry
+      </button>
+    </div>
   }
+ 
 </div>
